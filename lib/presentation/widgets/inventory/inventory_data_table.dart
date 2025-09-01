@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:intl/intl.dart';
+import 'package:inventory_system/presentation/dialogs/enhanced_barcode_dialog.dart';
 
 import '../../blocs/inventory/inventory_bloc.dart';
 import '../../blocs/category/category_bloc.dart';
@@ -410,7 +411,7 @@ class InventoryDataTable extends StatelessWidget {
   void _showQrCode(BuildContext context, InventoryItem item) {
     showDialog(
       context: context,
-      builder: (context) => EnhancedQrCodeDialog(item: item),
+      builder: (context) => EnhancedBarcodeDialog(item: item,),
     );
   }
 
