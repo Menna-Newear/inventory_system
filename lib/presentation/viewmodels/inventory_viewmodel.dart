@@ -1,8 +1,6 @@
 // presentation/viewmodels/inventory_viewmodel.dart
 import 'dart:ui';
-
 import 'package:flutter/foundation.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/inventory_item.dart';
 import '../blocs/inventory/inventory_bloc.dart';
 
@@ -56,9 +54,17 @@ class InventoryViewModel extends ChangeNotifier {
     return 0.0;
   }
 
-  // UI helper methods
-  String formatCurrency(double amount) {
+  // ✅ FIXED - UI helper methods with null safety
+  String formatCurrency(double? amount) {
+    if (amount == null) {
+      return 'N/A';
+    }
     return '\$${amount.toStringAsFixed(2)}';
+  }
+
+  // Alternative version that shows $0.00 for null values
+  String formatCurrencyWithDefault(double? amount) {
+    return '\$${(amount ?? 0.0).toStringAsFixed(2)}';
   }
 
   String formatNumber(int number) {
@@ -107,7 +113,19 @@ class InventoryViewModel extends ChangeNotifier {
   }
 
   String getItemSummary(InventoryItem item) {
-    return '${item.stockQuantity} units @ ${formatCurrency(item.unitPrice)} each';
+    final priceText = item.unitPrice != null
+        ? formatCurrency(item.unitPrice)
+        : 'No price set';
+    return '${item.stockQuantity} units @ $priceText each';
+  }
+
+  // ✅ Enhanced method for financial calculations
+  String getItemTotalValue(InventoryItem item) {
+    if (item.unitPrice == null) {
+      return 'N/A';
+    }
+    final totalValue = item.unitPrice! * item.stockQuantity;
+    return formatCurrency(totalValue);
   }
 
   List<InventoryItem> get criticalStockItems {
@@ -115,7 +133,19 @@ class InventoryViewModel extends ChangeNotifier {
   }
 
   List<InventoryItem> get lowStockItems {
-    return inventoryItems.where((item) => item.isLowStock && item.stockQuantity > 0).toList();
+    return inventoryItems
+        .where((item) => item.isLowStock && item.stockQuantity > 0)
+        .toList();
+  }
+
+  // ✅ Enhanced getter for items with prices
+  List<InventoryItem> get itemsWithPrices {
+    return inventoryItems.where((item) => item.unitPrice != null).toList();
+  }
+
+  // ✅ Enhanced getter for items without prices
+  List<InventoryItem> get itemsWithoutPrices {
+    return inventoryItems.where((item) => item.unitPrice == null).toList();
   }
 
   // Business logic methods
@@ -157,7 +187,7 @@ class InventoryViewModel extends ChangeNotifier {
 
     // Check if SKU already exists
     final existingItem = inventoryItems.firstWhere(
-          (item) => item.sku.toLowerCase() == sku.toLowerCase(),
+      (item) => item.sku.toLowerCase() == sku.toLowerCase(),
       orElse: () => InventoryItem(
         id: '',
         sku: '',
@@ -166,10 +196,20 @@ class InventoryViewModel extends ChangeNotifier {
         categoryId: '',
         subcategory: '',
         stockQuantity: 0,
-        unitPrice: 0.0,
+        unitPrice: null,
         minStockLevel: 0,
-        dimensions: ProductDimensions(width: 0, height: 0, depth: 0, unit: 'cm'),
-        imageProperties: ImageProperties(pixelWidth: 0, pixelHeight: 0, dpi: 0, colorSpace: 'RGB'),
+        dimensions: ProductDimensions(
+          width: 0,
+          height: 0,
+          depth: null,
+          unit: null,
+        ),
+        imageProperties: ImageProperties(
+          pixelWidth: 0,
+          pixelHeight: 0,
+          dpi: 0,
+          colorSpace: 'RGB',
+        ),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       ),
@@ -186,6 +226,41 @@ class InventoryViewModel extends ChangeNotifier {
   bool validateStock(String stock) {
     final parsedStock = int.tryParse(stock);
     return parsedStock != null && parsedStock >= 0;
+  }
+
+  bool validateOptionalPrice(String? price) {
+    if (price == null || price.trim().isEmpty) return true;
+    final parsedPrice = double.tryParse(price);
+    return parsedPrice != null && parsedPrice > 0;
+  }
+
+  double getTotalInventoryValue() {
+    return inventoryItems.fold<double>(
+      0.0,
+      (sum, item) => sum + (item.totalValue),
+    );
+  }
+
+  int getItemsWithPricesCount() {
+    return inventoryItems.where((item) => item.unitPrice != null).length;
+  }
+
+  int getItemsWithoutPricesCount() {
+    return inventoryItems.where((item) => item.unitPrice == null).length;
+  }
+
+  double getAveragePrice() {
+    final itemsWithPrices = inventoryItems
+        .where((item) => item.unitPrice != null)
+        .toList();
+    if (itemsWithPrices.isEmpty) return 0.0;
+
+    final totalPrice = itemsWithPrices.fold<double>(
+      0.0,
+      (sum, item) => sum + (item.unitPrice ?? 0.0),
+    );
+
+    return totalPrice / itemsWithPrices.length;
   }
 
   @override

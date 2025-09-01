@@ -1,7 +1,6 @@
 // presentation/widgets/inventory/inventory_filter_panel.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:inventory_system/presentation/widgets/common/dynamic_category_dropdown.dart';
 import '../../blocs/inventory/inventory_bloc.dart';
 import '../common/custom_dropdown.dart';
 import '../common/custom_text_field.dart';

@@ -10,8 +10,8 @@ ProductDimensions _$ProductDimensionsFromJson(Map<String, dynamic> json) =>
     ProductDimensions(
       width: (json['width'] as num).toDouble(),
       height: (json['height'] as num).toDouble(),
-      depth: (json['depth'] as num).toDouble(),
-      unit: json['unit'] as String,
+      depth: (json['depth'] as num?)?.toDouble(),
+      unit: json['unit'] as String? ?? 'mm',
     );
 
 Map<String, dynamic> _$ProductDimensionsToJson(ProductDimensions instance) =>

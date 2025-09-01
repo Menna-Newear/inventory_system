@@ -1,9 +1,11 @@
 // presentation/pages/inventory/add_edit_item_dialog.dart
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../domain/entities/inventory_item.dart';
-import '../../../injection_container.dart';
 import '../../blocs/category/category_bloc.dart';
 import '../../blocs/inventory/inventory_bloc.dart';
 import '../../widgets/common/custom_text_field.dart';
@@ -34,6 +36,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
   late TextEditingController _widthController;
   late TextEditingController _heightController;
   late TextEditingController _depthController;
+  late TextEditingController _unitController;
   late TextEditingController _pixelWidthController;
   late TextEditingController _pixelHeightController;
   late TextEditingController _dpiController;
@@ -42,6 +45,8 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
   String? _selectedCategoryId;
   String _selectedUnit = 'cm';
   String _selectedColorSpace = 'RGB';
+  File? _selectedImage;
+  final ImagePicker _imagePicker = ImagePicker();
 
   bool get isEditing => widget.item != null;
 
@@ -67,6 +72,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     _depthController = TextEditingController();
     _pixelWidthController = TextEditingController();
     _pixelHeightController = TextEditingController();
+    _unitController = TextEditingController(text: 'cm'); // Default unit
     _dpiController = TextEditingController(text: '300');
   }
 
@@ -78,14 +84,14 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     _selectedCategoryId = item.categoryId;
     _subcategoryController.text = item.subcategory;
     _stockController.text = item.stockQuantity.toString();
-    _priceController.text = item.unitPrice.toString();
+    _priceController.text = item.unitPrice?.toString() ?? '';
     _minStockController.text = item.minStockLevel.toString();
 
     // Dimensions
     _widthController.text = item.dimensions.width.toString();
     _heightController.text = item.dimensions.height.toString();
-    _depthController.text = item.dimensions.depth.toString();
-    _selectedUnit = item.dimensions.unit;
+    _depthController.text = item.dimensions.depth?.toString() ?? '';
+    _unitController.text = item.dimensions.unit ?? 'cm';
 
     // Image properties
     _pixelWidthController.text = item.imageProperties.pixelWidth.toString();
@@ -106,7 +112,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               print('🟢 Item created successfully in UI');
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('✅ Item "${state.item.nameEn}" created successfully!'),
+                  content: Text(
+                    '✅ Item "${state.item.nameEn}" created successfully!',
+                  ),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -115,7 +123,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               print('🟢 Item updated successfully in UI');
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('✅ Item "${state.item.nameEn}" updated successfully!'),
+                  content: Text(
+                    '✅ Item "${state.item.nameEn}" updated successfully!',
+                  ),
                   backgroundColor: Colors.blue,
                 ),
               );
@@ -156,8 +166,8 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
       ],
       child: Dialog(
         child: Container(
-          width: 800,
-          height: 700,
+          width: 900,
+          height: 750,
           child: Scaffold(
             appBar: AppBar(
               title: Text(isEditing ? 'Edit Item' : 'Add New Item'),
@@ -177,9 +187,11 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                   children: [
                     _buildBasicInfoSection(),
                     SizedBox(height: 24),
+                    _buildImageSection(),
+                    SizedBox(height: 24),
                     _buildInventorySection(),
                     SizedBox(height: 24),
-                    _buildDimensionsSection(),
+                    _buildEnhancedDimensionsSection(),
                     SizedBox(height: 24),
                     _buildImagePropertiesSection(),
                     SizedBox(height: 32),
@@ -203,9 +215,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
           children: [
             Text(
               'Basic Information',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             Row(
@@ -255,7 +267,158 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     );
   }
 
-  // ... (rest of your widget methods remain the same)
+  Widget _buildImageSection() {
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Product Image',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                // Image preview
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: _selectedImage != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                        )
+                      : (widget.item?.imageUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  widget.item!.imageUrl!,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Icon(Icons.image, size: 48, color: Colors.grey)),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _pickImage,
+                        icon: Icon(Icons.photo_library),
+                        label: Text('Choose Image'),
+                      ),
+                      SizedBox(height: 8),
+                      ElevatedButton.icon(
+                        onPressed: _takePhoto,
+                        icon: Icon(Icons.camera_alt),
+                        label: Text('Take Photo'),
+                      ),
+                      SizedBox(height: 8),
+                      if (_selectedImage != null ||
+                          widget.item?.imageUrl != null)
+                        TextButton.icon(
+                          onPressed: _clearImage,
+                          icon: Icon(Icons.clear, color: Colors.red),
+                          label: Text(
+                            'Remove Image',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEnhancedDimensionsSection() {
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Product Dimensions',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomTextField(
+                    controller: _widthController,
+                    label: 'Width *',
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: Validators.positiveDouble,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: CustomTextField(
+                    controller: _heightController,
+                    label: 'Height *',
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: Validators.positiveDouble,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: CustomTextField(
+                    controller: _depthController,
+                    label: 'Depth (Optional)',
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: (value) {
+                      if (value?.isNotEmpty == true) {
+                        return Validators.positiveDouble(value);
+                      }
+                      return null; // Optional field
+                    },
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: CustomDropdown<String>(
+                    label: 'Unit',
+                    value: _unitController.text.isEmpty
+                        ? 'cm'
+                        : _unitController.text,
+                    items: ['cm', 'inch', 'm', 'mm', 'px'],
+                    onChanged: (value) {
+                      setState(() {
+                        _unitController.text = value ?? 'cm';
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildInventorySection() {
     return Card(
@@ -266,9 +429,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
           children: [
             Text(
               'Inventory Details',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             Row(
@@ -297,7 +460,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
             SizedBox(height: 16),
             CustomTextField(
               controller: _priceController,
-              label: 'Unit Price (\$)',
+              label: 'Unit Price (Optional)',
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
@@ -319,9 +482,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
           children: [
             Text(
               'Product Dimensions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             Row(
@@ -330,7 +493,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                   child: CustomTextField(
                     controller: _widthController,
                     label: 'Width',
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     validator: Validators.positiveDouble,
                   ),
                 ),
@@ -339,7 +504,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                   child: CustomTextField(
                     controller: _heightController,
                     label: 'Height',
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     validator: Validators.positiveDouble,
                   ),
                 ),
@@ -348,7 +515,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                   child: CustomTextField(
                     controller: _depthController,
                     label: 'Depth',
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     validator: Validators.positiveDouble,
                   ),
                 ),
@@ -382,9 +551,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
           children: [
             Text(
               'Image Properties',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             Row(
@@ -460,16 +629,53 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               onPressed: isLoading ? null : _saveItem,
               child: isLoading
                   ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : Text(isEditing ? 'Update Item' : 'Create Item'),
             ),
           ],
         );
       },
     );
+  }
+
+  // Image handling methods
+  Future<void> _pickImage() async {
+    final XFile? image = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      imageQuality: 80,
+    );
+
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    final XFile? image = await _imagePicker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      imageQuality: 80,
+    );
+
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
+  void _clearImage() {
+    setState(() {
+      _selectedImage = null;
+    });
   }
 
   void _saveItem() {
@@ -514,20 +720,25 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
 
   InventoryItem _createInventoryItem() {
     return InventoryItem(
-      id: isEditing ? widget.item!.id : '', // Let Supabase generate UUID
+      id: isEditing ? widget.item!.id : '',
+      // Let Supabase generate UUID
       sku: _skuController.text.trim(),
       nameEn: _nameEnController.text.trim(),
       nameAr: _nameArController.text.trim(),
       categoryId: _selectedCategoryId!,
       subcategory: _subcategoryController.text.trim(),
       stockQuantity: int.tryParse(_stockController.text) ?? 0,
-      unitPrice: double.tryParse(_priceController.text) ?? 0.0,
+      unitPrice: _priceController.text.isEmpty
+          ? null
+          : double.tryParse(_priceController.text),
       minStockLevel: int.tryParse(_minStockController.text) ?? 0,
       dimensions: ProductDimensions(
         width: double.tryParse(_widthController.text) ?? 0.0,
         height: double.tryParse(_heightController.text) ?? 0.0,
-        depth: double.tryParse(_depthController.text) ?? 0.0,
-        unit: _selectedUnit,
+        depth: _depthController.text.isEmpty
+            ? null
+            : double.tryParse(_depthController.text),
+        unit: _unitController.text.isEmpty ? null : _unitController.text,
       ),
       imageProperties: ImageProperties(
         pixelWidth: int.tryParse(_pixelWidthController.text) ?? 1920,
@@ -535,6 +746,8 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
         dpi: int.tryParse(_dpiController.text) ?? 300,
         colorSpace: _selectedColorSpace,
       ),
+      imageUrl: _selectedImage?.path, // Will be uploaded to Supabase
+      imageFileName: _selectedImage?.path.split('/').last,
       createdAt: isEditing ? widget.item!.createdAt : DateTime.now(),
       updatedAt: DateTime.now(),
     );

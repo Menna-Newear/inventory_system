@@ -15,7 +15,7 @@ InventoryItemModel _$InventoryItemModelFromJson(Map<String, dynamic> json) =>
       categoryId: json['category_id'] as String,
       subcategory: json['subcategory'] as String,
       stockQuantity: (json['stock_quantity'] as num).toInt(),
-      unitPrice: (json['unit_price'] as num).toDouble(),
+      unitPrice: (json['unit_price'] as num?)?.toDouble(),
       minStockLevel: (json['min_stock_level'] as num).toInt(),
       dimensions: ProductDimensions.fromJson(
         json['dimensions'] as Map<String, dynamic>,
@@ -23,6 +23,8 @@ InventoryItemModel _$InventoryItemModelFromJson(Map<String, dynamic> json) =>
       imageProperties: ImageProperties.fromJson(
         json['image_properties'] as Map<String, dynamic>,
       ),
+      imageUrl: json['image_url'] as String?,
+      imageFileName: json['image_file_name'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -40,6 +42,8 @@ Map<String, dynamic> _$InventoryItemModelToJson(InventoryItemModel instance) =>
       'min_stock_level': instance.minStockLevel,
       'dimensions': instance.dimensions,
       'image_properties': instance.imageProperties,
+      'image_url': instance.imageUrl,
+      'image_file_name': instance.imageFileName,
       'created_at': instance.createdAt.toIso8601String(),
       'updated_at': instance.updatedAt.toIso8601String(),
     };

@@ -25,7 +25,6 @@ import 'domain/usecases/search_inventory_items.dart' as search_items_usecase;
 import 'domain/usecases/filter_inventory_items.dart' as filter_items_usecase;
 
 import 'presentation/blocs/inventory/inventory_bloc.dart';
-import 'presentation/viewmodels/inventory_viewmodel.dart';
 
 final getIt = GetIt.instance;
 
@@ -37,28 +36,27 @@ Future<void> init() async {
   getIt.registerLazySingleton(() => Connectivity());
 
   // Core
-  getIt.registerLazySingleton<NetworkInfo>(
-        () => NetworkInfoImpl(getIt()),
-  );
+  getIt.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(getIt()));
 
   // Data sources
   getIt.registerLazySingleton<InventoryLocalDataSource>(
-        () => InventoryLocalDataSourceImpl(sharedPreferences: getIt()),
+    () => InventoryLocalDataSourceImpl(sharedPreferences: getIt()),
   );
 
   getIt.registerLazySingleton<InventoryRemoteDataSource>(
-        () => InventoryRemoteDataSourceImpl(supabase: getIt()),
+    () => InventoryRemoteDataSourceImpl(supabase: getIt()),
   );
 
   getIt.registerLazySingleton<CategoryRemoteDataSource>(
-        () => CategoryRemoteDataSourceImpl(supabase: getIt()),
+    () => CategoryRemoteDataSourceImpl(supabase: getIt()),
   );
   getIt.registerLazySingleton<CategoryRepository>(
-        () => CategoryRepositoryImpl(remoteDataSource: getIt()),
+    () =>
+        CategoryRepositoryImpl(remoteDataSource: getIt(),),
   );
   // Repositories
   getIt.registerLazySingleton<InventoryRepository>(
-        () => InventoryRepositoryImpl(
+    () => InventoryRepositoryImpl(
       remoteDataSource: getIt(),
       localDataSource: getIt(),
       networkInfo: getIt(),
@@ -66,18 +64,34 @@ Future<void> init() async {
   );
 
   // Use cases - using the aliased imports
-  getIt.registerLazySingleton(() => get_items_usecase.GetInventoryItems(getIt()));
-  getIt.registerLazySingleton(() => create_item_usecase.CreateInventoryItem(getIt()));
-  getIt.registerLazySingleton(() => update_item_usecase.UpdateInventoryItem(getIt()));
-  getIt.registerLazySingleton(() => delete_item_usecase.DeleteInventoryItem(getIt()));
-  getIt.registerLazySingleton(() => search_items_usecase.SearchInventoryItems(getIt()));
-  getIt.registerLazySingleton(() => filter_items_usecase.FilterInventoryItems(getIt()));
-  getIt.registerLazySingleton(() => get_categories_usecase.GetCategories(getIt()));
-  getIt.registerLazySingleton(() => create_category_usecase.CreateCategory(getIt()));
+  getIt.registerLazySingleton(
+    () => get_items_usecase.GetInventoryItems(getIt()),
+  );
+  getIt.registerLazySingleton(
+    () => create_item_usecase.CreateInventoryItem(getIt()),
+  );
+  getIt.registerLazySingleton(
+    () => update_item_usecase.UpdateInventoryItem(getIt()),
+  );
+  getIt.registerLazySingleton(
+    () => delete_item_usecase.DeleteInventoryItem(getIt()),
+  );
+  getIt.registerLazySingleton(
+    () => search_items_usecase.SearchInventoryItems(getIt()),
+  );
+  getIt.registerLazySingleton(
+    () => filter_items_usecase.FilterInventoryItems(getIt()),
+  );
+  getIt.registerLazySingleton(
+    () => get_categories_usecase.GetCategories(getIt()),
+  );
+  getIt.registerLazySingleton(
+    () => create_category_usecase.CreateCategory(getIt()),
+  );
 
   // BLoCs
   getIt.registerFactory(
-        () => InventoryBloc(
+    () => InventoryBloc(
       getInventoryItems: getIt(),
       createInventoryItem: getIt(),
       updateInventoryItem: getIt(),
@@ -87,13 +101,12 @@ Future<void> init() async {
     ),
   );
 
-
-
   // ViewModels
   getIt.registerFactory(
-        () => CategoryBloc(
+    () => CategoryBloc(
       getCategories: getIt(),
       createCategory: getIt(),
+
     ),
   );
 }

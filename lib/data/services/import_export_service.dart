@@ -8,7 +8,6 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../domain/entities/inventory_item.dart';
 
 class ImportExportService {
-
   Future<List<InventoryItem>?> importFromCSV() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -25,7 +24,8 @@ class ImportExportService {
         final items = <InventoryItem>[];
         for (int i = 1; i < fields.length; i++) {
           final row = fields[i];
-          if (row.length >= 8) { // Minimum required fields
+          if (row.length >= 8) {
+            // Minimum required fields
             items.add(_createItemFromRow(row));
           }
         }
@@ -42,7 +42,9 @@ class ImportExportService {
   Future<void> exportToCSV(List<InventoryItem> items) async {
     try {
       final directory = await getDownloadsDirectory();
-      final file = File('${directory?.path}/inventory_export_${DateTime.now().millisecondsSinceEpoch}.csv');
+      final file = File(
+        '${directory?.path}/inventory_export_${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
 
       final List<List<dynamic>> csvData = [
         // Header row
@@ -63,22 +65,24 @@ class ImportExportService {
           'Updated At',
         ],
         // Data rows
-        ...items.map((item) => [
-          item.sku,
-          item.nameEn,
-          item.nameAr,
-          item.categoryId,
-          item.subcategory,
-          item.stockQuantity,
-          item.unitPrice,
-          item.minStockLevel,
-          item.dimensions.width,
-          item.dimensions.height,
-          item.dimensions.depth,
-          item.dimensions.unit,
-          item.createdAt.toIso8601String(),
-          item.updatedAt.toIso8601String(),
-        ]),
+        ...items.map(
+          (item) => [
+            item.sku,
+            item.nameEn,
+            item.nameAr,
+            item.categoryId,
+            item.subcategory,
+            item.stockQuantity,
+            item.unitPrice ?? 'N/A',
+            item.minStockLevel,
+            item.dimensions.width,
+            item.dimensions.height,
+            item.dimensions.depth ?? 'N/A', //
+            item.dimensions.unit ?? 'mm', //
+            item.createdAt.toIso8601String(),
+            item.updatedAt.toIso8601String(),
+          ],
+        ),
       ];
 
       final csvString = const ListToCsvConverter().convert(csvData);
@@ -100,8 +104,13 @@ class ImportExportService {
             return [
               pw.Header(
                 level: 0,
-                child: pw.Text('Inventory Report',
-                    style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text(
+                  'Inventory Report',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
               ),
               pw.SizedBox(height: 20),
               pw.Table(
@@ -126,15 +135,17 @@ class ImportExportService {
                     ],
                   ),
                   // Data rows
-                  ...items.map((item) => pw.TableRow(
-                    children: [
-                      _buildPdfCell(item.sku),
-                      _buildPdfCell(item.nameEn),
-                      _buildPdfCell(item.stockQuantity.toString()),
-                      _buildPdfCell('\$${item.unitPrice.toStringAsFixed(2)}'),
-                      _buildPdfCell('\$${item.totalValue.toStringAsFixed(2)}'),
-                    ],
-                  )),
+                  ...items.map(
+                    (item) => pw.TableRow(
+                      children: [
+                        _buildPdfCell(item.sku),
+                        _buildPdfCell(item.nameEn),
+                        _buildPdfCell(item.stockQuantity.toString()),
+                        _buildPdfCell(_formatPrice(item.unitPrice)),
+                        _buildPdfCell(_formatPrice(item.totalValue)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ];
@@ -143,13 +154,23 @@ class ImportExportService {
       );
 
       final directory = await getDownloadsDirectory();
-      final file = File('${directory?.path}/inventory_report_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      final file = File(
+        '${directory?.path}/inventory_report_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      );
       await file.writeAsBytes(await pdf.save());
 
       print('PDF exported to: ${file.path}');
     } catch (e) {
       throw Exception('Error exporting PDF: $e');
     }
+  }
+
+  // ✅ NEW HELPER METHOD - Safe price formatting
+  String _formatPrice(double? price) {
+    if (price == null) {
+      return 'N/A';
+    }
+    return '\$${price.toStringAsFixed(2)}';
   }
 
   pw.Widget _buildPdfCell(String text, {bool isHeader = false}) {
@@ -173,13 +194,19 @@ class ImportExportService {
       categoryId: row[3].toString(),
       subcategory: row[4].toString(),
       stockQuantity: int.tryParse(row[5].toString()) ?? 0,
-      unitPrice: double.tryParse(row[6].toString()) ?? 0.0,
+      unitPrice: row[6]?.toString().isEmpty == true
+          ? null
+          : double.tryParse(row[6].toString()),
       minStockLevel: int.tryParse(row[7].toString()) ?? 0,
       dimensions: ProductDimensions(
         width: double.tryParse(row[8]?.toString() ?? '0') ?? 0.0,
         height: double.tryParse(row[9]?.toString() ?? '0') ?? 0.0,
-        depth: double.tryParse(row[10]?.toString() ?? '0') ?? 0.0,
-        unit: row[11]?.toString() ?? 'cm',
+        depth: (row.length > 10 && row[10]?.toString().isNotEmpty == true)
+            ? double.tryParse(row[10].toString())
+            : null,
+        unit: (row.length > 11 && row[11]?.toString().isNotEmpty == true)
+            ? row[11].toString()
+            : null,
       ),
       imageProperties: ImageProperties(
         pixelWidth: 1920,

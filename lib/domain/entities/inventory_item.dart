@@ -13,10 +13,12 @@ class InventoryItem extends Equatable {
   final String categoryId;
   final String subcategory;
   final int stockQuantity;
-  final double unitPrice;
+  final double? unitPrice;
   final int minStockLevel;
   final ProductDimensions dimensions;
   final ImageProperties imageProperties;
+  final String? imageUrl; // New field for item image
+  final String? imageFileName; // New field for image metadata
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -28,39 +30,69 @@ class InventoryItem extends Equatable {
     required this.categoryId,
     required this.subcategory,
     required this.stockQuantity,
-    required this.unitPrice,
+     this.unitPrice,
     required this.minStockLevel,
     required this.dimensions,
     required this.imageProperties,
+    this.imageUrl,
+    this.imageFileName,
     required this.createdAt,
     required this.updatedAt,
   });
+
+
+  bool get isLowStock => stockQuantity <= minStockLevel;
+  double get totalValue => (unitPrice ?? 0.0) * stockQuantity;
+  bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
+  bool get hasPrice => unitPrice != null && unitPrice! > 0;
+
+  String get displayPrice => unitPrice != null
+      ? '\$${unitPrice!.toStringAsFixed(2)}'
+      : 'Price not set';
+
+
+  Map<String, dynamic> get qrCodeData => {
+    'id': id,
+    'sku': sku,
+    'name': nameEn,
+    'nameAr': nameAr,
+    'price': unitPrice?.toString() ?? '',
+    'category': categoryId,
+    'stock': stockQuantity.toString(),
+  };
 
   @override
   List<Object?> get props => [
     id, sku, nameEn, nameAr, categoryId, subcategory,
     stockQuantity, unitPrice, minStockLevel, dimensions,
-    imageProperties, createdAt, updatedAt
+    imageProperties, imageUrl, imageFileName, createdAt, updatedAt,
   ];
-
-  bool get isLowStock => stockQuantity <= minStockLevel;
-  double get totalValue => stockQuantity * unitPrice;
 }
 
 @JsonSerializable()
 class ProductDimensions extends Equatable {
   final double width;
   final double height;
-  final double depth;
-  final String unit;
+  final double? depth;
+  final String? unit;
 
   const ProductDimensions({
     required this.width,
     required this.height,
-    required this.depth,
-    required this.unit,
+     this.depth,
+     this.unit='mm',
   });
+  double get volume => depth != null ? width * height * depth! : 0.0;
+  String get displayUnit => unit ?? 'units';
+  bool get hasDepth => depth != null && depth! > 0;
 
+  String get dimensionsText {
+    if (hasDepth) {
+      return '${width}×${height}×${depth!} $displayUnit';
+    } else {
+      return '${width}×${height} $displayUnit';
+    }
+  }
   factory ProductDimensions.fromJson(Map<String, dynamic> json) =>
       _$ProductDimensionsFromJson(json);
 

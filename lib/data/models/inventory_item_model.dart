@@ -18,12 +18,16 @@ class InventoryItemModel {
   @JsonKey(name: 'stock_quantity')
   final int stockQuantity;
   @JsonKey(name: 'unit_price')
-  final double unitPrice;
+  final double? unitPrice;
   @JsonKey(name: 'min_stock_level')
   final int minStockLevel;
   final ProductDimensions dimensions;
   @JsonKey(name: 'image_properties')
   final ImageProperties imageProperties;
+  @JsonKey(name: 'image_url')
+  final String? imageUrl;
+  @JsonKey(name: 'image_file_name')
+  final String? imageFileName;
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @JsonKey(name: 'updated_at')
@@ -37,10 +41,12 @@ class InventoryItemModel {
     required this.categoryId,
     required this.subcategory,
     required this.stockQuantity,
-    required this.unitPrice,
+    this.unitPrice,
     required this.minStockLevel,
     required this.dimensions,
     required this.imageProperties,
+    this.imageUrl,
+    this.imageFileName,
     required this.createdAt,
     required this.updatedAt,
   });

@@ -157,7 +157,7 @@ class DynamicCategoryDropdown extends StatelessWidget {
       ),
       // Category options
       ...categories
-          .where((category) => category.id != null && category.id.isNotEmpty)
+          .where((category) => category.id.isNotEmpty)
           .map((category) => DropdownMenuItem<String>(
         value: category.id,
         child: Text(

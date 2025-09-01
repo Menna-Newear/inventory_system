@@ -211,7 +211,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
       if (filters.containsKey('min_price') && filters['min_price'] != null) {
         final minPrice = filters['min_price'] as double;
         filteredItems = filteredItems
-            .where((item) => item.unitPrice >= minPrice)
+            .where((item) => (item.unitPrice ?? 0.0) >= minPrice)
             .toList();
       }
 
@@ -219,7 +219,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
       if (filters.containsKey('max_price') && filters['max_price'] != null) {
         final maxPrice = filters['max_price'] as double;
         filteredItems = filteredItems
-            .where((item) => item.unitPrice <= maxPrice)
+            .where((item) => (item.unitPrice ?? 0.0) <= maxPrice)
             .toList();
       }
 
@@ -342,15 +342,23 @@ class InventoryRepositoryImpl implements InventoryRepository {
       return itemsResult.fold(
             (failure) => Left(failure),
             (items) {
+              final totalValue = items.fold<double>(
+                0.0,
+                    (sum, item) => sum + (item.totalValue), // totalValue already handles null
+              );
+              final itemsWithPrice = items.where((item) => item.unitPrice != null).toList();
+              final averagePrice = itemsWithPrice.isNotEmpty
+                  ? itemsWithPrice.fold<double>(0.0, (sum, item) => sum + (item.unitPrice ?? 0.0)) / itemsWithPrice.length
+                  : 0.0;
           final stats = {
             'total_items': items.length,
-            'total_value': items.fold(0.0, (sum, item) => sum + item.totalValue),
+            'total_value': totalValue,
             'low_stock_count': items.where((item) => item.isLowStock).length,
             'out_of_stock_count': items.where((item) => item.stockQuantity == 0).length,
             'categories_count': items.map((item) => item.categoryId).toSet().length,
-            'average_price': items.isNotEmpty
-                ? items.fold(0.0, (sum, item) => sum + item.unitPrice) / items.length
-                : 0.0,
+            'average_price': averagePrice,
+            'items_with_price': itemsWithPrice.length,
+            'items_without_price': items.length - itemsWithPrice.length
           };
           return Right(stats);
         },
