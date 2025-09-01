@@ -77,7 +77,7 @@ class ImportExportService {
             item.minStockLevel,
             item.dimensions.width,
             item.dimensions.height,
-            item.dimensions.depth ?? 'N/A', //
+            item.dimensions.otherSp ?? 'N/A', //
             item.dimensions.unit ?? 'mm', //
             item.createdAt.toIso8601String(),
             item.updatedAt.toIso8601String(),
@@ -188,25 +188,31 @@ class ImportExportService {
   InventoryItem _createItemFromRow(List<dynamic> row) {
     return InventoryItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      sku: row[0].toString(),
-      nameEn: row[1].toString(),
+      sku: row[0]?.toString() ?? '',
+      nameEn: row[1]?.toString() ?? '',
       nameAr: row[2]?.toString() ?? '',
-      categoryId: row[3].toString(),
-      subcategory: row[4].toString(),
-      stockQuantity: int.tryParse(row[5].toString()) ?? 0,
-      unitPrice: row[6]?.toString().isEmpty == true
-          ? null
-          : double.tryParse(row[6].toString()),
-      minStockLevel: int.tryParse(row[7].toString()) ?? 0,
+      descriptionEn: (row.length > 3 && row[3]?.toString().trim().isNotEmpty == true)
+          ? row[3].toString()
+          : null,  // ✅ NEW - Handle description fields
+      descriptionAr: (row.length > 4 && row[4]?.toString().trim().isNotEmpty == true)
+          ? row[4].toString()
+          : null,  // ✅ NEW
+      categoryId: row.length > 5 ? (row[5]?.toString() ?? '') : '',
+      subcategory: row.length > 6 ? (row[6]?.toString() ?? '') : '',
+      stockQuantity: row.length > 7 ? (int.tryParse(row[7]?.toString() ?? '') ?? 0) : 0,
+      unitPrice: row.length > 8 && row[8]?.toString().trim().isNotEmpty == true
+          ? double.tryParse(row[8].toString())
+          : null,
+      minStockLevel: row.length > 9 ? (int.tryParse(row[9]?.toString() ?? '') ?? 0) : 0,
       dimensions: ProductDimensions(
-        width: double.tryParse(row[8]?.toString() ?? '0') ?? 0.0,
-        height: double.tryParse(row[9]?.toString() ?? '0') ?? 0.0,
-        depth: (row.length > 10 && row[10]?.toString().isNotEmpty == true)
-            ? double.tryParse(row[10].toString())
+        width: row.length > 10 ? (double.tryParse(row[10]?.toString() ?? '') ?? 0.0) : 0.0,
+        height: row.length > 11 ? (double.tryParse(row[11]?.toString() ?? '') ?? 0.0) : 0.0,
+        otherSp: (row.length > 12 && row[12]?.toString().trim().isNotEmpty == true)
+            ? row[12].toString()  // ✅ CRITICAL FIX - Use String, not double.tryParse()
             : null,
-        unit: (row.length > 11 && row[11]?.toString().isNotEmpty == true)
-            ? row[11].toString()
-            : null,
+        unit: (row.length > 13 && row[13]?.toString().trim().isNotEmpty == true)
+            ? row[13].toString()
+            : 'mm',  // Default unit
       ),
       imageProperties: ImageProperties(
         pixelWidth: 1920,
@@ -214,6 +220,9 @@ class ImportExportService {
         dpi: 300,
         colorSpace: 'RGB',
       ),
+      comment: (row.length > 14 && row[14]?.toString().trim().isNotEmpty == true)
+          ? row[14].toString()
+          : null,  // ✅ NEW - Handle comment field
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );

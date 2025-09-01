@@ -5,12 +5,20 @@ import '../../core/constants/supabase_constants.dart';
 
 abstract class InventoryRemoteDataSource {
   Future<List<InventoryItemModel>> getAllInventoryItems();
+
   Future<InventoryItemModel> getInventoryItem(String id);
+
   Future<InventoryItemModel> createInventoryItem(InventoryItemModel item);
+
   Future<InventoryItemModel> updateInventoryItem(InventoryItemModel item);
+
   Future<void> deleteInventoryItem(String id);
+
   Future<List<InventoryItemModel>> searchInventoryItems(String query);
-  Future<List<InventoryItemModel>> filterInventoryItems(Map<String, dynamic> filters);
+
+  Future<List<InventoryItemModel>> filterInventoryItems(
+    Map<String, dynamic> filters,
+  );
 }
 
 class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
@@ -50,7 +58,9 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
   }
 
   @override
-  Future<InventoryItemModel> createInventoryItem(InventoryItemModel item) async {
+  Future<InventoryItemModel> createInventoryItem(
+    InventoryItemModel item,
+  ) async {
     try {
       final response = await supabase
           .from(SupabaseConstants.inventoryTable)
@@ -65,8 +75,17 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
   }
 
   @override
-  Future<InventoryItemModel> updateInventoryItem(InventoryItemModel item) async {
+  Future<InventoryItemModel> updateInventoryItem(
+    InventoryItemModel item,
+  ) async {
     try {
+      print('🟡 REMOTE: Starting update for item: ${item.id}');
+      print('🟡 REMOTE: Item data being sent to Supabase:');
+      final dataToSend = item.toSupabase();
+      print('🟡 REMOTE: descriptionEn: ${dataToSend['description_en']}');
+      print('🟡 REMOTE: descriptionAr: ${dataToSend['description_ar']}');
+      print('🟡 REMOTE: comment: ${dataToSend['comment']}');
+      print('🟡 REMOTE: Full data: $dataToSend');
       final response = await supabase
           .from(SupabaseConstants.inventoryTable)
           .update(item.toSupabase())
@@ -74,7 +93,22 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
           .select()
           .single();
 
-      return InventoryItemModel.fromSupabase(response);
+      print('🟢 REMOTE: Database response received:');
+      print('🟢 REMOTE: Response descriptionEn: ${response['description_en']}');
+      print('🟢 REMOTE: Response descriptionAr: ${response['description_ar']}');
+      print('🟢 REMOTE: Response comment: ${response['comment']}');
+      print('🟢 REMOTE: Full response: $response');
+
+      final resultModel = InventoryItemModel.fromSupabase(response);
+      print(
+        '🟢 REMOTE: Converted model descriptionEn: ${resultModel.descriptionEn}',
+      );
+      print(
+        '🟢 REMOTE: Converted model descriptionAr: ${resultModel.descriptionAr}',
+      );
+      print('🟢 REMOTE: Converted model comment: ${resultModel.comment}');
+
+      return resultModel;
     } catch (e) {
       throw Exception('Failed to update inventory item: $e');
     }
@@ -98,7 +132,9 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
       final response = await supabase
           .from(SupabaseConstants.inventoryTable)
           .select()
-          .or('name_en.ilike.%$query%,name_ar.ilike.%$query%,sku.ilike.%$query%')
+          .or(
+            'name_en.ilike.%$query%,name_ar.ilike.%$query%,sku.ilike.%$query%',
+          )
           .order('created_at', ascending: false);
 
       return (response as List)
@@ -110,7 +146,9 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
   }
 
   @override
-  Future<List<InventoryItemModel>> filterInventoryItems(Map<String, dynamic> filters) async {
+  Future<List<InventoryItemModel>> filterInventoryItems(
+    Map<String, dynamic> filters,
+  ) async {
     try {
       var query = supabase.from(SupabaseConstants.inventoryTable).select();
 
@@ -120,7 +158,11 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
       }
 
       if (filters['low_stock'] == true) {
-        query = query.filter('stock_quantity', 'lte', filters['min_stock_level'] ?? 0);
+        query = query.filter(
+          'stock_quantity',
+          'lte',
+          filters['min_stock_level'] ?? 0,
+        );
       }
 
       if (filters['min_price'] != null) {

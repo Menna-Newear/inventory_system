@@ -201,7 +201,7 @@ class InventoryViewModel extends ChangeNotifier {
         dimensions: ProductDimensions(
           width: 0,
           height: 0,
-          depth: null,
+          otherSp: null,
           unit: null,
         ),
         imageProperties: ImageProperties(

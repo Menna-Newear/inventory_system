@@ -12,6 +12,8 @@ InventoryItemModel _$InventoryItemModelFromJson(Map<String, dynamic> json) =>
       sku: json['sku'] as String,
       nameEn: json['name_en'] as String,
       nameAr: json['name_ar'] as String,
+      descriptionEn: json['description_en'] as String?,
+      descriptionAr: json['description_ar'] as String?,
       categoryId: json['category_id'] as String,
       subcategory: json['subcategory'] as String,
       stockQuantity: (json['stock_quantity'] as num).toInt(),
@@ -24,9 +26,10 @@ InventoryItemModel _$InventoryItemModelFromJson(Map<String, dynamic> json) =>
         json['image_properties'] as Map<String, dynamic>,
       ),
       imageUrl: json['image_url'] as String?,
-      imageFileName: json['image_file_name'] as String?,
+      imageFileName: json['image_filename'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      comment: json['comment'] as String?,
     );
 
 Map<String, dynamic> _$InventoryItemModelToJson(InventoryItemModel instance) =>
@@ -35,6 +38,8 @@ Map<String, dynamic> _$InventoryItemModelToJson(InventoryItemModel instance) =>
       'sku': instance.sku,
       'name_en': instance.nameEn,
       'name_ar': instance.nameAr,
+      'description_en': instance.descriptionEn,
+      'description_ar': instance.descriptionAr,
       'category_id': instance.categoryId,
       'subcategory': instance.subcategory,
       'stock_quantity': instance.stockQuantity,
@@ -43,7 +48,8 @@ Map<String, dynamic> _$InventoryItemModelToJson(InventoryItemModel instance) =>
       'dimensions': instance.dimensions,
       'image_properties': instance.imageProperties,
       'image_url': instance.imageUrl,
-      'image_file_name': instance.imageFileName,
+      'image_filename': instance.imageFileName,
       'created_at': instance.createdAt.toIso8601String(),
       'updated_at': instance.updatedAt.toIso8601String(),
+      'comment': instance.comment,
     };

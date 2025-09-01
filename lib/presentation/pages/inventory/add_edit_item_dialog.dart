@@ -35,16 +35,18 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
   late TextEditingController _minStockController;
   late TextEditingController _widthController;
   late TextEditingController _heightController;
-  late TextEditingController _depthController;
+  late TextEditingController _otherSpController;
   late TextEditingController _unitController;
   late TextEditingController _pixelWidthController;
   late TextEditingController _pixelHeightController;
   late TextEditingController _dpiController;
-
+  late TextEditingController _descriptionEnController;
+  late TextEditingController _descriptionArController;
+  late TextEditingController _commentController;
   // Dropdown values
   String? _selectedCategoryId;
-  String _selectedUnit = 'cm';
-  String _selectedColorSpace = 'RGB';
+  String _selectedUnit = 'mm';
+  String _selectedColorSpace = 'N/A';
   File? _selectedImage;
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -65,14 +67,17 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     _nameArController = TextEditingController();
     _subcategoryController = TextEditingController();
     _stockController = TextEditingController();
+    _descriptionEnController = TextEditingController();
+    _descriptionArController = TextEditingController();
+    _commentController = TextEditingController();
     _priceController = TextEditingController();
     _minStockController = TextEditingController();
     _widthController = TextEditingController();
     _heightController = TextEditingController();
-    _depthController = TextEditingController();
+    _otherSpController = TextEditingController();
     _pixelWidthController = TextEditingController();
     _pixelHeightController = TextEditingController();
-    _unitController = TextEditingController(text: 'cm'); // Default unit
+    _unitController = TextEditingController(text: 'mm'); // Default unit
     _dpiController = TextEditingController(text: '300');
   }
 
@@ -86,11 +91,13 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     _stockController.text = item.stockQuantity.toString();
     _priceController.text = item.unitPrice?.toString() ?? '';
     _minStockController.text = item.minStockLevel.toString();
-
+    _descriptionEnController.text=item.descriptionEn ??'';
+    _descriptionArController.text=item.descriptionAr ??'';
+    _commentController.text=item.comment ??'';
     // Dimensions
     _widthController.text = item.dimensions.width.toString();
     _heightController.text = item.dimensions.height.toString();
-    _depthController.text = item.dimensions.depth?.toString() ?? '';
+    _otherSpController.text = item.dimensions.otherSp??'';
     _unitController.text = item.dimensions.unit ?? 'cm';
 
     // Image properties
@@ -110,25 +117,10 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
           listener: (context, state) {
             if (state is InventoryItemCreated) {
               print('🟢 Item created successfully in UI');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    '✅ Item "${state.item.nameEn}" created successfully!',
-                  ),
-                  backgroundColor: Colors.green,
-                ),
-              );
+
               Navigator.pop(context);
             } else if (state is InventoryItemUpdated) {
               print('🟢 Item updated successfully in UI');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    '✅ Item "${state.item.nameEn}" updated successfully!',
-                  ),
-                  backgroundColor: Colors.blue,
-                ),
-              );
               Navigator.pop(context);
             } else if (state is InventoryError) {
               print('🔴 Error in UI: ${state.message}');
@@ -179,26 +171,32 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                 ),
               ],
             ),
-            body: Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    _buildBasicInfoSection(),
-                    SizedBox(height: 24),
-                    _buildImageSection(),
-                    SizedBox(height: 24),
-                    _buildInventorySection(),
-                    SizedBox(height: 24),
-                    _buildEnhancedDimensionsSection(),
-                    SizedBox(height: 24),
-                    _buildImagePropertiesSection(),
-                    SizedBox(height: 32),
-                    _buildActionButtons(),
-                  ],
+            body: Column(
+              children: [
+                Expanded(
+                  child: Form(
+                    key: _formKey,
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          _buildBasicInfoSection(),
+                          SizedBox(height: 24),
+                          _buildImageSection(),
+                          SizedBox(height: 24),
+                          _buildInventorySection(),
+                          SizedBox(height: 24),
+                          _buildEnhancedDimensionsSection(),
+                          SizedBox(height: 24),
+                          _buildImagePropertiesSection(),
+                          SizedBox(height: 32),
+                          _buildActionButtons(),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -261,6 +259,18 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               label: 'Subcategory',
               validator: Validators.required,
             ),
+            SizedBox(height: 16,),
+            CustomTextField(
+              controller: _descriptionEnController,
+              label: 'Description (English)',
+              maxLines: 2,
+            ),
+            SizedBox(height: 16,),
+            CustomTextField(
+              maxLines: 2,
+              controller: _descriptionArController,
+              label: 'Description (Arabic)',
+            ),
           ],
         ),
       ),
@@ -291,20 +301,10 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                     border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: _selectedImage != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                        )
-                      : (widget.item?.imageUrl != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  widget.item!.imageUrl!,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : Icon(Icons.image, size: 48, color: Colors.grey)),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: _buildSmartImagePreview(), // ✅ Use smart preview
+                  ),
                 ),
                 SizedBox(width: 16),
                 Expanded(
@@ -317,12 +317,14 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                         label: Text('Choose Image'),
                       ),
                       SizedBox(height: 8),
-                      ElevatedButton.icon(
+/*                      ElevatedButton.icon(
                         onPressed: _takePhoto,
                         icon: Icon(Icons.camera_alt),
                         label: Text('Take Photo'),
-                      ),
+                      ),*/
+/*
                       SizedBox(height: 8),
+*/
                       if (_selectedImage != null ||
                           widget.item?.imageUrl != null)
                         TextButton.icon(
@@ -343,7 +345,87 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
       ),
     );
   }
+  Widget _buildSmartImagePreview() {
+    // Priority 1: Show selected local image
+    if (_selectedImage != null) {
+      return Image.file(
+        _selectedImage!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          print('Error loading local image: $error');
+          return Icon(Icons.broken_image, size: 48, color: Colors.red);
+        },
+      );
+    }
 
+    // Priority 2: Show existing image from database
+    if (widget.item?.imageUrl != null && widget.item!.imageUrl!.isNotEmpty) {
+      final imageUrl = widget.item!.imageUrl!;
+
+      // Check if it's a network URL (starts with http/https)
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            print('Error loading network image: $error');
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.broken_image, size: 32, color: Colors.red),
+                Text('Failed to load', style: TextStyle(fontSize: 10)),
+              ],
+            );
+          },
+        );
+      } else {
+        // It's a local file path - try to load as file
+        print('⚠️ Warning: Found local path in database: $imageUrl');
+        final file = File(imageUrl);
+
+        return FutureBuilder<bool>(
+          future: file.exists(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.data == true) {
+              return Image.file(
+                file,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  print('Error loading file: $error');
+                  return Icon(Icons.broken_image, size: 48, color: Colors.red);
+                },
+              );
+            } else {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.image_not_supported, size: 32, color: Colors.orange),
+                  Text('File not found', style: TextStyle(fontSize: 10)),
+                ],
+              );
+            }
+          },
+        );
+      }
+    }
+
+    // Priority 3: Show placeholder
+    return Icon(Icons.image, size: 48, color: Colors.grey);
+  }
   Widget _buildEnhancedDimensionsSection() {
     return Card(
       child: Padding(
@@ -384,17 +466,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                 SizedBox(width: 16),
                 Expanded(
                   child: CustomTextField(
-                    controller: _depthController,
-                    label: 'Depth (Optional)',
-                    keyboardType: TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    validator: (value) {
-                      if (value?.isNotEmpty == true) {
-                        return Validators.positiveDouble(value);
-                      }
-                      return null; // Optional field
-                    },
+                    controller: _otherSpController,
+                    label: 'Other Sp.(Optional)',
+
                   ),
                 ),
                 SizedBox(width: 16),
@@ -465,7 +539,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
               ],
-              validator: Validators.positiveDouble,
+              validator: Validators.optionalPositiveDouble,
             ),
           ],
         ),
@@ -473,74 +547,6 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     );
   }
 
-  Widget _buildDimensionsSection() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Product Dimensions',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: CustomTextField(
-                    controller: _widthController,
-                    label: 'Width',
-                    keyboardType: TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    validator: Validators.positiveDouble,
-                  ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: CustomTextField(
-                    controller: _heightController,
-                    label: 'Height',
-                    keyboardType: TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    validator: Validators.positiveDouble,
-                  ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: CustomTextField(
-                    controller: _depthController,
-                    label: 'Depth',
-                    keyboardType: TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    validator: Validators.positiveDouble,
-                  ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: CustomDropdown<String>(
-                    label: 'Unit',
-                    value: _selectedUnit,
-                    items: ['cm', 'inch', 'm', 'mm', 'px'],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedUnit = value!;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildImagePropertiesSection() {
     return Card(
@@ -595,23 +601,39 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                 Expanded(
                   child: CustomDropdown<String>(
                     label: 'Color Space',
-                    value: _selectedColorSpace,
-                    items: ['RGB', 'CMYK', 'Grayscale', 'LAB'],
+                    value: _getValidColorSpaceValue(),
+                    items: ['RGB', 'CMYK', 'Grayscale', 'LAB','N/A'],
                     onChanged: (value) {
                       setState(() {
-                        _selectedColorSpace = value!;
+                        _selectedColorSpace  = value!;
                       });
                     },
                   ),
                 ),
+
               ],
+            ),
+            SizedBox(height: 16,),
+            CustomTextField(
+              controller: _commentController,
+              label: 'Comment',
             ),
           ],
         ),
       ),
     );
   }
+  String _getValidColorSpaceValue() {
+    const validValues = ['RGB', 'CMYK', 'Grayscale', 'LAB','N/A'];
 
+    // If current value is valid, use it
+    if (validValues.contains(_selectedColorSpace)) {
+      return _selectedColorSpace;
+    }
+
+    // Otherwise, return default
+    return 'N/A';
+  }
   Widget _buildActionButtons() {
     return BlocBuilder<InventoryBloc, InventoryState>(
       builder: (context, state) {
@@ -672,12 +694,123 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     }
   }
 
-  void _clearImage() {
+  void _clearImage() async {
+    print('🟡 Clear image button pressed');
+
+    // Show confirmation dialog for existing images
+    if (isEditing && widget.item?.imageUrl != null && widget.item!.imageUrl!.isNotEmpty) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Remove Image'),
+          content: Text('Are you sure you want to remove this image? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text('Remove', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return; // User cancelled
+    }
+
+    // Clear local selected image
     setState(() {
       _selectedImage = null;
     });
-  }
 
+    // If editing existing item, update database to clear image fields
+    if (isEditing) {
+      try {
+        print('🟡 Updating item to remove image from database...');
+
+        // Create updated item with image fields cleared
+        final updatedItem = _createInventoryItemWithClearedImage();
+
+        // Dispatch update event to clear image in database
+        context.read<InventoryBloc>().add(UpdateInventoryItem(updatedItem));
+
+        print('🟢 Image removal update dispatched');
+
+        // Show success feedback
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Image removed successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+      } catch (e) {
+        print('🔴 Failed to remove image: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove image: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } else {
+      // For new items, just show feedback
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Image removed'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+  InventoryItem _createInventoryItemWithClearedImage() {
+    return InventoryItem(
+      id: widget.item!.id,
+      sku: _skuController.text.trim(),
+      nameEn: _nameEnController.text.trim(),
+      nameAr: _nameArController.text.trim(),
+      descriptionEn: _descriptionEnController.text.trim().isEmpty
+          ? null
+          : _descriptionEnController.text.trim(),
+      descriptionAr: _descriptionArController.text.trim().isEmpty
+          ? null
+          : _descriptionArController.text.trim(),
+      comment: _commentController.text.trim().isEmpty
+          ? null
+          : _commentController.text.trim(),
+      categoryId: _selectedCategoryId!,
+      subcategory: _subcategoryController.text.trim(),
+      stockQuantity: int.tryParse(_stockController.text) ?? 0,
+      unitPrice: _priceController.text.isEmpty
+          ? null
+          : double.tryParse(_priceController.text),
+      minStockLevel: int.tryParse(_minStockController.text) ?? 0,
+      dimensions: ProductDimensions(
+        width: double.tryParse(_widthController.text) ?? 0.0,
+        height: double.tryParse(_heightController.text) ?? 0.0,
+        otherSp: _otherSpController.text.trim().isEmpty
+            ? null
+            : _otherSpController.text.trim(),
+        unit: _unitController.text.isEmpty ? null : _unitController.text,
+      ),
+      imageProperties: ImageProperties(
+        pixelWidth: int.tryParse(_pixelWidthController.text) ?? 1920,
+        pixelHeight: int.tryParse(_pixelHeightController.text) ?? 1080,
+        dpi: int.tryParse(_dpiController.text) ?? 300,
+        colorSpace: _selectedColorSpace,
+      ),
+      imageUrl: null,
+      imageFileName: null,
+      createdAt: widget.item!.createdAt,
+      updatedAt: DateTime.now(),
+    );
+  }
   void _saveItem() {
     print('🟡 Save item button pressed');
 
@@ -725,6 +858,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
       sku: _skuController.text.trim(),
       nameEn: _nameEnController.text.trim(),
       nameAr: _nameArController.text.trim(),
+      descriptionEn: _descriptionEnController.text.trim(),
+      descriptionAr: _descriptionArController.text.trim(),
+      comment: _commentController.text.trim(),
       categoryId: _selectedCategoryId!,
       subcategory: _subcategoryController.text.trim(),
       stockQuantity: int.tryParse(_stockController.text) ?? 0,
@@ -735,9 +871,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
       dimensions: ProductDimensions(
         width: double.tryParse(_widthController.text) ?? 0.0,
         height: double.tryParse(_heightController.text) ?? 0.0,
-        depth: _depthController.text.isEmpty
+        otherSp: _otherSpController.text.trim().isEmpty
             ? null
-            : double.tryParse(_depthController.text),
+            : _otherSpController.text.trim(),
         unit: _unitController.text.isEmpty ? null : _unitController.text,
       ),
       imageProperties: ImageProperties(
@@ -758,13 +894,16 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     _skuController.dispose();
     _nameEnController.dispose();
     _nameArController.dispose();
+    _descriptionEnController.dispose();
+    _descriptionArController.dispose();
+    _commentController.dispose();
     _subcategoryController.dispose();
     _stockController.dispose();
     _priceController.dispose();
     _minStockController.dispose();
     _widthController.dispose();
     _heightController.dispose();
-    _depthController.dispose();
+    _otherSpController.dispose();
     _pixelWidthController.dispose();
     _pixelHeightController.dispose();
     _dpiController.dispose();

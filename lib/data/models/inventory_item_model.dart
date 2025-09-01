@@ -12,6 +12,10 @@ class InventoryItemModel {
   final String nameEn;
   @JsonKey(name: 'name_ar')
   final String nameAr;
+  @JsonKey(name: 'description_en')
+  final String? descriptionEn;
+  @JsonKey(name: 'description_ar')
+  final String? descriptionAr;
   @JsonKey(name: 'category_id')
   final String categoryId;
   final String subcategory;
@@ -26,18 +30,21 @@ class InventoryItemModel {
   final ImageProperties imageProperties;
   @JsonKey(name: 'image_url')
   final String? imageUrl;
-  @JsonKey(name: 'image_file_name')
+  @JsonKey(name: 'image_filename')  // ✅ FIXED - Changed from 'image_file_name' to 'image_filename'
   final String? imageFileName;
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @JsonKey(name: 'updated_at')
   final DateTime updatedAt;
+  final String? comment;
 
   const InventoryItemModel({
     required this.id,
     required this.sku,
     required this.nameEn,
     required this.nameAr,
+    this.descriptionEn,
+    this.descriptionAr,
     required this.categoryId,
     required this.subcategory,
     required this.stockQuantity,
@@ -49,6 +56,8 @@ class InventoryItemModel {
     this.imageFileName,
     required this.createdAt,
     required this.updatedAt,
+    this.comment,
+
   });
 
   factory InventoryItemModel.fromJson(Map<String, dynamic> json) =>
@@ -63,6 +72,8 @@ class InventoryItemModel {
       sku: sku,
       nameEn: nameEn,
       nameAr: nameAr,
+      descriptionEn: descriptionEn,
+      descriptionAr: descriptionAr,
       categoryId: categoryId,
       subcategory: subcategory,
       stockQuantity: stockQuantity,
@@ -70,8 +81,12 @@ class InventoryItemModel {
       minStockLevel: minStockLevel,
       dimensions: dimensions,
       imageProperties: imageProperties,
+      imageUrl: imageUrl,
+      imageFileName: imageFileName,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      comment: comment,
+
     );
   }
 
@@ -82,6 +97,8 @@ class InventoryItemModel {
       sku: entity.sku,
       nameEn: entity.nameEn,
       nameAr: entity.nameAr,
+      descriptionEn: entity.descriptionEn,
+      descriptionAr: entity.descriptionAr,
       categoryId: entity.categoryId,
       subcategory: entity.subcategory,
       stockQuantity: entity.stockQuantity,
@@ -89,8 +106,11 @@ class InventoryItemModel {
       minStockLevel: entity.minStockLevel,
       dimensions: entity.dimensions,
       imageProperties: entity.imageProperties,
+      imageUrl: entity.imageUrl,
+      imageFileName: entity.imageFileName,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      comment: entity.comment
     );
   }
 
@@ -101,15 +121,20 @@ class InventoryItemModel {
       sku: data['sku'],
       nameEn: data['name_en'],
       nameAr: data['name_ar'] ?? '',
+      descriptionEn: data['description_en'],
+      descriptionAr: data['description_ar'],
       categoryId: data['category_id'],
       subcategory: data['subcategory'] ?? '',
       stockQuantity: data['stock_quantity'],
-      unitPrice: data['unit_price'].toDouble(),
+      unitPrice: data['unit_price']?.toDouble(),
       minStockLevel: data['min_stock_level'],
+      imageUrl: data['image_url'],
+      imageFileName: data['image_filename'],
       dimensions: ProductDimensions.fromJson(data['dimensions'] ?? {}),
       imageProperties: ImageProperties.fromJson(data['image_properties'] ?? {}),
       createdAt: DateTime.parse(data['created_at']),
       updatedAt: DateTime.parse(data['updated_at']),
+      comment: data['comment'],
     );
   }
 
@@ -119,6 +144,8 @@ class InventoryItemModel {
       'sku': sku,
       'name_en': nameEn,
       'name_ar': nameAr,
+      'description_en': descriptionEn,
+      'description_ar': descriptionAr,
       'category_id': categoryId,
       'subcategory': subcategory,
       'stock_quantity': stockQuantity,
@@ -126,8 +153,14 @@ class InventoryItemModel {
       'min_stock_level': minStockLevel,
       'dimensions': dimensions.toJson(),
       'image_properties': imageProperties.toJson(),
+      'image_url': imageUrl,
+      'image_filename': imageFileName,
       'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+      'comment': comment,
     };
   }
+
+
+
 }
