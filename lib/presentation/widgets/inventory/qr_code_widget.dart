@@ -53,7 +53,7 @@ class _EnhancedQrCodeWidgetState extends State<EnhancedQrCodeWidget> {
           _buildControlPanel(),
         ],*/
         SizedBox(height: 16),
-       // _buildItemInfo(),
+        // _buildItemInfo(),
       ],
     );
   }
@@ -89,11 +89,7 @@ class _EnhancedQrCodeWidgetState extends State<EnhancedQrCodeWidget> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Icon(
-        Icons.inventory_2,
-        color: Theme.of(context).primaryColor,
-        size: 20,
-      ),
+      child: Image.asset("assets/white logo icon.png", width: 25, height: 25),
     );
   }
 
@@ -222,8 +218,8 @@ class _EnhancedQrCodeWidgetState extends State<EnhancedQrCodeWidget> {
             Text(
               widget.item.nameAr,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w500,
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
