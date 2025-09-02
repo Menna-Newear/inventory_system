@@ -30,7 +30,7 @@ class InventoryItemModel {
   final ImageProperties imageProperties;
   @JsonKey(name: 'image_url')
   final String? imageUrl;
-  @JsonKey(name: 'image_filename')  // ✅ FIXED - Changed from 'image_file_name' to 'image_filename'
+  @JsonKey(name: 'image_filename')
   final String? imageFileName;
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
@@ -130,8 +130,9 @@ class InventoryItemModel {
       minStockLevel: data['min_stock_level'],
       imageUrl: data['image_url'],
       imageFileName: data['image_filename'],
-      dimensions: ProductDimensions.fromJson(data['dimensions'] ?? {}),
-      imageProperties: ImageProperties.fromJson(data['image_properties'] ?? {}),
+      dimensions: _createDimensionsFromData(data['dimensions'] ?? {}),
+      imageProperties: _createImagePropertiesFromData(data['image_properties'] ?? {}),
+
       createdAt: DateTime.parse(data['created_at']),
       updatedAt: DateTime.parse(data['updated_at']),
       comment: data['comment'],
@@ -160,7 +161,23 @@ class InventoryItemModel {
       'comment': comment,
     };
   }
+  static ProductDimensions _createDimensionsFromData(Map<String, dynamic> data) {
+    return ProductDimensions(
+      width: data['width'] != null ? (data['width'] as num).toDouble() : null,
+      height: data['height'] != null ? (data['height'] as num).toDouble() : null,
+      depth: data['depth']?.toString(),
+      unit: data['unit'] as String?,
+    );
+  }
 
+  static ImageProperties _createImagePropertiesFromData(Map<String, dynamic> data) {
+    return ImageProperties(
+      pixelWidth: data['pixel_width'] != null ? (data['pixel_width'] as num).toInt() : null,
+      pixelHeight: data['pixel_height'] != null ? (data['pixel_height'] as num).toInt() : null,
+      otherSp: data['other_sp']?.toString(),
+      colorSpace: data['color_space'] as String? ?? 'RGB',
+    );
+  }
 
 
 }

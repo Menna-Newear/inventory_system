@@ -120,11 +120,12 @@ class _DashboardViewState extends State<DashboardView> {
                   },
                 ),
 
-              // Main Data Table with Category Names
+              // Main Data Table with Inventory Item Data
               Expanded(
                 child: Container(
                   margin: EdgeInsets.all(16.0),
-                  child: InventoryDataTable(), // ✅ Updated to handle category names automatically
+                  padding: EdgeInsets.only(bottom: 45),
+                  child: InventoryDataTable(),
                 ),
               ),
             ],

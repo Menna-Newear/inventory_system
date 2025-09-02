@@ -14,7 +14,7 @@ class Validators {
     }
 
     final intValue = int.tryParse(value);
-    if (intValue == null || intValue <= 0) {
+    if (intValue == null || intValue < 0) {
       return 'Please enter a positive integer';
     }
 
@@ -40,7 +40,7 @@ class Validators {
     }
 
     final doubleValue = double.tryParse(value);
-    if (doubleValue == null || doubleValue <= 0) {
+    if (doubleValue == null || doubleValue < 0) {
       return 'Please enter a positive number';
     }
 

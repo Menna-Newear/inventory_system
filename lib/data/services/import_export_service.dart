@@ -61,6 +61,11 @@ class ImportExportService {
           'Height',
           'Depth',
           'Unit',
+          'Pixel Width',
+          'Pixel Height',
+          'Other Sp.',
+          'Color Space',
+          'Comment',
           'Created At',
           'Updated At',
         ],
@@ -70,6 +75,8 @@ class ImportExportService {
             item.sku,
             item.nameEn,
             item.nameAr,
+            item.descriptionEn ?? '',
+            item.descriptionAr ?? '',
             item.categoryId,
             item.subcategory,
             item.stockQuantity,
@@ -77,8 +84,13 @@ class ImportExportService {
             item.minStockLevel,
             item.dimensions.width,
             item.dimensions.height,
-            item.dimensions.otherSp ?? 'N/A', //
-            item.dimensions.unit ?? 'mm', //
+            item.dimensions.depth ?? '',
+            item.dimensions.unit ?? 'mm',
+            item.imageProperties.pixelWidth,
+            item.imageProperties.pixelHeight,
+            item.imageProperties.otherSp ?? '',
+            item.imageProperties.colorSpace,
+            item.comment ?? '',
             item.createdAt.toIso8601String(),
             item.updatedAt.toIso8601String(),
           ],
@@ -191,38 +203,64 @@ class ImportExportService {
       sku: row[0]?.toString() ?? '',
       nameEn: row[1]?.toString() ?? '',
       nameAr: row[2]?.toString() ?? '',
-      descriptionEn: (row.length > 3 && row[3]?.toString().trim().isNotEmpty == true)
+      descriptionEn:
+          (row.length > 3 && row[3]?.toString().trim().isNotEmpty == true)
           ? row[3].toString()
-          : null,  // ✅ NEW - Handle description fields
-      descriptionAr: (row.length > 4 && row[4]?.toString().trim().isNotEmpty == true)
+          : null,
+      // ✅ NEW - Handle description fields
+      descriptionAr:
+          (row.length > 4 && row[4]?.toString().trim().isNotEmpty == true)
           ? row[4].toString()
-          : null,  // ✅ NEW
+          : null,
+      // ✅ NEW
       categoryId: row.length > 5 ? (row[5]?.toString() ?? '') : '',
       subcategory: row.length > 6 ? (row[6]?.toString() ?? '') : '',
-      stockQuantity: row.length > 7 ? (int.tryParse(row[7]?.toString() ?? '') ?? 0) : 0,
+      stockQuantity: row.length > 7
+          ? (int.tryParse(row[7]?.toString() ?? '') ?? 0)
+          : 0,
       unitPrice: row.length > 8 && row[8]?.toString().trim().isNotEmpty == true
           ? double.tryParse(row[8].toString())
           : null,
-      minStockLevel: row.length > 9 ? (int.tryParse(row[9]?.toString() ?? '') ?? 0) : 0,
+      minStockLevel: row.length > 9
+          ? (int.tryParse(row[9]?.toString() ?? '') ?? 0)
+          : 0,
       dimensions: ProductDimensions(
-        width: row.length > 10 ? (double.tryParse(row[10]?.toString() ?? '') ?? 0.0) : 0.0,
-        height: row.length > 11 ? (double.tryParse(row[11]?.toString() ?? '') ?? 0.0) : 0.0,
-        otherSp: (row.length > 12 && row[12]?.toString().trim().isNotEmpty == true)
-            ? row[12].toString()  // ✅ CRITICAL FIX - Use String, not double.tryParse()
+        width: row.length > 10
+            ? (double.tryParse(row[10]?.toString() ?? '') ?? 0.0)
+            : null,
+        height: row.length > 11
+            ? (double.tryParse(row[11]?.toString() ?? '') ?? 0.0)
+            : null,
+        depth:
+            (row.length > 12 &&
+                row[12]?.toString().trim().isNotEmpty == true) // ✅ CHANGED
+            ? row[12].toString()
             : null,
         unit: (row.length > 13 && row[13]?.toString().trim().isNotEmpty == true)
             ? row[13].toString()
-            : 'mm',  // Default unit
+            : 'mm', // Default unit
       ),
       imageProperties: ImageProperties(
-        pixelWidth: 1920,
-        pixelHeight: 1080,
-        dpi: 300,
-        colorSpace: 'RGB',
-      ),
-      comment: (row.length > 14 && row[14]?.toString().trim().isNotEmpty == true)
+        pixelWidth: row.length > 14 && row[14]?.toString().trim().isNotEmpty == true
+            ? int.tryParse(row[14].toString())
+            : null,  // ✅ CHANGED - Null if empty
+        pixelHeight: row.length > 15 && row[15]?.toString().trim().isNotEmpty == true
+            ? int.tryParse(row[15].toString())
+            : null,  // ✅ CHANGED - Null if empty
+        otherSp:
+            (row.length > 16 &&
+                row[16]?.toString().trim().isNotEmpty == true) // ✅ CHANGED
+            ? row[16].toString()
+            : null,
+        colorSpace: (row.length > 17 && row[17]?.toString().trim().isNotEmpty == true)
+            ? row[17].toString()
+            : 'RGB',
+            ),
+      comment:
+          (row.length > 14 && row[14]?.toString().trim().isNotEmpty == true)
           ? row[14].toString()
-          : null,  // ✅ NEW - Handle comment field
+          : null,
+      // ✅ NEW - Handle comment field
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );

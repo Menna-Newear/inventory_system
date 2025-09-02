@@ -35,14 +35,15 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
   late TextEditingController _minStockController;
   late TextEditingController _widthController;
   late TextEditingController _heightController;
-  late TextEditingController _otherSpController;
+  late TextEditingController _depthController;
   late TextEditingController _unitController;
   late TextEditingController _pixelWidthController;
   late TextEditingController _pixelHeightController;
-  late TextEditingController _dpiController;
+  late TextEditingController _otherSpController;
   late TextEditingController _descriptionEnController;
   late TextEditingController _descriptionArController;
   late TextEditingController _commentController;
+
   // Dropdown values
   String? _selectedCategoryId;
   String _selectedUnit = 'mm';
@@ -78,7 +79,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     _pixelWidthController = TextEditingController();
     _pixelHeightController = TextEditingController();
     _unitController = TextEditingController(text: 'mm'); // Default unit
-    _dpiController = TextEditingController(text: '300');
+    _depthController = TextEditingController();
   }
 
   void _populateFields() {
@@ -91,19 +92,19 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     _stockController.text = item.stockQuantity.toString();
     _priceController.text = item.unitPrice?.toString() ?? '';
     _minStockController.text = item.minStockLevel.toString();
-    _descriptionEnController.text=item.descriptionEn ??'';
-    _descriptionArController.text=item.descriptionAr ??'';
-    _commentController.text=item.comment ??'';
+    _descriptionEnController.text = item.descriptionEn ?? '';
+    _descriptionArController.text = item.descriptionAr ?? '';
+    _commentController.text = item.comment ?? '';
     // Dimensions
-    _widthController.text = item.dimensions.width.toString();
-    _heightController.text = item.dimensions.height.toString();
-    _otherSpController.text = item.dimensions.otherSp??'';
+    _widthController.text = item.dimensions.width?.toString() ?? '';
+    _heightController.text = item.dimensions.height?.toString() ?? '';
+    _depthController.text = item.dimensions.depth ?? '';
     _unitController.text = item.dimensions.unit ?? 'cm';
 
     // Image properties
-    _pixelWidthController.text = item.imageProperties.pixelWidth.toString();
-    _pixelHeightController.text = item.imageProperties.pixelHeight.toString();
-    _dpiController.text = item.imageProperties.dpi.toString();
+    _pixelWidthController.text = item.imageProperties.pixelWidth?.toString() ?? '';
+    _pixelHeightController.text = item.imageProperties.pixelHeight?.toString() ?? '';
+    _otherSpController.text = item.imageProperties.otherSp ?? '';
     _selectedColorSpace = item.imageProperties.colorSpace;
   }
 
@@ -180,9 +181,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                       padding: EdgeInsets.all(24),
                       child: Column(
                         children: [
-                          _buildBasicInfoSection(),
-                          SizedBox(height: 24),
                           _buildImageSection(),
+                          SizedBox(height: 24),
+                          _buildBasicInfoSection(),
                           SizedBox(height: 24),
                           _buildInventorySection(),
                           SizedBox(height: 24),
@@ -244,6 +245,12 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
             ),
             SizedBox(height: 16),
             CustomTextField(
+              controller: _subcategoryController,
+              label: 'Subcategory',
+              validator: Validators.required,
+            ),
+            SizedBox(height: 16),
+            CustomTextField(
               controller: _nameEnController,
               label: 'Name (English)',
               validator: Validators.required,
@@ -253,19 +260,14 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               controller: _nameArController,
               label: 'Name (Arabic)',
             ),
+
             SizedBox(height: 16),
-            CustomTextField(
-              controller: _subcategoryController,
-              label: 'Subcategory',
-              validator: Validators.required,
-            ),
-            SizedBox(height: 16,),
             CustomTextField(
               controller: _descriptionEnController,
               label: 'Description (English)',
               maxLines: 2,
             ),
-            SizedBox(height: 16,),
+            SizedBox(height: 16),
             CustomTextField(
               maxLines: 2,
               controller: _descriptionArController,
@@ -317,12 +319,12 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                         label: Text('Choose Image'),
                       ),
                       SizedBox(height: 8),
-/*                      ElevatedButton.icon(
+                      /*                      ElevatedButton.icon(
                         onPressed: _takePhoto,
                         icon: Icon(Icons.camera_alt),
                         label: Text('Take Photo'),
                       ),*/
-/*
+                      /*
                       SizedBox(height: 8),
 */
                       if (_selectedImage != null ||
@@ -345,6 +347,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
       ),
     );
   }
+
   Widget _buildSmartImagePreview() {
     // Priority 1: Show selected local image
     if (_selectedImage != null) {
@@ -372,7 +375,8 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
             return Center(
               child: CircularProgressIndicator(
                 value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
                     : null,
               ),
             );
@@ -413,7 +417,11 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.image_not_supported, size: 32, color: Colors.orange),
+                  Icon(
+                    Icons.image_not_supported,
+                    size: 32,
+                    color: Colors.orange,
+                  ),
                   Text('File not found', style: TextStyle(fontSize: 10)),
                 ],
               );
@@ -426,6 +434,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     // Priority 3: Show placeholder
     return Icon(Icons.image, size: 48, color: Colors.grey);
   }
+
   Widget _buildEnhancedDimensionsSection() {
     return Card(
       child: Padding(
@@ -445,30 +454,29 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                 Expanded(
                   child: CustomTextField(
                     controller: _widthController,
-                    label: 'Width *',
+                    label: 'Width (Optional)',
                     keyboardType: TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    validator: Validators.positiveDouble,
+                    validator: Validators.optionalPositiveDouble,
                   ),
                 ),
                 SizedBox(width: 16),
                 Expanded(
                   child: CustomTextField(
                     controller: _heightController,
-                    label: 'Height *',
+                    label: 'Height (Optional)',
                     keyboardType: TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    validator: Validators.positiveDouble,
+                    validator: Validators.optionalPositiveDouble,
                   ),
                 ),
                 SizedBox(width: 16),
                 Expanded(
                   child: CustomTextField(
-                    controller: _otherSpController,
-                    label: 'Other Sp.(Optional)',
-
+                    controller: _depthController,
+                    label: 'depth (Optional)',
                   ),
                 ),
                 SizedBox(width: 16),
@@ -476,18 +484,22 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                   child: CustomDropdown<String>(
                     label: 'Unit',
                     value: _unitController.text.isEmpty
-                        ? 'cm'
+                        ? 'n/a'
                         : _unitController.text,
-                    items: ['cm', 'inch', 'm', 'mm', 'px'],
+                    items: ['cm', 'inch', 'm', 'mm', 'l','n/a'],
                     onChanged: (value) {
                       setState(() {
-                        _unitController.text = value ?? 'cm';
+                        _unitController.text = value ?? 'n/a';
                       });
                     },
                   ),
                 ),
+
               ],
             ),
+            SizedBox(height: 16),
+            CustomTextField(controller: _commentController, label: 'Comment'),
+
           ],
         ),
       ),
@@ -539,14 +551,14 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
               ],
-              validator: Validators.optionalPositiveDouble,
+              validator: Validators.positiveDouble,
             ),
+
           ],
         ),
       ),
     );
   }
-
 
   Widget _buildImagePropertiesSection() {
     return Card(
@@ -567,20 +579,20 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                 Expanded(
                   child: CustomTextField(
                     controller: _pixelWidthController,
-                    label: 'Pixel Width',
+                    label: 'Pixel Width (Optional)',
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    validator: Validators.positiveInteger,
+                    validator: Validators.optionalPositiveInteger,
                   ),
                 ),
                 SizedBox(width: 16),
                 Expanded(
                   child: CustomTextField(
                     controller: _pixelHeightController,
-                    label: 'Pixel Height',
+                    label: 'Pixel Height (Optional)',
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    validator: Validators.positiveInteger,
+                    validator: Validators.optionalPositiveInteger,
                   ),
                 ),
               ],
@@ -590,11 +602,8 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               children: [
                 Expanded(
                   child: CustomTextField(
-                    controller: _dpiController,
-                    label: 'DPI',
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    validator: Validators.positiveInteger,
+                    controller: _otherSpController,
+                    label: 'Other Sp. (Optional)',
                   ),
                 ),
                 SizedBox(width: 16),
@@ -602,29 +611,25 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                   child: CustomDropdown<String>(
                     label: 'Color Space',
                     value: _getValidColorSpaceValue(),
-                    items: ['RGB', 'CMYK', 'Grayscale', 'LAB','N/A'],
+                    items: ['RGB', 'CMYK', 'Grayscale', 'LAB', 'N/A'],
                     onChanged: (value) {
                       setState(() {
-                        _selectedColorSpace  = value!;
+                        _selectedColorSpace = value!;
                       });
                     },
                   ),
                 ),
-
               ],
             ),
-            SizedBox(height: 16,),
-            CustomTextField(
-              controller: _commentController,
-              label: 'Comment',
-            ),
+
           ],
         ),
       ),
     );
   }
+
   String _getValidColorSpaceValue() {
-    const validValues = ['RGB', 'CMYK', 'Grayscale', 'LAB','N/A'];
+    const validValues = ['RGB', 'CMYK', 'Grayscale', 'LAB', 'N/A'];
 
     // If current value is valid, use it
     if (validValues.contains(_selectedColorSpace)) {
@@ -634,6 +639,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     // Otherwise, return default
     return 'N/A';
   }
+
   Widget _buildActionButtons() {
     return BlocBuilder<InventoryBloc, InventoryState>(
       builder: (context, state) {
@@ -698,12 +704,16 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     print('🟡 Clear image button pressed');
 
     // Show confirmation dialog for existing images
-    if (isEditing && widget.item?.imageUrl != null && widget.item!.imageUrl!.isNotEmpty) {
+    if (isEditing &&
+        widget.item?.imageUrl != null &&
+        widget.item!.imageUrl!.isNotEmpty) {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text('Remove Image'),
-          content: Text('Are you sure you want to remove this image? This action cannot be undone.'),
+          content: Text(
+            'Are you sure you want to remove this image? This action cannot be undone.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -747,7 +757,6 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
             duration: Duration(seconds: 2),
           ),
         );
-
       } catch (e) {
         print('🔴 Failed to remove image: $e');
         ScaffoldMessenger.of(context).showSnackBar(
@@ -769,6 +778,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
       );
     }
   }
+
   InventoryItem _createInventoryItemWithClearedImage() {
     return InventoryItem(
       id: widget.item!.id,
@@ -792,17 +802,27 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
           : double.tryParse(_priceController.text),
       minStockLevel: int.tryParse(_minStockController.text) ?? 0,
       dimensions: ProductDimensions(
-        width: double.tryParse(_widthController.text) ?? 0.0,
-        height: double.tryParse(_heightController.text) ?? 0.0,
-        otherSp: _otherSpController.text.trim().isEmpty
+        width: _widthController.text.trim().isEmpty
             ? null
-            : _otherSpController.text.trim(),
+            : double.tryParse(_widthController.text),
+        height: _heightController.text.trim().isEmpty
+            ? null
+            : double.tryParse(_heightController.text),
+        depth: _depthController.text.trim().isEmpty
+            ? null
+            : _depthController.text.trim(),
         unit: _unitController.text.isEmpty ? null : _unitController.text,
       ),
       imageProperties: ImageProperties(
-        pixelWidth: int.tryParse(_pixelWidthController.text) ?? 1920,
-        pixelHeight: int.tryParse(_pixelHeightController.text) ?? 1080,
-        dpi: int.tryParse(_dpiController.text) ?? 300,
+        pixelWidth: _pixelWidthController.text.trim().isEmpty
+            ? null
+            : int.tryParse(_pixelWidthController.text),
+        pixelHeight: _pixelHeightController.text.trim().isEmpty
+            ? null
+            : int.tryParse(_pixelHeightController.text),
+        otherSp: _otherSpController.text.trim().isEmpty
+            ? null
+            : _otherSpController.text.trim(),
         colorSpace: _selectedColorSpace,
       ),
       imageUrl: null,
@@ -811,6 +831,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
       updatedAt: DateTime.now(),
     );
   }
+
   void _saveItem() {
     print('🟡 Save item button pressed');
 
@@ -869,20 +890,28 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
           : double.tryParse(_priceController.text),
       minStockLevel: int.tryParse(_minStockController.text) ?? 0,
       dimensions: ProductDimensions(
-        width: double.tryParse(_widthController.text) ?? 0.0,
-        height: double.tryParse(_heightController.text) ?? 0.0,
-        otherSp: _otherSpController.text.trim().isEmpty
+        width: double.tryParse(_widthController.text) ,
+        height: double.tryParse(_heightController.text) ,
+        depth:
+            _depthController.text
+                .trim()
+                .isEmpty
             ? null
-            : _otherSpController.text.trim(),
+            : _depthController.text.trim(),
         unit: _unitController.text.isEmpty ? null : _unitController.text,
       ),
       imageProperties: ImageProperties(
-        pixelWidth: int.tryParse(_pixelWidthController.text) ?? 1920,
-        pixelHeight: int.tryParse(_pixelHeightController.text) ?? 1080,
-        dpi: int.tryParse(_dpiController.text) ?? 300,
+        pixelWidth: int.tryParse(_pixelWidthController.text) ,
+        pixelHeight: int.tryParse(_pixelHeightController.text) ,
+        otherSp:
+            _otherSpController.text
+                .trim()
+                .isEmpty
+            ? null
+            : _otherSpController.text.trim(),
         colorSpace: _selectedColorSpace,
       ),
-      imageUrl: _selectedImage?.path, // Will be uploaded to Supabase
+      imageUrl: _selectedImage?.path,
       imageFileName: _selectedImage?.path.split('/').last,
       createdAt: isEditing ? widget.item!.createdAt : DateTime.now(),
       updatedAt: DateTime.now(),
@@ -906,7 +935,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     _otherSpController.dispose();
     _pixelWidthController.dispose();
     _pixelHeightController.dispose();
-    _dpiController.dispose();
+    _depthController.dispose();
     super.dispose();
   }
 }

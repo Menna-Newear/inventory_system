@@ -56,9 +56,9 @@ Map<String, dynamic> _$InventoryItemToJson(InventoryItem instance) =>
 
 ProductDimensions _$ProductDimensionsFromJson(Map<String, dynamic> json) =>
     ProductDimensions(
-      width: (json['width'] as num).toDouble(),
-      height: (json['height'] as num).toDouble(),
-      otherSp: json['otherSp'] as String?,
+      width: (json['width'] as num?)?.toDouble(),
+      height: (json['height'] as num?)?.toDouble(),
+      depth: json['depth'] as String?,
       unit: json['unit'] as String? ?? 'mm',
     );
 
@@ -66,15 +66,15 @@ Map<String, dynamic> _$ProductDimensionsToJson(ProductDimensions instance) =>
     <String, dynamic>{
       'width': instance.width,
       'height': instance.height,
-      'otherSp': instance.otherSp,
+      'depth': instance.depth,
       'unit': instance.unit,
     };
 
 ImageProperties _$ImagePropertiesFromJson(Map<String, dynamic> json) =>
     ImageProperties(
-      pixelWidth: (json['pixel_width'] as num).toInt(),
-      pixelHeight: (json['pixel_height'] as num).toInt(),
-      dpi: (json['dpi'] as num).toInt(),
+      pixelWidth: (json['pixel_width'] as num?)?.toInt(),
+      pixelHeight: (json['pixel_height'] as num?)?.toInt(),
+      otherSp: json['other_sp'] as String?,
       colorSpace: json['color_space'] as String,
     );
 
@@ -82,6 +82,6 @@ Map<String, dynamic> _$ImagePropertiesToJson(ImageProperties instance) =>
     <String, dynamic>{
       'pixel_width': instance.pixelWidth,
       'pixel_height': instance.pixelHeight,
-      'dpi': instance.dpi,
+      'other_sp': instance.otherSp,
       'color_space': instance.colorSpace,
     };
