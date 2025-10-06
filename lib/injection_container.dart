@@ -11,10 +11,12 @@ import 'data/datasources/inventory_local_datasource.dart';
 import 'data/datasources/inventory_remote_datasource.dart';
 import 'data/repositories/category_repository_impl.dart';
 import 'data/repositories/inventory_repository_impl.dart';
+import 'data/services/barcode_service.dart';
+import 'data/services/import_export_service.dart';
 import 'domain/repositories/category_repository.dart';
 import 'domain/repositories/inventory_repository.dart';
 
-// Import use cases with aliases to avoid naming conflicts
+// Import use cases with aliases
 import 'domain/usecases/create_category.dart' as create_category_usecase;
 import 'domain/usecases/get_categories.dart' as get_categories_usecase;
 import 'domain/usecases/get_inventory_items.dart' as get_items_usecase;
@@ -29,69 +31,81 @@ import 'presentation/blocs/inventory/inventory_bloc.dart';
 final getIt = GetIt.instance;
 
 Future<void> init() async {
-  // External
+  //! ========== EXTERNAL DEPENDENCIES ==========
   final sharedPreferences = await SharedPreferences.getInstance();
   getIt.registerLazySingleton(() => sharedPreferences);
   getIt.registerLazySingleton(() => Supabase.instance.client);
   getIt.registerLazySingleton(() => Connectivity());
 
-  // Core
+  //! ========== CORE ==========
   getIt.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(getIt()));
 
-  // Data sources
+  //! ========== DATA SOURCES ==========
   getIt.registerLazySingleton<InventoryLocalDataSource>(
-    () => InventoryLocalDataSourceImpl(sharedPreferences: getIt()),
+        () => InventoryLocalDataSourceImpl(sharedPreferences: getIt()),
   );
 
   getIt.registerLazySingleton<InventoryRemoteDataSource>(
-    () => InventoryRemoteDataSourceImpl(supabase: getIt()),
+        () => InventoryRemoteDataSourceImpl(supabase: getIt()),
   );
 
   getIt.registerLazySingleton<CategoryRemoteDataSource>(
-    () => CategoryRemoteDataSourceImpl(supabase: getIt()),
+        () => CategoryRemoteDataSourceImpl(supabase: getIt()),
   );
+
+  //! ========== REPOSITORIES ==========
   getIt.registerLazySingleton<CategoryRepository>(
-    () =>
-        CategoryRepositoryImpl(remoteDataSource: getIt(),),
+        () => CategoryRepositoryImpl(remoteDataSource: getIt()),
   );
-  // Repositories
+
   getIt.registerLazySingleton<InventoryRepository>(
-    () => InventoryRepositoryImpl(
+        () => InventoryRepositoryImpl(
       remoteDataSource: getIt(),
       localDataSource: getIt(),
       networkInfo: getIt(),
     ),
   );
 
-  // Use cases - using the aliased imports
+  //! ========== USE CASES ==========
+  // Category use cases (register first)
   getIt.registerLazySingleton(
-    () => get_items_usecase.GetInventoryItems(getIt()),
+        () => get_categories_usecase.GetCategories(getIt()),
   );
   getIt.registerLazySingleton(
-    () => create_item_usecase.CreateInventoryItem(getIt()),
-  );
-  getIt.registerLazySingleton(
-    () => update_item_usecase.UpdateInventoryItem(getIt()),
-  );
-  getIt.registerLazySingleton(
-    () => delete_item_usecase.DeleteInventoryItem(getIt()),
-  );
-  getIt.registerLazySingleton(
-    () => search_items_usecase.SearchInventoryItems(getIt()),
-  );
-  getIt.registerLazySingleton(
-    () => filter_items_usecase.FilterInventoryItems(getIt()),
-  );
-  getIt.registerLazySingleton(
-    () => get_categories_usecase.GetCategories(getIt()),
-  );
-  getIt.registerLazySingleton(
-    () => create_category_usecase.CreateCategory(getIt()),
+        () => create_category_usecase.CreateCategory(getIt()),
   );
 
-  // BLoCs
+  // Inventory use cases
+  getIt.registerLazySingleton(
+        () => get_items_usecase.GetInventoryItems(getIt()),
+  );
+  getIt.registerLazySingleton(
+        () => create_item_usecase.CreateInventoryItem(getIt()),
+  );
+  getIt.registerLazySingleton(
+        () => update_item_usecase.UpdateInventoryItem(getIt()),
+  );
+  getIt.registerLazySingleton(
+        () => delete_item_usecase.DeleteInventoryItem(getIt()),
+  );
+  getIt.registerLazySingleton(
+        () => search_items_usecase.SearchInventoryItems(getIt()),
+  );
+  getIt.registerLazySingleton(
+        () => filter_items_usecase.FilterInventoryItems(getIt()),
+  );
+
+  //! ========== SERVICES ==========
+  // ✅ FIXED - ImportExportService with GetCategories UseCase dependency
+  getIt.registerLazySingleton<ImportExportService>(
+        () => ImportExportService(getCategories: getIt<get_categories_usecase.GetCategories>()),
+  );
+
+  getIt.registerLazySingleton<BarcodeService>(() => BarcodeService());
+
+  //! ========== BLOCS ==========
   getIt.registerFactory(
-    () => InventoryBloc(
+        () => InventoryBloc(
       getInventoryItems: getIt(),
       createInventoryItem: getIt(),
       updateInventoryItem: getIt(),
@@ -101,12 +115,10 @@ Future<void> init() async {
     ),
   );
 
-  // ViewModels
   getIt.registerFactory(
-    () => CategoryBloc(
+        () => CategoryBloc(
       getCategories: getIt(),
       createCategory: getIt(),
-
     ),
   );
 }

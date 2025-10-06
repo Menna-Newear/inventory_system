@@ -193,7 +193,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
                 children: [
                   Container(
                     height: _getBarcodeHeight(),
-                    width: double.infinity,
+                    width: _getSmallBarcodeWidth(),
                     child: SfBarcodeGenerator(
                       value: _getBarcodeData(),
                       symbology: _getSymbologyInstance(), // ✅ Create instance when needed
@@ -299,9 +299,33 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
   }
 
   double _getBarcodeHeight() {
-    return _barcodeService.getBarcodeHeight(_getSymbologyInstance());
+    switch (_selectedSymbologyType) {
+      case 'QRCode':
+      case 'DataMatrix':
+        return 80.0;
+      case 'EAN13':
+      case 'EAN8':
+      case 'UPCA':
+      case 'UPCE':
+        return 60.0;
+      default:
+        return 50.0;
+    }  }
+  double _getSmallBarcodeWidth() {
+    switch (_selectedSymbologyType) {
+      case 'QRCode':
+      case 'DataMatrix':
+        return 60.0; // Square codes - same as height
+      case 'EAN13':
+      case 'UPCA':
+        return 120.0; // Standard retail width but smaller
+      case 'EAN8':
+      case 'UPCE':
+        return 80.0; // Compact retail codes
+      default:
+        return 150.0; // Moderate width for linear codes
+    }
   }
-
   String _getSymbologyDisplayName() {
     return _symbologyOptions
         .firstWhere(
@@ -340,13 +364,13 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildActionButton(
+       /* _buildActionButton(
           context,
           'Copy',
           Icons.copy,
           Colors.blue,
               () => _copyBarcodeData(context),
-        ),
+        ),*/
         _buildActionButton(
           context,
           'Save',
@@ -361,13 +385,13 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
           Colors.purple,
               () => _printLabel(context),
         ),
-        _buildActionButton(
+    /*    _buildActionButton(
           context,
           'Share',
           Icons.share,
           Colors.orange,
               () => _shareBarcode(context),
-        ),
+        ),*/
       ],
     );
   }
@@ -653,7 +677,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
               ),
               child: Text(
                 filePath,
-                style: TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                style: TextStyle(fontSize: 11, fontFamily: 'monospace',color: Colors.green),
               ),
             ),
           ],
@@ -663,13 +687,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
             onPressed: () => Navigator.pop(context),
             child: Text('OK'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await Share.shareXFiles([XFile(filePath)]);
-            },
-            child: Text('Share'),
-          ),
+
         ],
       ),
     );

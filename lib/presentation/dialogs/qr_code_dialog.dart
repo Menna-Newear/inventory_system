@@ -248,13 +248,7 @@ class _EnhancedQrCodeDialogState extends State<EnhancedQrCodeDialog> {
           Colors.purple,
               () => _printLabel(context),
         ),
-        _buildActionButton(
-          context,
-          'Share',
-          Icons.share,
-          Colors.orange,
-              () => _shareQrCode(context),
-        ),
+
       ],
     );
   }
@@ -546,12 +540,12 @@ class _EnhancedQrCodeDialogState extends State<EnhancedQrCodeDialog> {
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Colors.green,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
                 filePath,
-                style: TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                style: TextStyle(fontSize: 11, fontFamily: 'monospace',color: Colors.green),
               ),
             ),
           ],
@@ -561,13 +555,7 @@ class _EnhancedQrCodeDialogState extends State<EnhancedQrCodeDialog> {
             onPressed: () => Navigator.pop(context),
             child: Text('OK'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await Share.shareXFiles([XFile(filePath)]);
-            },
-            child: Text('Share'),
-          ),
+
         ],
       ),
     );
