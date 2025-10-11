@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:intl/intl.dart';
 import 'package:inventory_system/presentation/dialogs/enhanced_barcode_dialog.dart';
-
+import 'package:inventory_system/presentation/widgets/inventory/serial_number_dialog.dart';
 import '../../blocs/inventory/inventory_bloc.dart';
 import '../../blocs/category/category_bloc.dart';
 import '../../../domain/entities/inventory_item.dart';
@@ -75,7 +75,7 @@ class InventoryDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ Updated to accept category names mapping
+  // ✅ ENHANCED - Updated to include serial number column
   Widget _buildDataTable(
       BuildContext context,
       List<InventoryItem> items,
@@ -85,14 +85,16 @@ class InventoryDataTable extends StatelessWidget {
       child: DataTable2(
         columnSpacing: 12,
         horizontalMargin: 12,
-        minWidth: 1000,
+        minWidth: 1200, // ✅ Increased for new column
         columns: [
           DataColumn2(label: Text('SKU'), size: ColumnSize.S),
           DataColumn2(label: Text('Name'), size: ColumnSize.L),
           DataColumn2(label: Text('Name (AR)'), size: ColumnSize.L),
-          DataColumn2(label: Text('Category'), size: ColumnSize.M), // ✅ This will now show names
+          DataColumn2(label: Text('Category'), size: ColumnSize.M),
           DataColumn2(label: Text('Subcategory'), size: ColumnSize.M),
           DataColumn2(label: Text('Stock'), size: ColumnSize.S, numeric: true),
+          // ✅ NEW - Serial number column
+          DataColumn2(label: Text('Serials'), size: ColumnSize.S, numeric: true),
           DataColumn2(label: Text('Price'), size: ColumnSize.S, numeric: true),
           DataColumn2(
             label: Text('Total Value'),
@@ -101,7 +103,7 @@ class InventoryDataTable extends StatelessWidget {
           ),
           DataColumn2(label: Text('Status'), size: ColumnSize.S),
           DataColumn2(label: Text('Updated'), size: ColumnSize.M),
-          DataColumn2(label: Text('Actions'), size: ColumnSize.S),
+          DataColumn2(label: Text('Actions'), size: ColumnSize.M), // ✅ Expanded for new button
         ],
         rows: items.map((item) => _buildDataRow(context, item, categoryNamesMap)).toList(),
         empty: Center(
@@ -136,7 +138,23 @@ class InventoryDataTable extends StatelessWidget {
     return categoryNamesMap[categoryId] ?? 'Unknown Category';
   }
 
-  // ✅ Updated data row builder with category name mapping
+  // ✅ NEW - Serial number formatting
+  String _formatSerialInfo(InventoryItem item) {
+    if (!item.isSerialTracked) {
+      return 'N/A';
+    }
+
+    final available = item.availableStock;
+    final total = item.totalSerialCount;
+
+    if (total == 0) {
+      return 'No Serials';
+    }
+
+    return '$available/$total';
+  }
+
+  // ✅ ENHANCED - Updated data row builder with serial info
   DataRow2 _buildDataRow(
       BuildContext context,
       InventoryItem item,
@@ -166,7 +184,6 @@ class InventoryDataTable extends StatelessWidget {
             ),
           ),
         ),
-        // ✅ UPDATED - Show category name instead of category ID
         DataCell(
           Container(
             constraints: BoxConstraints(maxWidth: 150),
@@ -178,19 +195,56 @@ class InventoryDataTable extends StatelessWidget {
                 style: TextStyle(
                   color: categoryNamesMap.containsKey(item.categoryId)
                       ? null
-                      : Colors.red, // Red if category not found
+                      : Colors.red,
                 ),
               ),
             ),
           ),
         ),
         DataCell(Text(item.subcategory)),
+        // ✅ ENHANCED - Stock display considers serial tracking
         DataCell(
           Text(
-            item.stockQuantity.toString(),
+            item.isSerialTracked
+                ? item.availableStock.toString()
+                : item.stockQuantity.toString(),
             style: TextStyle(
-              color: item.isLowStock ? Colors.red : null,
-              fontWeight: item.isLowStock ? FontWeight.bold : null,
+              color: item.needsRestock ? Colors.red : null,
+              fontWeight: item.needsRestock ? FontWeight.bold : null,
+            ),
+          ),
+        ),
+        // ✅ NEW - Serial number info
+        DataCell(
+          GestureDetector(
+            onTap: item.isSerialTracked
+                ? () => _showSerialDialog(context, item)
+                : null,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: item.isSerialTracked
+                    ? Colors.blue[50]
+                    : Colors.grey[100],
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: item.isSerialTracked
+                      ? Colors.blue[200]!
+                      : Colors.grey[300]!,
+                ),
+              ),
+              child: Text(
+                _formatSerialInfo(item),
+                style: TextStyle(
+                  color: item.isSerialTracked
+                      ? Colors.blue[700]
+                      : Colors.grey[600],
+                  fontWeight: item.isSerialTracked
+                      ? FontWeight.w500
+                      : FontWeight.normal,
+                  fontSize: 12,
+                ),
+              ),
             ),
           ),
         ),
@@ -219,15 +273,20 @@ class InventoryDataTable extends StatelessWidget {
     );
   }
 
+  // ✅ ENHANCED - Status chip considers serial tracking
   Widget _buildStatusChip(InventoryItem item) {
-    if (item.stockQuantity == 0) {
+    final isOutOfStock = item.isSerialTracked
+        ? item.availableStock == 0
+        : item.stockQuantity == 0;
+
+    if (isOutOfStock) {
       return Chip(
         label: Text('Out of Stock'),
         backgroundColor: Colors.red[100],
         labelStyle: TextStyle(color: Colors.red[800]),
         avatar: Icon(Icons.cancel, size: 16, color: Colors.red[800]),
       );
-    } else if (item.isLowStock) {
+    } else if (item.needsRestock) {
       return Chip(
         label: Text('Low Stock'),
         backgroundColor: Colors.orange[100],
@@ -236,14 +295,21 @@ class InventoryDataTable extends StatelessWidget {
       );
     } else {
       return Chip(
-        label: Text('In Stock'),
-        backgroundColor: Colors.green[100],
-        labelStyle: TextStyle(color: Colors.green[800]),
-        avatar: Icon(Icons.check_circle, size: 16, color: Colors.green[800]),
+        label: Text(item.isSerialTracked ? 'Serial Tracked' : 'In Stock'),
+        backgroundColor: item.isSerialTracked ? Colors.blue[100] : Colors.green[100],
+        labelStyle: TextStyle(
+            color: item.isSerialTracked ? Colors.blue[800] : Colors.green[800]
+        ),
+        avatar: Icon(
+            item.isSerialTracked ? Icons.qr_code_2 : Icons.check_circle,
+            size: 16,
+            color: item.isSerialTracked ? Colors.blue[800] : Colors.green[800]
+        ),
       );
     }
   }
 
+  // ✅ ENHANCED - Action buttons with serial management
   Widget _buildActionButtons(BuildContext context, InventoryItem item) {
     return FittedBox(
       fit: BoxFit.scaleDown,
@@ -264,6 +330,23 @@ class InventoryDataTable extends StatelessWidget {
             ),
           ),
           SizedBox(width: 4),
+          // ✅ NEW - Serial management button (only for serial tracked items)
+          if (item.isSerialTracked) ...[
+            Container(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                icon: Icon(Icons.qr_code_scanner, size: 16),
+                onPressed: () => _showSerialDialog(context, item),
+                tooltip: 'Manage Serials',
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.purple.withOpacity(0.1),
+                  foregroundColor: Colors.purple,
+                ),
+              ),
+            ),
+            SizedBox(width: 4),
+          ],
           Container(
             width: 32,
             height: 32,
@@ -286,8 +369,8 @@ class InventoryDataTable extends StatelessWidget {
               onPressed: () => _showQrCode(context, item),
               tooltip: 'Show QR Code',
               style: IconButton.styleFrom(
-                backgroundColor: Colors.purple.withOpacity(0.1),
-                foregroundColor: Colors.purple,
+                backgroundColor: Colors.green.withOpacity(0.1),
+                foregroundColor: Colors.green,
               ),
             ),
           ),
@@ -301,13 +384,27 @@ class InventoryDataTable extends StatelessWidget {
                 onPressed: () => _viewImage(context, item),
                 tooltip: 'View Image',
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.green.withOpacity(0.1),
-                  foregroundColor: Colors.green,
+                  backgroundColor: Colors.orange.withOpacity(0.1),
+                  foregroundColor: Colors.orange,
                 ),
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  // ✅ NEW - Show serial number management dialog
+  void _showSerialDialog(BuildContext context, InventoryItem item) {
+    showDialog(
+      context: context,
+      builder: (context) => SerialNumberDialog(
+        item: item,
+        onUpdated: () {
+          // Refresh inventory list when serials are updated
+          context.read<InventoryBloc>().add(LoadInventoryItems());
+        },
       ),
     );
   }
@@ -363,6 +460,12 @@ class InventoryDataTable extends StatelessWidget {
                   Text('SKU: ${item.sku}'),
                   if (item.unitPrice != null)
                     Text('Price: ${_formatCurrency(item.unitPrice)}'),
+                  // ✅ NEW - Show serial info in delete confirmation
+                  if (item.isSerialTracked)
+                    Text(
+                      'Serial Numbers: ${item.totalSerialCount} will be deleted',
+                      style: TextStyle(color: Colors.red[600], fontWeight: FontWeight.w500),
+                    ),
                 ],
               ),
             ),
@@ -411,7 +514,7 @@ class InventoryDataTable extends StatelessWidget {
   void _showQrCode(BuildContext context, InventoryItem item) {
     showDialog(
       context: context,
-      builder: (context) => EnhancedBarcodeDialog(item: item,),
+      builder: (context) => EnhancedBarcodeDialog(item: item),
     );
   }
 

@@ -6,6 +6,8 @@ class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String? hint;
+  final String? placeholder; // ✅ ADD this parameter
+  final String? helperText;   // ✅ ADD this parameter
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?)? validator;
@@ -18,6 +20,8 @@ class CustomTextField extends StatelessWidget {
     required this.controller,
     required this.label,
     this.hint,
+    this.placeholder,  // ✅ ADD this
+    this.helperText,   // ✅ ADD this
     this.keyboardType,
     this.inputFormatters,
     this.validator,
@@ -37,7 +41,8 @@ class CustomTextField extends StatelessWidget {
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
-        hintText: hint,
+        hintText: placeholder ?? hint, // ✅ Use placeholder first, then hint
+        helperText: helperText,        // ✅ ADD helper text support
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -57,6 +62,11 @@ class CustomTextField extends StatelessWidget {
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        // ✅ Style helper text
+        helperStyle: TextStyle(
+          fontSize: 12,
+          color: Colors.grey[600],
         ),
       ),
     );

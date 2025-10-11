@@ -8,6 +8,10 @@ class CustomDropdown<T> extends StatelessWidget {
   final ValueChanged<T?>? onChanged;
   final String? Function(T?)? validator;
   final bool enabled;
+  // ✅ NEW - Added missing parameters
+  final String? hint;
+  final Widget Function(T)? itemBuilder;
+  final String Function(T)? itemToString;
 
   const CustomDropdown({
     Key? key,
@@ -17,6 +21,10 @@ class CustomDropdown<T> extends StatelessWidget {
     this.onChanged,
     this.validator,
     this.enabled = true,
+    // ✅ NEW - Add these to constructor
+    this.hint,
+    this.itemBuilder,
+    this.itemToString,
   }) : super(key: key);
 
   @override
@@ -27,6 +35,7 @@ class CustomDropdown<T> extends StatelessWidget {
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
+        hintText: hint, // ✅ NEW - Add hint text support
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
         ),
@@ -38,13 +47,26 @@ class CustomDropdown<T> extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Theme.of(context).primaryColor),
         ),
+        // ✅ NEW - Add error and disabled borders for consistency
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.red),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
       ),
       items: items.map((T item) {
         return DropdownMenuItem<T>(
           value: item,
-          child: Text(item.toString()),
+          // ✅ NEW - Use itemBuilder if provided, otherwise use itemToString or toString
+          child: itemBuilder?.call(item) ??
+              Text(itemToString?.call(item) ?? item.toString()),
         );
       }).toList(),
+      // ✅ NEW - Add isExpanded for better layout
+      isExpanded: true,
     );
   }
 }

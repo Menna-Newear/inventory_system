@@ -9,63 +9,70 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../domain/entities/inventory_item.dart';
-import '../../domain/entities/category.dart';
 import '../../domain/usecases/get_categories.dart' as get_categories_usecase;
 import '../../core/usecases/usecase.dart';
 
 class ImportExportService {
   static const double _BARCODE_LABEL_FONT_SIZE = 10.0;
-  static const double _BARCODE_WIDTH = 180.0;
-  static const double _BARCODE_HEIGHT = 60.0;
-
-  // ✅ SINGLE LABEL PAGE DIMENSIONS - Optimized for GK420t
+  static const double _BARCODE_WIDTH = 160.0;
+  static const double _BARCODE_HEIGHT = 50.0;
   static const double _LABEL_WIDTH = 288.0;   // 102mm (4" label)
   static const double _LABEL_HEIGHT = 216.0;  // 76mm (3" label)
+
   static pw.Font? _arabicFont;
   static pw.Font? _arabicFontBold;
+  static bool _fontInitialized = false;
+
   final get_categories_usecase.GetCategories _getCategories;
 
   ImportExportService({
     required get_categories_usecase.GetCategories getCategories,
   }) : _getCategories = getCategories;
+
+  // ✅ Font initialization with fallback
   Future<void> _initializeFonts() async {
-    if (_arabicFont == null || _arabicFontBold == null) {
-      try {
-        // Load Arabic fonts from assets
-        final regularFontData = await rootBundle.load('assets/fonts/NotoSansArabic-Regular.ttf');
-        final boldFontData = await rootBundle.load('assets/fonts/NotoSansArabic-Bold.ttf');
+    if (_fontInitialized) return;
+    _fontInitialized = true;
 
-        _arabicFont = pw.Font.ttf(regularFontData);
-        _arabicFontBold = pw.Font.ttf(boldFontData);
+    try {
+      final regularFontData = await rootBundle.load('assets/fonts/NotoSansArabic-Regular.ttf');
+      final boldFontData = await rootBundle.load('assets/fonts/NotoSansArabic-Bold.ttf');
 
-        print('✅ Arabic fonts loaded successfully');
-      } catch (e) {
-        print('⚠️ Warning: Failed to load Arabic fonts: $e');
-        // Fallback to default fonts
-        _arabicFont = null;
-        _arabicFontBold = null;
-      }
+      _arabicFont = pw.Font.ttf(regularFontData);
+      _arabicFontBold = pw.Font.ttf(boldFontData);
+
+      print('✅ Arabic fonts loaded successfully');
+    } catch (e) {
+      print('⚠️ Warning: Failed to load Arabic fonts: $e');
+      _arabicFont = null;
+      _arabicFontBold = null;
     }
   }
 
-  // ✅ HELPER - Create text style with Arabic font support
+  // ✅ Create text style with Arabic font support
   pw.TextStyle _createTextStyle({
     required double fontSize,
     bool isBold = false,
     PdfColor? color,
   }) {
+    if (_arabicFont != null && _arabicFontBold != null) {
+      return pw.TextStyle(
+        fontSize: fontSize,
+        fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+        color: color ?? PdfColors.black,
+        font: isBold ? _arabicFontBold : _arabicFont,
+        fontFallback: [_arabicFont!, _arabicFontBold!],
+      );
+    }
+
     return pw.TextStyle(
       fontSize: fontSize,
       fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
       color: color ?? PdfColors.black,
-      font: isBold ? _arabicFontBold : _arabicFont,
-      fontFallback: [
-        if (_arabicFont != null) _arabicFont!,
-        if (_arabicFontBold != null) _arabicFontBold!,
-      ],
     );
   }
-  // ✅ CSV Import - No changes needed
+
+  // ✅ ENHANCED - CSV Import with serial number support
   Future<List<InventoryItem>?> importFromCSV() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -121,8 +128,8 @@ class ImportExportService {
     }
   }
 
-  // ✅ CSV Export with category names
-  Future<String> exportToCSV(List<InventoryItem> items) async {
+  // ✅ ENHANCED - CSV Export with serial number support
+  Future<String> exportToCSV(List<InventoryItem> items, {bool includeSerialNumbers = false}) async {
     try {
       if (items.isEmpty) {
         throw Exception('No items to export');
@@ -134,7 +141,6 @@ class ImportExportService {
       final fileName = 'inventory_export_$timestamp.csv';
       final filePath = '${directory.path}/$fileName';
 
-      // ✅ DEBUG - Print Arabic text to check data integrity
       print('🔍 Sample Arabic data check:');
       if (items.isNotEmpty && items.first.nameAr.isNotEmpty) {
         print('First item Arabic name: "${items.first.nameAr}"');
@@ -145,10 +151,10 @@ class ImportExportService {
         [
           'SKU',
           'Name (English)',
-          'Name (Arabic)', // اسم المنتج بالعربية
+          'Name (Arabic)',
           'Description (English)',
-          'Description (Arabic)', // الوصف بالعربية
-          'Category Name', // اسم الفئة
+          'Description (Arabic)',
+          'Category Name',
           'Subcategory',
           'Stock Quantity',
           'Unit Price',
@@ -161,49 +167,95 @@ class ImportExportService {
           'Pixel Height',
           'Other Sp.',
           'Color Space',
+          'Image URL',
+          'Image Filename',
           'Comment',
+          // ✅ NEW - Serial tracking columns
+          'Serial Tracked',
+          'Serial Prefix',
+          'Serial Length',
+          'Serial Format',
+          'Available Serials',
+          'Total Serials',
+          'Serial Numbers List',
           'Created At',
           'Updated At',
         ],
-        ...items.map(
-              (item) => [
-            item.sku ?? '',
-            item.nameEn ?? '',
-            item.nameAr ?? '', // ✅ CRITICAL - Ensure Arabic text is preserved
-            item.descriptionEn ?? '',
-            item.descriptionAr ?? '',
-            categoryMap[item.categoryId] ?? 'Unknown Category',
-            item.subcategory ?? '',
-            item.stockQuantity,
-            item.unitPrice?.toString() ?? '',
-            item.minStockLevel,
-            item.dimensions.width?.toString() ?? '',
-            item.dimensions.height?.toString() ?? '',
-            item.dimensions.depth ?? '',
-            item.dimensions.unit ?? '',
-            item.imageProperties.pixelWidth?.toString() ?? '',
-            item.imageProperties.pixelHeight?.toString() ?? '',
-            item.imageProperties.otherSp ?? '',
-            item.imageProperties.colorSpace ?? '',
-            item.comment ?? '',
-            item.createdAt.toIso8601String(),
-            item.updatedAt.toIso8601String(),
-          ],
-        ),
       ];
 
-      // ✅ FIXED - Proper UTF-8 with BOM encoding for Arabic text
+      // Add data rows
+      for (final item in items) {
+        final baseRow = [
+          item.sku,
+          item.nameEn,
+          item.nameAr,
+          item.descriptionEn ?? '',
+          item.descriptionAr ?? '',
+          categoryMap[item.categoryId] ?? 'Unknown Category',
+          item.subcategory,
+          item.stockQuantity,
+          item.unitPrice?.toString() ?? '',
+          item.minStockLevel,
+          item.dimensions.width?.toString() ?? '',
+          item.dimensions.height?.toString() ?? '',
+          item.dimensions.depth ?? '',
+          item.dimensions.unit ?? '',
+          item.imageProperties.pixelWidth?.toString() ?? '',
+          item.imageProperties.pixelHeight?.toString() ?? '',
+          item.imageProperties.otherSp ?? '',
+          item.imageProperties.colorSpace,
+          item.imageUrl ?? '',
+          item.imageFileName ?? '',
+          item.comment ?? '',
+          // ✅ NEW - Serial tracking data
+          item.isSerialTracked.toString(),
+          item.serialNumberPrefix ?? '',
+          item.serialNumberLength?.toString() ?? '',
+          item.serialFormat.name,
+          item.availableStock.toString(),
+          item.serialNumbers.length.toString(),
+          item.serialNumbers.map((s) => s.serialNumber).join(';'),
+          item.createdAt.toIso8601String(),
+          item.updatedAt.toIso8601String(),
+        ];
+
+        csvData.add(baseRow);
+
+        // ✅ OPTIONAL - Add individual serial numbers as separate rows
+        if (includeSerialNumbers && item.isSerialTracked && item.serialNumbers.isNotEmpty) {
+          for (final serial in item.serialNumbers) {
+            csvData.add([
+              '${item.sku}-SERIAL',
+              '${item.nameEn} (Serial: ${serial.serialNumber})',
+              '', '', '',
+              categoryMap[item.categoryId] ?? 'Unknown Category',
+              item.subcategory,
+              1, // Individual serial quantity = 1
+              item.unitPrice?.toString() ?? '',
+              '', '', '', '', '', '', '', '', '',
+              item.imageUrl ?? '',
+              item.imageFileName ?? '',
+              serial.notes ?? '',
+              'false', // Individual serials are not tracked
+              '', '', '',
+              serial.status.name,
+              '', // Available count for individual serial
+              serial.serialNumber,
+              serial.createdAt.toIso8601String(),
+              serial.updatedAt.toIso8601String(),
+            ]);
+          }
+        }
+      }
+
       final csvString = const ListToCsvConverter().convert(csvData);
 
-      // ✅ DEBUG - Print CSV content to verify Arabic text
       print('🔍 CSV content sample (first 500 chars):');
       print(csvString.substring(0, csvString.length > 500 ? 500 : csvString.length));
 
       final file = File(filePath);
-
-      // ✅ METHOD 1 - UTF-8 with BOM (Byte Order Mark) for Excel compatibility
-      const utf8Bom = [0xEF, 0xBB, 0xBF]; // UTF-8 BOM bytes
-      final utf8Bytes = utf8.encode(csvString); // Properly encode to UTF-8
+      const utf8Bom = [0xEF, 0xBB, 0xBF];
+      final utf8Bytes = utf8.encode(csvString);
       final finalBytes = Uint8List.fromList([...utf8Bom, ...utf8Bytes]);
 
       await file.writeAsBytes(finalBytes);
@@ -216,6 +268,7 @@ class ImportExportService {
       throw Exception('CSV export failed: ${e.toString()}');
     }
   }
+
   // ✅ PDF Export with category names (table format)
   Future<String> exportToPDF(List<InventoryItem> items) async {
     try {
@@ -255,8 +308,12 @@ class ImportExportService {
     }
   }
 
-  // ✅ UPDATED - PDF Export with barcodes - ONE LABEL PER PAGE
-  Future<String> exportToPDFWithBarcodes(List<InventoryItem> items) async {
+  // ✅ ENHANCED - PDF Export with barcodes and serial support
+  Future<String> exportToPDFWithBarcodes(
+      List<InventoryItem> items, {
+        bool includeSerialNumbers = false,
+        SerialNumberBarcodeOption barcodeOption = SerialNumberBarcodeOption.combined,
+      }) async {
     try {
       if (items.isEmpty) {
         throw Exception('No items to export');
@@ -266,37 +323,164 @@ class ImportExportService {
       final categoryMap = await _getCategoryMap();
       final pdf = pw.Document();
 
-      // ✅ CRITICAL CHANGE - One item per page
-      for (int i = 0; i < items.length; i++) {
-        pdf.addPage(
-          pw.Page(
-            // ✅ SINGLE LABEL PAGE FORMAT - Perfect for GK420t
-            pageFormat: PdfPageFormat(
-              _LABEL_WIDTH,  // 102mm width
-              _LABEL_HEIGHT, // 76mm height
-              marginLeft: 8,
-              marginTop: 8,
-              marginRight: 8,
-              marginBottom: 8,
-            ),
-            build: (pw.Context context) {
-              return pw.Container(
-                width: double.infinity,
-                height: double.infinity,
-                child: _buildSingleLabel(items[i], categoryMap),
-              );
-            },
-          ),
-        );
+      print('🔍 DEBUG - Creating PDF with ${items.length} items');
+      print('🔍 DEBUG - Include serials: $includeSerialNumbers, Barcode option: ${barcodeOption.name}');
+
+      for (final item in items) {
+        if (item.isSerialTracked && includeSerialNumbers && item.serialNumbers.isNotEmpty) {
+          // ✅ Generate labels for each serial number
+          for (final serial in item.serialNumbers) {
+            pdf.addPage(_buildSerialLabel(item, serial, categoryMap, barcodeOption));
+          }
+        } else {
+          // ✅ Standard item label
+          pdf.addPage(_buildStandardLabel(item, categoryMap));
+        }
       }
 
-      return await _savePdfFile(pdf, 'barcode_labels_single');
+      final fileName = includeSerialNumbers ? 'serial_labels' : 'item_labels';
+      return await _savePdfFile(pdf, fileName);
+
     } catch (e) {
       throw Exception('PDF barcode export failed: ${e.toString()}');
     }
   }
 
-  // ✅ NEW - Build single optimized label for GK420t
+  // ✅ NEW - Build serial-specific label
+  pw.Page _buildSerialLabel(
+      InventoryItem item,
+      SerialNumber serial,
+      Map<String, String> categoryMap,
+      SerialNumberBarcodeOption barcodeOption,
+      ) {
+    return pw.Page(
+      pageFormat: PdfPageFormat(_LABEL_WIDTH, _LABEL_HEIGHT, marginAll: 4),
+      build: (pw.Context context) {
+        final String barcodeData;
+        switch (barcodeOption) {
+          case SerialNumberBarcodeOption.skuOnly:
+            barcodeData = item.sku;
+            break;
+          case SerialNumberBarcodeOption.serialOnly:
+            barcodeData = serial.serialNumber;
+            break;
+          case SerialNumberBarcodeOption.combined:
+            barcodeData = item.getBarcodeData(serialNumber: serial.serialNumber);
+            break;
+        }
+
+        return pw.Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: PdfColors.white,
+          child: pw.Stack(
+            children: [
+              // Category info
+              pw.Positioned(
+                left: 10, top: 10,
+                child: pw.Text(
+                  'Cat: ${categoryMap[item.categoryId] ?? 'Unknown'}',
+                  style: _createTextStyle(fontSize: 9, isBold: true),
+                ),
+              ),
+
+              // Serial status
+              pw.Positioned(
+                right: 10, top: 10,
+                child: pw.Text(
+                  'Status: ${serial.status.displayName}',
+                  style: _createTextStyle(fontSize: 8, color: _getStatusColor(serial.status)),
+                ),
+              ),
+
+              // Product name
+              pw.Positioned(
+                left: 10, right: 10, top: 35,
+                child: pw.Center(
+                  child: pw.Text(
+                    item.nameEn,
+                    style: _createTextStyle(fontSize: 14, isBold: true),
+                    textAlign: pw.TextAlign.center, maxLines: 2,
+                  ),
+                ),
+              ),
+
+              // SKU and Serial
+              pw.Positioned(
+                left: 10, right: 10, top: 80,
+                child: pw.Column(
+                  children: [
+                    pw.Text(
+                      'SKU: ${item.sku}',
+                      style: _createTextStyle(fontSize: 11, isBold: true),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Serial: ${serial.serialNumber}',
+                      style: _createTextStyle(fontSize: 12, isBold: true, color: PdfColors.red),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ✅ BARCODE - Uses selected data format
+              pw.Positioned(
+                left: 44, top: 120,
+                child: pw.Container(
+                  width: 200, height: 60,
+                  child: pw.BarcodeWidget(
+                    barcode: pw.Barcode.code128(),
+                    data: barcodeData,
+                    drawText: true,
+                    textStyle: _createTextStyle(fontSize: 10, isBold: true),
+                    color: PdfColors.black,
+                    backgroundColor: PdfColors.white,
+                    width: 200, height: 60,
+                  ),
+                ),
+              ),
+
+              // Notes and price
+              if (serial.notes != null && serial.notes!.isNotEmpty)
+                pw.Positioned(
+                  left: 10, bottom: 30,
+                  child: pw.Text(
+                    'Notes: ${serial.notes}',
+                    style: _createTextStyle(fontSize: 8),
+                    maxLines: 2,
+                  ),
+                ),
+
+              if (item.unitPrice != null)
+                pw.Positioned(
+                  right: 10, bottom: 10,
+                  child: pw.Text(
+                    item.displayPrice,
+                    style: _createTextStyle(fontSize: 9, isBold: true),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ✅ ENHANCED - Build standard label (updated from your original)
+  pw.Page _buildStandardLabel(InventoryItem item, Map<String, String> categoryMap) {
+    return pw.Page(
+      pageFormat: PdfPageFormat(_LABEL_WIDTH, _LABEL_HEIGHT, marginLeft: 8, marginTop: 8, marginRight: 8, marginBottom: 8),
+      build: (pw.Context context) {
+        return pw.Container(
+          width: double.infinity,
+          height: double.infinity,
+          child: _buildSingleLabel(item, categoryMap),
+        );
+      },
+    );
+  }
+
+  // ✅ UPDATED - Enhanced single label with serial tracking awareness
   pw.Widget _buildSingleLabel(InventoryItem item, Map<String, String> categoryMap) {
     return pw.Container(
       width: double.infinity,
@@ -310,7 +494,7 @@ class ImportExportService {
         crossAxisAlignment: pw.CrossAxisAlignment.center,
         mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
         children: [
-          // ✅ CATEGORY INFO SECTION - Top of label
+          // Category info section
           pw.Container(
             width: double.infinity,
             child: pw.Column(
@@ -318,11 +502,7 @@ class ImportExportService {
               children: [
                 pw.Text(
                   'Category: ${categoryMap[item.categoryId] ?? 'Unknown'}',
-                  style: pw.TextStyle(
-                    fontSize: 8,
-                    color: PdfColors.grey700,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
+                  style: _createTextStyle(fontSize: 8, color: PdfColors.grey700, isBold: true),
                   textAlign: pw.TextAlign.center,
                   maxLines: 1,
                   overflow: pw.TextOverflow.visible,
@@ -331,10 +511,7 @@ class ImportExportService {
                   pw.SizedBox(height: 2),
                   pw.Text(
                     'Sub: ${item.subcategory}',
-                    style: pw.TextStyle(
-                      fontSize: 8,
-                      color: PdfColors.grey600,
-                    ),
+                    style: _createTextStyle(fontSize: 8, color: PdfColors.grey600),
                     textAlign: pw.TextAlign.center,
                     maxLines: 1,
                     overflow: pw.TextOverflow.visible,
@@ -346,7 +523,7 @@ class ImportExportService {
 
           pw.SizedBox(height: 6),
 
-          // ✅ PRODUCT NAME SECTION - Main content
+          // Product name section
           pw.Expanded(
             flex: 3,
             child: pw.Container(
@@ -355,43 +532,64 @@ class ImportExportService {
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 mainAxisAlignment: pw.MainAxisAlignment.center,
                 children: [
-                  // English name - MAIN PRODUCT NAME
                   pw.Container(
                     width: double.infinity,
                     child: pw.Text(
                       item.nameEn,
-                      style: pw.TextStyle(
-                        fontSize: 12,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.black,
-                      ),
+                      style: _createTextStyle(fontSize: 12, isBold: true),
                       textAlign: pw.TextAlign.center,
-                      maxLines: null, // ✅ Allow unlimited lines
+                      maxLines: null,
                       softWrap: true,
                       overflow: pw.TextOverflow.visible,
                     ),
                   ),
 
+                  // ✅ Show Arabic name if available and fonts loaded
+                  if (item.nameAr.isNotEmpty && _arabicFont != null) ...[
+                    pw.SizedBox(height: 4),
+                    pw.Container(
+                      width: double.infinity,
+                      child: pw.Text(
+                        item.nameAr,
+                        style: _createTextStyle(fontSize: 10, color: PdfColors.grey700),
+                        textAlign: pw.TextAlign.center,
+                        textDirection: pw.TextDirection.rtl,
+                        maxLines: null,
+                        softWrap: true,
+                        overflow: pw.TextOverflow.visible,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
 
-          // ✅ SKU SECTION
+          // SKU section
           pw.Container(
             width: double.infinity,
             padding: pw.EdgeInsets.symmetric(vertical: 4),
             child: pw.Text(
               'SKU: ${item.sku}',
-              style: pw.TextStyle(
-                fontSize: 10,
-                fontWeight: pw.FontWeight.bold,
-              ),
+              style: _createTextStyle(fontSize: 10, isBold: true),
               textAlign: pw.TextAlign.center,
             ),
           ),
 
-          // ✅ BARCODE SECTION - CENTER OF LABEL
+          // ✅ SERIAL TRACKING INFO (if applicable)
+          if (item.isSerialTracked) ...[
+            pw.Container(
+              width: double.infinity,
+              padding: pw.EdgeInsets.symmetric(vertical: 2),
+              child: pw.Text(
+                'Serial Tracked: ${item.availableStock}/${item.totalSerialCount} available',
+                style: _createTextStyle(fontSize: 8, color: PdfColors.blue),
+                textAlign: pw.TextAlign.center,
+              ),
+            ),
+          ],
+
+          // Barcode section
           pw.Expanded(
             flex: 4,
             child: pw.Center(
@@ -400,12 +598,9 @@ class ImportExportService {
                 height: _BARCODE_HEIGHT + 15,
                 child: pw.BarcodeWidget(
                   barcode: pw.Barcode.code128(),
-                  data: item.sku,
+                  data: item.sku, // Standard SKU barcode for non-serialized items
                   drawText: true,
-                  textStyle: pw.TextStyle(
-                    fontSize: _BARCODE_LABEL_FONT_SIZE,
-                    fontWeight: pw.FontWeight.normal,
-                  ),
+                  textStyle: _createTextStyle(fontSize: _BARCODE_LABEL_FONT_SIZE),
                   width: _BARCODE_WIDTH,
                   height: _BARCODE_HEIGHT,
                 ),
@@ -413,15 +608,160 @@ class ImportExportService {
             ),
           ),
 
+          // ✅ ENHANCED - Bottom info with effective stock
+          pw.Container(
+            width: double.infinity,
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+              children: [
+                pw.Text(
+                  'Stock: ${item.effectiveStockQuantity}',
+                  style: _createTextStyle(fontSize: 8),
+                ),
+                pw.Text(
+                  'Min: ${item.minStockLevel}',
+                  style: _createTextStyle(fontSize: 8),
+                ),
+                if (item.hasPrice)
+                  pw.Text(
+                    item.displayPrice,
+                    style: _createTextStyle(fontSize: 8, isBold: true),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
+  // ✅ NEW - ZPL Export with serial number support
+  Future<String> exportToZPL(
+      List<InventoryItem> items, {
+        bool includeSerialNumbers = false,
+        SerialNumberBarcodeOption barcodeOption = SerialNumberBarcodeOption.combined,
+      }) async {
+    try {
+      if (items.isEmpty) {
+        throw Exception('No items to export');
+      }
+
+      final categoryMap = await _getCategoryMap();
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'zebra_labels_$timestamp.zpl';
+      final filePath = '${directory.path}/$fileName';
+
+      final StringBuffer zplBuffer = StringBuffer();
+
+      for (final item in items) {
+        if (item.isSerialTracked && includeSerialNumbers && item.serialNumbers.isNotEmpty) {
+          // Generate ZPL for each serial number
+          for (final serial in item.serialNumbers) {
+            final String barcodeData;
+            switch (barcodeOption) {
+              case SerialNumberBarcodeOption.skuOnly:
+                barcodeData = item.sku;
+                break;
+              case SerialNumberBarcodeOption.serialOnly:
+                barcodeData = serial.serialNumber;
+                break;
+              case SerialNumberBarcodeOption.combined:
+                barcodeData = item.getBarcodeData(serialNumber: serial.serialNumber);
+                break;
+            }
+
+            zplBuffer.writeln('^XA'); // Start of label
+            zplBuffer.writeln('^CF0,30'); // Default font, size 30
+            zplBuffer.writeln('^LH30,30'); // Label home position
+
+            // Category
+            zplBuffer.writeln('^FO20,20^A0N,25,25^FDCategory: ${categoryMap[item.categoryId] ?? 'Unknown'}^FS');
+
+            // Status
+            zplBuffer.writeln('^FO20,50^A0N,20,20^FDStatus: ${serial.status.displayName}^FS');
+
+            // Product name
+            zplBuffer.writeln('^FO20,80^A0N,30,30^FD${item.nameEn}^FS');
+
+            // SKU
+            zplBuffer.writeln('^FO20,120^A0N,25,25^FDSKU: ${item.sku}^FS');
+
+            // Serial Number
+            zplBuffer.writeln('^FO20,150^A0N,25,25^FDSerial: ${serial.serialNumber}^FS');
+
+            // ✅ BARCODE with serial data
+            zplBuffer.writeln('^FO50,180^BY2^BCN,50,Y,N,N^FD$barcodeData^FS');
+
+            // Price and notes
+            if (item.hasPrice) {
+              zplBuffer.writeln('^FO200,240^A0N,18,18^FD${item.displayPrice}^FS');
+            }
+
+            if (serial.notes != null && serial.notes!.isNotEmpty) {
+              zplBuffer.writeln('^FO20,270^A0N,15,15^FDNotes: ${serial.notes}^FS');
+            }
+
+            zplBuffer.writeln('^XZ'); // End of label
+            zplBuffer.writeln(); // Empty line
+          }
+        } else {
+          // Standard item ZPL
+          zplBuffer.writeln('^XA');
+          zplBuffer.writeln('^CF0,30');
+          zplBuffer.writeln('^LH30,30');
+
+          final categoryName = categoryMap[item.categoryId] ?? 'Unknown';
+          zplBuffer.writeln('^FO20,20^A0N,25,25^FDCategory: $categoryName^FS');
+          zplBuffer.writeln('^FO20,50^A0N,20,20^FDSub: ${item.subcategory}^FS');
+          zplBuffer.writeln('^FO20,90^A0N,35,35^FD${item.nameEn}^FS');
+          zplBuffer.writeln('^FO20,140^A0N,25,25^FDSKU: ${item.sku}^FS');
+
+          // ✅ Serial tracking info for ZPL
+          if (item.isSerialTracked) {
+            zplBuffer.writeln('^FO20,170^A0N,20,20^FDSerial Tracked: ${item.availableStock}/${item.totalSerialCount}^FS');
+          }
+
+          zplBuffer.writeln('^FO50,200^BY2^BCN,50,Y,N,N^FD${item.sku}^FS');
+          zplBuffer.writeln('^FO20,260^A0N,18,18^FDStock: ${item.effectiveStockQuantity}   Min: ${item.minStockLevel}^FS');
+
+          if (item.hasPrice) {
+            zplBuffer.writeln('^FO200,260^A0N,18,18^FD${item.displayPrice}^FS');
+          }
+
+          zplBuffer.writeln('^XZ');
+        }
+      }
+
+      final file = File(filePath);
+      await file.writeAsString(zplBuffer.toString());
+
+      print('✅ ZPL file created: $filePath');
+      print('📄 Contains labels for ${items.length} items');
+
+      return filePath;
+
+    } catch (e) {
+      throw Exception('ZPL export failed: ${e.toString()}');
+    }
+  }
+
+  // ✅ Helper methods
+  PdfColor _getStatusColor(SerialStatus status) {
+    switch (status) {
+      case SerialStatus.available: return PdfColors.green;
+      case SerialStatus.reserved: return PdfColors.orange;
+      case SerialStatus.sold: return PdfColors.blue;
+      case SerialStatus.damaged: return PdfColors.red;
+      case SerialStatus.returned: return PdfColors.purple;
+      case SerialStatus.recalled: return PdfColors.red;
+    }
+  }
+
   // ✅ Get category map using correct NoParams
   Future<Map<String, String>> _getCategoryMap() async {
     try {
-      final result = await _getCategories( NoParams());
+      final result = await _getCategories(NoParams());
       return result.fold(
             (failure) {
           print('⚠️ Warning: Failed to load categories: ${failure.toString()}');
@@ -452,11 +792,11 @@ class ImportExportService {
             children: [
               pw.Text(
                 title,
-                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+                style: _createTextStyle(fontSize: 24, isBold: true),
               ),
               pw.Text(
                 'Generated: ${DateTime.now().toString().split('.')[0]}',
-                style: pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+                style: _createTextStyle(fontSize: 11, color: PdfColors.grey600),
               ),
             ],
           ),
@@ -465,11 +805,11 @@ class ImportExportService {
             children: [
               pw.Text(
                 'Page $currentPage of $totalPages',
-                style: pw.TextStyle(fontSize: 12, color: PdfColors.grey600),
+                style: _createTextStyle(fontSize: 12, color: PdfColors.grey600),
               ),
               pw.Text(
                 'Total Items: $totalItems',
-                style: pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+                style: _createTextStyle(fontSize: 11, color: PdfColors.grey600),
               ),
             ],
           ),
@@ -478,7 +818,7 @@ class ImportExportService {
     );
   }
 
-  // ✅ Build inventory table with category names
+  // ✅ ENHANCED - Build inventory table with serial tracking awareness
   pw.Widget _buildInventoryTable(List<InventoryItem> items, Map<String, String> categoryMap) {
     return pw.Table(
       border: pw.TableBorder.all(color: PdfColors.grey400),
@@ -509,7 +849,11 @@ class ImportExportService {
             children: [
               _buildTableCell(item.sku),
               _buildTableCell(_truncateText(item.nameEn, 30)),
-              _buildTableCell(item.stockQuantity.toString()),
+              _buildTableCell(
+                  item.isSerialTracked
+                      ? '${item.effectiveStockQuantity} (${item.totalSerialCount} total)'
+                      : item.stockQuantity.toString()
+              ),
               _buildTableCell(_formatPrice(item.unitPrice)),
               _buildTableCell(_formatDimensions(item.dimensions)),
               _buildTableCell(_truncateText(
@@ -524,15 +868,15 @@ class ImportExportService {
     );
   }
 
-  // ✅ HELPER METHODS
+  // ✅ Helper methods (unchanged)
   pw.Widget _buildTableCell(String text, {bool isHeader = false}) {
     return pw.Container(
       padding: pw.EdgeInsets.all(6),
       child: pw.Text(
         text,
-        style: pw.TextStyle(
-          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+        style: _createTextStyle(
           fontSize: isHeader ? 10 : 9,
+          isBold: isHeader,
         ),
         maxLines: isHeader ? 1 : 2,
         overflow: pw.TextOverflow.clip,
@@ -583,6 +927,7 @@ class ImportExportService {
     return chunks;
   }
 
+  // ✅ ENHANCED - Create item from CSV row with serial support
   InventoryItem _createItemFromCsvRow(List<dynamic> row, int rowNumber) {
     try {
       return InventoryItem(
@@ -609,7 +954,15 @@ class ImportExportService {
           otherSp: _safeGetOptionalString(row, 16),
           colorSpace: _safeGetOptionalString(row, 17) ?? 'RGB',
         ),
-        comment: _safeGetOptionalString(row, 18),
+        imageUrl: _safeGetOptionalString(row, 18),
+        imageFileName: _safeGetOptionalString(row, 19),
+        comment: _safeGetOptionalString(row, 20),
+        // ✅ NEW - Serial tracking fields (with sensible defaults for imports)
+        isSerialTracked: _safeGetBool(row, 21, defaultValue: false),
+        serialNumberPrefix: _safeGetOptionalString(row, 22),
+        serialNumberLength: _safeGetOptionalInt(row, 23),
+        serialFormat: _safeGetSerialFormat(row, 24),
+        // Note: Serial numbers would be imported separately or parsed from the list
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -618,6 +971,23 @@ class ImportExportService {
     }
   }
 
+  // ✅ NEW - Helper methods for serial number parsing
+  bool _safeGetBool(List<dynamic> row, int index, {bool defaultValue = false}) {
+    if (index >= row.length) return defaultValue;
+    final value = row[index]?.toString().toLowerCase();
+    return value == 'true' || value == '1' || value == 'yes';
+  }
+
+  SerialNumberFormat _safeGetSerialFormat(List<dynamic> row, int index) {
+    if (index >= row.length) return SerialNumberFormat.numeric;
+    final value = row[index]?.toString().toLowerCase() ?? 'numeric';
+    return SerialNumberFormat.values.firstWhere(
+          (format) => format.name == value,
+      orElse: () => SerialNumberFormat.numeric,
+    );
+  }
+
+  // ✅ Existing helper methods (unchanged)
   String _safeGetString(List<dynamic> row, int index, String fieldName, {String? defaultValue}) {
     if (index >= row.length) {
       if (defaultValue != null) return defaultValue;
@@ -656,4 +1026,11 @@ class ImportExportService {
     if (index >= row.length) return null;
     return double.tryParse(row[index]?.toString() ?? '');
   }
+}
+
+// ✅ NEW - Barcode options for serial numbers
+enum SerialNumberBarcodeOption {
+  skuOnly,      // Just the SKU (7073)
+  serialOnly,   // Just the serial number (SN001234)
+  combined,     // SKU + Serial (7073-SN001234)
 }

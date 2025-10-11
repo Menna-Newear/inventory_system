@@ -30,6 +30,15 @@ InventoryItemModel _$InventoryItemModelFromJson(Map<String, dynamic> json) =>
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       comment: json['comment'] as String?,
+      isSerialTracked: json['is_serial_tracked'] as bool? ?? false,
+      serialNumberPrefix: json['serial_number_prefix'] as String?,
+      serialNumberLength: (json['serial_number_length'] as num?)?.toInt(),
+      serialFormat:
+          $enumDecodeNullable(
+            _$SerialNumberFormatEnumMap,
+            json['serial_format'],
+          ) ??
+          SerialNumberFormat.numeric,
     );
 
 Map<String, dynamic> _$InventoryItemModelToJson(InventoryItemModel instance) =>
@@ -45,11 +54,21 @@ Map<String, dynamic> _$InventoryItemModelToJson(InventoryItemModel instance) =>
       'stock_quantity': instance.stockQuantity,
       'unit_price': instance.unitPrice,
       'min_stock_level': instance.minStockLevel,
-      'dimensions': instance.dimensions,
-      'image_properties': instance.imageProperties,
+      'dimensions': instance.dimensions.toJson(),
+      'image_properties': instance.imageProperties.toJson(),
       'image_url': instance.imageUrl,
       'image_filename': instance.imageFileName,
       'created_at': instance.createdAt.toIso8601String(),
       'updated_at': instance.updatedAt.toIso8601String(),
       'comment': instance.comment,
+      'is_serial_tracked': instance.isSerialTracked,
+      'serial_number_prefix': instance.serialNumberPrefix,
+      'serial_number_length': instance.serialNumberLength,
+      'serial_format': _$SerialNumberFormatEnumMap[instance.serialFormat]!,
     };
+
+const _$SerialNumberFormatEnumMap = {
+  SerialNumberFormat.numeric: 'numeric',
+  SerialNumberFormat.alphanumeric: 'alphanumeric',
+  SerialNumberFormat.custom: 'custom',
+};
