@@ -7,6 +7,8 @@ import '../../../domain/entities/category.dart';
 import '../../blocs/category/category_bloc.dart';
 
 class SimpleCategoryManager extends StatelessWidget {
+  const SimpleCategoryManager({super.key});
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(

@@ -1,4 +1,4 @@
-// data/repositories/inventory_repository_impl.dart
+// ✅ data/repositories/inventory_repository_impl.dart (COMPLETE UPDATED VERSION)
 import 'package:dartz/dartz.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/network_info.dart';
@@ -19,13 +19,25 @@ class InventoryRepositoryImpl implements InventoryRepository {
     required this.networkInfo,
   });
 
-  // ✅ ENHANCED - Get all inventory items with serial numbers
+  // ✅ ADD THIS METHOD - Stock Management Service expects this method name
+  @override
+  Future<Either<Failure, List<InventoryItem>>> getInventoryItems() async {
+    print('🔄 INVENTORY REPO: getInventoryItems() called by stock management service');
+    return getAllInventoryItems();
+  }
+
+  // ✅ ENHANCED - Get all inventory items with cache clearing awareness
   @override
   Future<Either<Failure, List<InventoryItem>>> getAllInventoryItems() async {
     if (await networkInfo.isConnected) {
       try {
+        print('🔄 INVENTORY REPO: Fetching fresh inventory items from remote');
         final remoteItems = await remoteDataSource.getAllInventoryItems();
+        print('✅ INVENTORY REPO: Got ${remoteItems.length} items from remote');
+
+        // ✅ ALWAYS UPDATE CACHE WITH FRESH DATA
         await localDataSource.cacheInventoryItems(remoteItems);
+        print('💾 INVENTORY REPO: Cached ${remoteItems.length} items locally');
 
         // Convert models to entities and load serial numbers
         List<InventoryItem> items = [];
@@ -47,6 +59,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
 
         return Right(items);
       } catch (e) {
+        print('❌ INVENTORY REPO: Remote fetch failed, trying cache: $e');
         // Fallback to cached data
         try {
           final cachedItems = await localDataSource.getCachedInventoryItems();
@@ -68,6 +81,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
             items.add(item);
           }
 
+          print('📦 INVENTORY REPO: Using ${items.length} cached items');
           return Right(items);
         } catch (cacheError) {
           return Left(ServerFailure('Failed to load inventory items: $e'));
@@ -95,6 +109,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
             items.add(item);
           }
 
+          print('📦 INVENTORY REPO: No internet - using ${items.length} cached items');
           return Right(items);
         } else {
           return Left(CacheFailure('No cached data available'));
@@ -175,7 +190,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
-  // ✅ ENHANCED - Create inventory item with serial number setup
+  // ✅ ENHANCED - Create inventory item with cache clearing
   @override
   Future<Either<Failure, InventoryItem>> createInventoryItem(InventoryItem item) async {
     if (await networkInfo.isConnected) {
@@ -189,8 +204,15 @@ class InventoryRepositoryImpl implements InventoryRepository {
           return Left(DuplicateSkuFailure('SKU ${item.sku} already exists'));
         }
 
+        print('🔄 INVENTORY REPO: Creating new item ${item.nameEn}');
+
         final itemModel = InventoryItemModel.fromEntity(item);
         final createdItem = await remoteDataSource.createInventoryItem(itemModel);
+
+        // ✅ CLEAR CACHE AFTER CREATION
+        await localDataSource.clearCache();
+        print('🗑️ INVENTORY REPO: Cache cleared after creating new item');
+
         await localDataSource.cacheInventoryItem(createdItem);
 
         InventoryItem newItem = createdItem.toEntity();
@@ -214,14 +236,25 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
-  // ✅ ENHANCED - Update inventory item (preserves serial numbers)
+  // ✅ CRITICAL FIX: Clear cache after updating items
   @override
   Future<Either<Failure, InventoryItem>> updateInventoryItem(InventoryItem item) async {
     if (await networkInfo.isConnected) {
       try {
+        print('🔄 INVENTORY REPO: Updating item ${item.nameEn} (Stock: ${item.stockQuantity})');
+
         final itemModel = InventoryItemModel.fromEntity(item);
         final updatedItem = await remoteDataSource.updateInventoryItem(itemModel);
+
+        print('✅ INVENTORY REPO: Database update successful');
+
+        // ✅ CRITICAL: CLEAR CACHE IMMEDIATELY AFTER UPDATE
+        print('🗑️ INVENTORY REPO: Clearing cache to force fresh data on next load');
+        await localDataSource.clearCache();
+
+        // ✅ Cache the updated item immediately for faster access
         await localDataSource.cacheInventoryItem(updatedItem);
+        print('💾 INVENTORY REPO: Updated item cached');
 
         InventoryItem newItem = updatedItem.toEntity();
 
@@ -235,8 +268,10 @@ class InventoryRepositoryImpl implements InventoryRepository {
           newItem = newItem.copyWith(serialNumbers: serials);
         }
 
+        print('✅ INVENTORY REPO: Item ${item.nameEn} update complete - cache cleared');
         return Right(newItem);
       } catch (e) {
+        print('❌ INVENTORY REPO: Update failed: $e');
         return Left(ServerFailure('Failed to update inventory item: $e'));
       }
     } else {
@@ -244,16 +279,23 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
-  // ✅ ENHANCED - Delete inventory item (cascades to serial numbers)
+  // ✅ ENHANCED - Delete inventory item with cache clearing
   @override
   Future<Either<Failure, void>> deleteInventoryItem(String id) async {
     if (await networkInfo.isConnected) {
       try {
+        print('🔄 INVENTORY REPO: Deleting item $id');
+
         // Delete all associated serial numbers first
         await remoteDataSource.deleteAllSerialNumbers(id);
 
         // Then delete the item
         await remoteDataSource.deleteInventoryItem(id);
+
+        // ✅ CLEAR CACHE AFTER DELETION
+        await localDataSource.clearCache();
+        print('🗑️ INVENTORY REPO: Cache cleared after deleting item');
+
         await localDataSource.removeCachedInventoryItem(id);
 
         return Right(null);
@@ -429,8 +471,6 @@ class InventoryRepositoryImpl implements InventoryRepository {
       return Left(NetworkFailure('No internet connection. Cannot update serial statuses offline.'));
     }
   }
-
-  // ✅ NEW - ADD MISSING METHODS FROM INTERFACE
 
   /// Get serial numbers that require attention (damaged, recalled, etc.)
   @override
@@ -960,7 +1000,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
-  /// Check if SKU exists (unchanged)
+  /// Check if SKU exists
   @override
   Future<Either<Failure, bool>> skuExists(String sku, {String? excludeId}) async {
     try {

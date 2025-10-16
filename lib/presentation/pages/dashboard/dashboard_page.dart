@@ -1,648 +1,629 @@
-// presentation/pages/dashboard/dashboard_page.dart
+// ✅ presentation/pages/dashboard/dashboard_page.dart (UPDATED WITH REFRESH LISTENERS)
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:provider/provider.dart';
-import '../../../data/services/import_export_service.dart';
-import '../../blocs/category/category_bloc.dart';
+import '../../../domain/entities/order.dart';
+import '../../../data/services/stock_management_service.dart'; // ✅ ADD THIS IMPORT
 import '../../blocs/inventory/inventory_bloc.dart';
-import '../../viewmodels/inventory_import_export_viewmodel.dart';
-import '../../widgets/category/simple_category_manager.dart';
-import '../../widgets/inventory/inventory_data_table.dart';
+import '../../blocs/category/category_bloc.dart';
+import '../../blocs/order/order_bloc.dart';
+import '../../blocs/order/order_event.dart';
+import '../../blocs/order/order_state.dart';
 import '../../widgets/inventory/inventory_stats_cards.dart';
 import '../../widgets/inventory/inventory_search_bar.dart';
 import '../../widgets/inventory/inventory_filter_panel.dart';
+import '../../widgets/inventory/inventory_data_table.dart';
+import '../../widgets/inventory/import_export_dialog.dart';
+import '../../widgets/order/create_order_dialog.dart';
+import '../../widgets/order/order_stats_cards.dart';
+import '../../widgets/order/order_search_bar.dart';
+import '../../widgets/order/order_filter_panel.dart';
+import '../../widgets/order/orders_data_table.dart';
 import '../inventory/add_edit_item_dialog.dart';
-import '../../../injection_container.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) => getIt<InventoryBloc>()..add(LoadInventoryItems()),
-        ),
-        BlocProvider(
-          create: (_) => getIt<CategoryBloc>()..add(LoadCategories()),
-        ),
-      ],
-      child: DashboardView(),
-    );
-  }
+  State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class DashboardView extends StatefulWidget {
-  @override
-  State<DashboardView> createState() => _DashboardViewState();
-}
-
-class _DashboardViewState extends State<DashboardView> {
-  bool _isFilterPanelVisible = false;
-  late InventoryImportExportViewModel _importExportViewModel;
+class _DashboardPageState extends State<DashboardPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool _showInventoryFilterPanel = false;
+  bool _showOrderFilterPanel = false;
 
   @override
   void initState() {
     super.initState();
-    // ✅ FIXED - Initialize ViewModel in initState where context is available
-    _importExportViewModel = InventoryImportExportViewModel(
-      inventoryBloc: context.read<InventoryBloc>(),
-    );
+    _tabController = TabController(length: 3, vsync: this);
+
+    // ✅ ADD THIS: Listen for inventory refresh events
+    InventoryRefreshNotifier().addListener(_refreshInventory);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<OrderBloc>().add(LoadOrders());
+      // ✅ ADD THIS: Load inventory on startup
+      context.read<InventoryBloc>().add(LoadInventoryItems());
+    });
   }
 
   @override
   void dispose() {
-    _importExportViewModel.dispose();
+    // ✅ ADD THIS: Remove the listener to prevent memory leaks
+    InventoryRefreshNotifier().removeListener(_refreshInventory);
+    _tabController.dispose();
     super.dispose();
+  }
+
+  // ✅ ADD THIS METHOD: Refresh inventory when stock changes
+  void _refreshInventory() {
+    print('🔄 DASHBOARD: Received inventory refresh notification - reloading inventory');
+    if (mounted) {
+      context.read<InventoryBloc>().add(LoadInventoryItems());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // ✅ FIXED - Provide the ViewModel instance using ChangeNotifierProvider.value
-    return ChangeNotifierProvider<InventoryImportExportViewModel>.value(
-      value: _importExportViewModel,
-      child: Scaffold(
-        appBar: _buildAppBar(),
-        body: MultiBlocListener(
-          listeners: [
-            BlocListener<InventoryBloc, InventoryState>(
-              listener: (context, state) {
-                if (state is InventoryError) {
-                  _showSnackBar(context, state.message, Colors.red, Icons.error);
-                } else if (state is InventoryItemCreated) {
-                  _showSnackBar(context, 'Item created successfully', Colors.green, Icons.check_circle);
-                } else if (state is InventoryItemUpdated) {
-                  _showSnackBar(context, 'Item updated successfully', Colors.blue, Icons.update);
-                } else if (state is InventoryItemDeleted) {
-                  _showSnackBar(context, 'Item deleted successfully', Colors.orange, Icons.delete);
-                }
-              },
-            ),
-            BlocListener<CategoryBloc, CategoryState>(
-              listener: (context, state) {
-                if (state is CategoryError) {
-                  _showSnackBar(context, 'Category error: ${state.message}', Colors.red, Icons.error);
-                } else if (state is CategoryCreated) {
-                  _showSnackBar(context, 'Category "${state.category.name}" created successfully', Colors.green, Icons.check_circle);
-                }
-              },
-            ),
-          ],
-          child: SafeArea(
-            child: Column(
-              children: [
-                InventoryStatsCards(),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: InventorySearchBar(),
-                ),
-                if (_isFilterPanelVisible)
-                  InventoryFilterPanel(
-                    onClose: () => setState(() => _isFilterPanelVisible = false),
-                  ),
-                Expanded(
-                  child: Container(
-                    margin: EdgeInsets.all(16.0),
-                    padding: EdgeInsets.only(bottom: 100),
-                    child: InventoryDataTable(),
-                  ),
-                ),
-              ],
-            ),
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Inventory Management System',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        floatingActionButton: _buildFloatingActionButton(),
+        elevation: 0,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          tabs: [
+            Tab(icon: Icon(Icons.inventory_2), text: 'Inventory'),
+            Tab(icon: Icon(Icons.shopping_cart_outlined), text: 'Orders'),
+            Tab(icon: Icon(Icons.analytics_outlined), text: 'Analytics'),
+          ],
+        ),
       ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      title: Row(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.inventory, color: Colors.white),
-          ),
-          SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Inventory Management System',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              BlocBuilder<InventoryBloc, InventoryState>(
-                builder: (context, state) {
-                  if (state is InventoryLoaded) {
-                    return Text(
-                      '${state.totalItems} items • ${state.lowStockCount} low stock',
-                      style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
-                    );
-                  }
-                  return SizedBox.shrink();
-                },
-              ),
-            ],
-          ),
+          _buildInventoryTab(),
+          _buildOrdersTab(),
+          _buildAnalyticsTab(),
         ],
       ),
-      backgroundColor: Theme.of(context).primaryColor,
-      elevation: 0,
-      actions: _buildAppBarActions(),
     );
   }
 
-  List<Widget> _buildAppBarActions() {
-    return [
-      _buildActionButton(
-        icon: _isFilterPanelVisible ? Icons.filter_alt : Icons.filter_alt_outlined,
-        tooltip: _isFilterPanelVisible ? 'Hide Filters' : 'Show Filters',
-        onPressed: () => setState(() => _isFilterPanelVisible = !_isFilterPanelVisible),
-      ),
-      _buildActionButton(
-        icon: Icons.refresh,
-        tooltip: 'Refresh Data',
-        onPressed: () {
-          context.read<InventoryBloc>().add(RefreshInventoryItems());
-          context.read<CategoryBloc>().add(LoadCategories());
-        },
-      ),
-      _buildActionButton(
-        icon: Icons.upload_file,
-        tooltip: 'Import Data',
-        onPressed: () => _showImportDialog(context),
-      ),
-      _buildActionButton(
-        icon: Icons.download,
-        tooltip: 'Export Data',
-        onPressed: () => _showExportDialog(context),
-      ),
-      _buildMenuButton(),
-      SizedBox(width: 8),
-    ];
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onPressed,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 2),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              width: 40,
-              height: 40,
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
+  Widget _buildInventoryTab() {
+    return Column(
+      children: [
+        InventoryStatsCards(),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuButton() {
-    return PopupMenuButton<String>(
-      tooltip: 'More Options',
-      onSelected: (String value) {
-        switch (value) {
-          case 'manage_categories':
-            _showCategoryManagement(context);
-            break;
-        }
-      },
-      itemBuilder: (BuildContext context) => [
-        PopupMenuItem<String>(
-          value: 'manage_categories',
           child: Row(
             children: [
-              Icon(Icons.category, size: 18),
+              Expanded(flex: 3, child: InventorySearchBar()),
+              SizedBox(width: 16),
+              ElevatedButton.icon(
+                onPressed: () => setState(
+                      () => _showInventoryFilterPanel = !_showInventoryFilterPanel,
+                ),
+                icon: Icon(
+                  _showInventoryFilterPanel
+                      ? Icons.filter_alt_off
+                      : Icons.filter_alt,
+                ),
+                label: Text(
+                  _showInventoryFilterPanel ? 'Hide Filters' : 'Filters',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _showInventoryFilterPanel
+                      ? Colors.orange
+                      : Colors.grey[600],
+                  foregroundColor: Colors.white,
+                ),
+              ),
               SizedBox(width: 8),
-              Text('Manage Categories'),
+              ElevatedButton.icon(
+                onPressed: _showImportExportDialog,
+                icon: Icon(Icons.import_export),
+                label: Text('Import/Export'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: _showAddItemDialog,
+                icon: Icon(Icons.add),
+                label: Text('Add Item'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+              ),
             ],
+          ),
+        ),
+        if (_showInventoryFilterPanel)
+          InventoryFilterPanel(
+            onClose: () => setState(() => _showInventoryFilterPanel = false),
+          ),
+        Expanded(
+          child: Container(
+            padding: EdgeInsets.all(16),
+            child: InventoryDataTable(),
           ),
         ),
       ],
-      icon: Icon(Icons.more_vert, color: Colors.white),
     );
   }
 
-  Widget _buildFloatingActionButton() {
-    return BlocBuilder<InventoryBloc, InventoryState>(
-      builder: (context, state) {
-        return FloatingActionButton.extended(
-          onPressed: () => _showAddItemDialog(context),
-          icon: Icon(Icons.add),
-          label: Text('Add Item'),
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          elevation: 4,
-          extendedPadding: EdgeInsets.symmetric(horizontal: 20),
-        );
-      },
-    );
-  }
-
-  void _showAddItemDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => MultiBlocProvider(
-        providers: [
-          BlocProvider.value(value: context.read<InventoryBloc>()),
-          BlocProvider.value(value: context.read<CategoryBloc>()),
-        ],
-        child: AddEditItemDialog(),
-      ),
-    );
-  }
-
-  // ✅ FIXED - Import Dialog using Provider.of instead of Consumer
-  void _showImportDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => ListenableBuilder(
-        listenable: _importExportViewModel,
-        builder: (context, child) => AlertDialog(
-          title: Row(
+  Widget _buildOrdersTab() {
+    return Column(
+      children: [
+        OrderStatsCards(),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+          ),
+          child: Row(
             children: [
-              Icon(Icons.upload_file, color: Theme.of(context).primaryColor),
+              Expanded(flex: 3, child: OrderSearchBar()),
+              SizedBox(width: 16),
+              ElevatedButton.icon(
+                onPressed: () => setState(
+                      () => _showOrderFilterPanel = !_showOrderFilterPanel,
+                ),
+                icon: Icon(
+                  _showOrderFilterPanel
+                      ? Icons.filter_alt_off
+                      : Icons.filter_alt,
+                ),
+                label: Text(_showOrderFilterPanel ? 'Hide Filters' : 'Filters'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _showOrderFilterPanel
+                      ? Colors.orange
+                      : Colors.grey[600],
+                  foregroundColor: Colors.white,
+                ),
+              ),
               SizedBox(width: 8),
-              Text('Import Inventory Data'),
+              ElevatedButton.icon(
+                onPressed: _showOrderReports,
+                icon: Icon(Icons.analytics),
+                label: Text('Reports'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: _showCreateOrderDialog,
+                icon: Icon(Icons.add_shopping_cart),
+                label: Text('New Order'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
             ],
           ),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_importExportViewModel.isLoading) ...[
-                  Center(child: CircularProgressIndicator()),
-                  SizedBox(height: 16),
-                  if (_importExportViewModel.progress > 0) ...[
-                    LinearProgressIndicator(value: _importExportViewModel.progress),
-                    SizedBox(height: 8),
-                    Center(child: Text('Importing... ${(_importExportViewModel.progress * 100).toInt()}%')),
-                  ] else ...[
-                    Center(child: Text('Selecting and processing CSV file...')),
-                  ],
-                ] else ...[
-                  Text('Import inventory data from a CSV file.'),
-                  SizedBox(height: 16),
-                  _buildCsvFormatInfo(),
-                  if (_importExportViewModel.errorMessage != null) ...[
-                    SizedBox(height: 16),
-                    Container(
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Row(
+        ),
+        if (_showOrderFilterPanel)
+          OrderFilterPanel(
+            onClose: () => setState(() => _showOrderFilterPanel = false),
+          ),
+
+        // ✅ Orders with BLoC handling
+        Expanded(
+          child: Container(
+            padding: EdgeInsets.all(16),
+            child: BlocBuilder<OrderBloc, OrderState>(
+              builder: (context, state) {
+                if (state is OrderLoading) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Loading orders...'),
+                      ],
+                    ),
+                  );
+                } else if (state is OrderLoaded) {
+                  if (state.displayOrders.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error, color: Colors.red, size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _importExportViewModel.errorMessage!,
-                              style: TextStyle(color: Colors.red.shade700),
-                            ),
+                          Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                          SizedBox(height: 16),
+                          Text(
+                            'No orders found',
+                            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                          ),
+                          SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _showCreateOrderDialog,
+                            icon: Icon(Icons.add_shopping_cart),
+                            label: Text('Create First Order'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                           ),
                         ],
                       ),
+                    );
+                  }
+                  return OrdersDataTable(orders: state.displayOrders);
+                } else if (state is OrderError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        SizedBox(height: 16),
+                        Text(
+                          'Error loading orders',
+                          style: TextStyle(fontSize: 18, color: Colors.red),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          state.message,
+                          style: TextStyle(color: Colors.grey[600]),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => context.read<OrderBloc>().add(LoadOrders()),
+                          icon: Icon(Icons.refresh),
+                          label: Text('Retry'),
+                        ),
+                      ],
                     ),
-                  ],
-                ],
-              ],
-            ),
-          ),
-          actions: _importExportViewModel.isLoading
-              ? []
-              : [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel'),
-            ),
-            ElevatedButton.icon(
-              onPressed: () => _handleImport(dialogContext),
-              icon: Icon(Icons.file_upload),
-              label: Text('Select CSV File'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+                  );
+                }
 
-  // ✅ FIXED - Export Dialog using direct ViewModel access
-  void _showExportDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => ListenableBuilder(
-        listenable: _importExportViewModel,
-        builder: (context, child) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.download, color: Theme.of(context).primaryColor),
-              SizedBox(width: 8),
-              Text('Export Inventory Data'),
-            ],
-          ),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_importExportViewModel.isLoading) ...[
-                  Center(child: CircularProgressIndicator()),
-                  SizedBox(height: 16),
-                  Text('Exporting data...'),
-                ] else ...[
-                  Text('Choose export format for your inventory data:'),
-                  SizedBox(height: 20),
-                  Column(
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _handleCsvExport(dialogContext),
-                          icon: Icon(Icons.table_chart),
-                          label: Text('CSV Export'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _handlePdfExport(dialogContext, false),
-                          icon: Icon(Icons.picture_as_pdf),
-                          label: Text('PDF Report'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _handlePdfExport(dialogContext, true),
-                          icon: Icon(Icons.qr_code),
-                          label: Text('PDF with Barcodes'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
+                      Text('Welcome to Orders Management'),
+                      SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => context.read<OrderBloc>().add(LoadOrders()),
+                        icon: Icon(Icons.refresh),
+                        label: Text('Load Orders'),
                       ),
                     ],
                   ),
-                  if (_importExportViewModel.errorMessage != null) ...[
-                    SizedBox(height: 16),
-                    Container(
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.error, color: Colors.red, size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _importExportViewModel.errorMessage!,
-                              style: TextStyle(color: Colors.red.shade700),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ],
+                );
+              },
             ),
           ),
-          actions: _importExportViewModel.isLoading
-              ? []
-              : [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel'),
-            ),
-          ],
         ),
-      ),
+      ],
     );
   }
 
-  // ✅ FIXED - Direct ViewModel method calls
-  Future<void> _handleImport(BuildContext dialogContext) async {
-    try {
-      final success = await _importExportViewModel.importFromCsv();
-
-      if (success) {
-        Navigator.pop(dialogContext);
-        _showSnackBar(context, 'Import completed successfully', Colors.green, Icons.check_circle);
-        context.read<InventoryBloc>().add(RefreshInventoryItems());
-        _showImportSuccessDialog(context);
-      }
-    } catch (e) {
-      if (_importExportViewModel.errorMessage == null) {
-        _showSnackBar(context, 'Import failed: ${e.toString()}', Colors.red, Icons.error);
-      }
-    }
-  }
-
-  Future<void> _handleCsvExport(BuildContext dialogContext) async {
-    final inventoryState = context.read<InventoryBloc>().state;
-
-    if (inventoryState is! InventoryLoaded || inventoryState.displayItems.isEmpty) {
-      _showSnackBar(context, 'No data to export', Colors.orange, Icons.warning);
-      return;
-    }
-
-    try {
-      final filePath = await _importExportViewModel.exportToCsv(inventoryState.displayItems);
-      Navigator.pop(dialogContext);
-
-      if (filePath != null) {
-        _showSnackBar(context, 'CSV exported successfully', Colors.green, Icons.check_circle);
-        _showExportSuccessDialog(context, filePath, 'CSV');
-      }
-    } catch (e) {
-      _showSnackBar(context, 'Export failed: ${e.toString()}', Colors.red, Icons.error);
-    }
-  }
-
-  Future<void> _handlePdfExport(BuildContext dialogContext, bool includeBarcodes) async {
-    final inventoryState = context.read<InventoryBloc>().state;
-
-    if (inventoryState is! InventoryLoaded || inventoryState.displayItems.isEmpty) {
-      _showSnackBar(context, 'No data to export', Colors.orange, Icons.warning);
-      return;
-    }
-
-    try {
-      final filePath = await _importExportViewModel.exportToPdf(
-        inventoryState.displayItems,
-        includeBarcodes: includeBarcodes,
-      );
-      Navigator.pop(dialogContext);
-
-      if (filePath != null) {
-        final exportType = includeBarcodes ? 'PDF with Barcodes' : 'PDF Report';
-        _showSnackBar(context, '$exportType exported successfully', Colors.green, Icons.check_circle);
-        _showExportSuccessDialog(context, filePath, exportType);
-      }
-    } catch (e) {
-      _showSnackBar(context, 'Export failed: ${e.toString()}', Colors.red, Icons.error);
-    }
-  }
-
-  Widget _buildCsvFormatInfo() {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.shade200),
-      ),
+  Widget _buildAnalyticsTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.info, color: Colors.blue, size: 16),
-              SizedBox(width: 8),
+              Icon(
+                Icons.analytics,
+                size: 32,
+                color: Theme.of(context).primaryColor,
+              ),
+              SizedBox(width: 12),
               Text(
-                'CSV Format Requirements:',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade700),
+                'Business Analytics Dashboard',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
               ),
             ],
           ),
-          SizedBox(height: 8),
-          Text('• SKU, Name (EN), Name (AR), Category ID, Subcategory'),
-          Text('• Stock Quantity, Unit Price, Min Stock Level'),
-          Text('• Width, Height, Depth (optional), Unit'),
-          Text('• Pixel Width, Pixel Height, Other Sp., Color Space'),
+          SizedBox(height: 24),
+          _buildAnalyticsSection(
+            'Inventory Overview',
+            Icons.inventory_2,
+            Colors.blue,
+            InventoryStatsCards(),
+          ),
+          SizedBox(height: 24),
+          _buildAnalyticsSection(
+            'Orders Overview',
+            Icons.shopping_cart,
+            Colors.green,
+            OrderStatsCards(),
+          ),
+          SizedBox(height: 24),
+          _buildCombinedMetrics(),
+          SizedBox(height: 24),
+          _buildQuickActions(),
         ],
       ),
     );
   }
 
-  void _showImportSuccessDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
+  Widget _buildAnalyticsSection(
+      String title,
+      IconData icon,
+      Color color,
+      Widget content,
+      ) {
+    return Card(
+      elevation: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: color),
+                SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          content,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCombinedMetrics() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Text('Import Successful'),
+            Row(
+              children: [
+                Icon(Icons.trending_up, color: Colors.purple),
+                SizedBox(width: 8),
+                Text(
+                  'Business Performance',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.purple,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: BlocBuilder<InventoryBloc, InventoryState>(
+                    builder: (context, inventoryState) {
+                      return BlocBuilder<OrderBloc, OrderState>(
+                        builder: (context, orderState) {
+                          String turnoverText = 'Loading...';
+                          if (inventoryState is InventoryLoaded &&
+                              orderState is OrderLoaded) {
+                            final turnoverRate = inventoryState.totalItems > 0
+                                ? (orderState.totalOrders /
+                                inventoryState.totalItems *
+                                100)
+                                .toStringAsFixed(1)
+                                : '0.0';
+                            turnoverText = '$turnoverRate%';
+                          }
+                          return _buildMetricTile(
+                            'Inventory Turnover',
+                            turnoverText,
+                            Icons.refresh,
+                            Colors.indigo,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: BlocBuilder<OrderBloc, OrderState>(
+                    builder: (context, state) {
+                      String fulfillmentText = 'Loading...';
+                      if (state is OrderLoaded) {
+                        final fulfillmentRate = state.totalOrders > 0
+                            ? (state.approvedOrders / state.totalOrders * 100)
+                            .toStringAsFixed(1)
+                            : '0.0';
+                        fulfillmentText = '$fulfillmentRate%';
+                      }
+                      return _buildMetricTile(
+                        'Order Fulfillment Rate',
+                        fulfillmentText,
+                        Icons.check_circle,
+                        Colors.teal,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
-        content: Text('Your inventory data has been imported successfully.'),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-            child: Text('OK'),
+      ),
+    );
+  }
+
+  Widget _buildMetricTile(
+      String title,
+      String subtitle,
+      IconData icon,
+      Color color,
+      ) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color),
+          SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(fontWeight: FontWeight.bold, color: color),
+          ),
+          SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           ),
         ],
       ),
     );
   }
 
-  void _showExportSuccessDialog(BuildContext context, String filePath, String format) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Text('Export Successful'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+  Widget _buildQuickActions() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Your inventory has been exported to $format format.'),
-            SizedBox(height: 12),
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(filePath, style: TextStyle(fontSize: 11, fontFamily: 'monospace')),
+            Row(
+              children: [
+                Icon(Icons.flash_on, color: Colors.amber[700]),
+                SizedBox(width: 8),
+                Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber[700],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildQuickActionButton(
+                  'Add Item',
+                  Icons.add_box,
+                  Colors.blue,
+                  _showAddItemDialog,
+                ),
+                _buildQuickActionButton(
+                  'Create Order',
+                  Icons.add_shopping_cart,
+                  Colors.green,
+                  _showCreateOrderDialog,
+                ),
+                _buildQuickActionButton(
+                  'Import Data',
+                  Icons.upload,
+                  Colors.purple,
+                  _showImportExportDialog,
+                ),
+                _buildQuickActionButton(
+                  'Export Reports',
+                  Icons.download,
+                  Colors.orange,
+                  _showOrderReports,
+                ),
+              ],
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('OK')),
-        ],
       ),
     );
   }
 
-  void _showCategoryManagement(BuildContext context) {
+  Widget _buildQuickActionButton(
+      String label,
+      IconData icon,
+      Color color,
+      VoidCallback onPressed,
+      ) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+
+  void _showAddItemDialog() {
     showDialog(
       context: context,
-      builder: (context) => BlocProvider.value(
-        value: context.read<CategoryBloc>(),
-        child: SimpleCategoryManager(),
-      ),
+      barrierDismissible: false,
+      builder: (dialogContext) => AddEditItemDialog(),
     );
   }
 
-  void _showSnackBar(BuildContext context, String message, Color backgroundColor, IconData icon) {
+  void _showCreateOrderDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => CreateOrderDialog(),
+    );
+  }
+
+  void _showImportExportDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => ImportExportDialog(),
+    );
+  }
+
+  void _showOrderReports() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            Icon(icon, color: Colors.white, size: 20),
+            Icon(Icons.info, color: Colors.white),
             SizedBox(width: 8),
-            Expanded(child: Text(message)),
+            Text('Order reports feature coming soon!'),
           ],
         ),
-        backgroundColor: backgroundColor,
+        backgroundColor: Colors.blue,
         behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 3),
-        action: SnackBarAction(
-          label: 'OK',
-          textColor: Colors.white,
-          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-        ),
       ),
     );
   }

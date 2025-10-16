@@ -8,7 +8,6 @@ import 'package:inventory_system/presentation/widgets/inventory/serial_number_di
 import '../../blocs/inventory/inventory_bloc.dart';
 import '../../blocs/category/category_bloc.dart';
 import '../../../domain/entities/inventory_item.dart';
-import '../../dialogs/qr_code_dialog.dart';
 import '../../pages/inventory/add_edit_item_dialog.dart';
 import '../../../injection_container.dart';
 

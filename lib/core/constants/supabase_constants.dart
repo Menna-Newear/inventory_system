@@ -7,6 +7,6 @@ class SupabaseConstants {
   // Table names
   static const String inventoryTable = 'inventory_items';
   static const String categoriesTable = 'categories';
-  static const String ordersTable = 'orders';
+  static const String ordersTable = 'order';
   static const String orderItemsTable = 'order_items';
 }
