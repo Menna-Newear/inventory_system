@@ -8,6 +8,8 @@ import 'package:inventory_system/presentation/widgets/inventory/serial_number_di
 import '../../blocs/inventory/inventory_bloc.dart';
 import '../../blocs/category/category_bloc.dart';
 import '../../../domain/entities/inventory_item.dart';
+import '../../blocs/serial/serial_number_bloc.dart';
+import '../../blocs/serial/serial_number_event.dart';
 import '../../pages/inventory/add_edit_item_dialog.dart';
 import '../../../injection_container.dart';
 
@@ -394,19 +396,24 @@ class InventoryDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ NEW - Show serial number management dialog
+// ✅ UPDATED - Show serial number management dialog with BlocProvider
   void _showSerialDialog(BuildContext context, InventoryItem item) {
     showDialog(
       context: context,
-      builder: (context) => SerialNumberDialog(
-        item: item,
-        onUpdated: () {
-          // Refresh inventory list when serials are updated
-          context.read<InventoryBloc>().add(LoadInventoryItems());
-        },
+      barrierDismissible: false,
+      builder: (_) => BlocProvider(
+        create: (_) => getIt<SerialNumberBloc>()..add(LoadSerialNumbers(item.id)),
+        child: SerialNumberDialog(
+          item: item,
+          onUpdated: () {
+            // Refresh inventory list when serials are updated
+            context.read<InventoryBloc>().add(LoadInventoryItems());
+          },
+        ),
       ),
     );
   }
+
 
   void _editItem(BuildContext context, InventoryItem item) {
     showDialog(

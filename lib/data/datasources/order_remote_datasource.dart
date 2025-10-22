@@ -96,23 +96,33 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     }
   }
 
-  // ✅ UPDATED: createOrder with rental support
   @override
   Future<OrderModel> createOrder(OrderModel order) async {
     try {
       print('🔍 DEBUG: Creating ${order.orderType.displayName} order with ${order.items.length} items');
 
+      // ✅ Debug: Log each item and its serial numbers BEFORE saving
+      for (var item in order.items) {
+        print('📦 DEBUG: Item "${item.itemName}" (ID: ${item.itemId})');
+        print('   - Quantity: ${item.quantity}');
+        if (item.serialNumbers != null && item.serialNumbers!.isNotEmpty) {
+          print('   - ✅ Has ${item.serialNumbers!.length} serial numbers');
+          print('   - Serial IDs: ${item.serialNumbers}');
+        } else {
+          print('   - ℹ️ No serial numbers (non-serial-tracked item)');
+        }
+      }
+
       final orderData = {
         'order_number': order.orderNumber,
         'status': order.status.name,
-        'order_type': order.orderType.name, // ✅ NEW
+        'order_type': order.orderType.name,
         'customer_name': order.customerName,
         'customer_email': order.customerEmail,
         'customer_phone': order.customerPhone,
         'shipping_address': order.shippingAddress,
         'notes': order.notes,
         'total_amount': order.totalAmount,
-        // ✅ NEW: Rental fields
         if (order.isRental && order.rentalStartDate != null)
           'rental_start_date': order.rentalStartDate!.toIso8601String().split('T')[0],
         if (order.isRental && order.rentalEndDate != null)
@@ -128,6 +138,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         'updated_at': order.updatedAt.toIso8601String(),
       };
 
+      print('📤 DEBUG: Inserting order into database...');
       final orderResponse = await supabase
           .from('orders')
           .insert(orderData)
@@ -135,10 +146,11 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
           .single();
 
       final createdOrderId = orderResponse['id'] as String;
+      print('✅ DEBUG: Order created with ID: $createdOrderId');
 
       if (order.items.isNotEmpty) {
         final orderItemsData = order.items.map((item) {
-          return {
+          final itemData = {
             'order_id': createdOrderId,
             'item_id': item.itemId,
             'item_name': item.itemName,
@@ -146,20 +158,33 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
             'quantity': item.quantity,
             'unit_price': item.unitPrice,
             'total_price': item.totalPrice,
-            'serial_numbers': item.serialNumbers,
+            'serial_numbers': item.serialNumbers, // ✅ This is being included
             'notes': item.notes,
             'created_at': DateTime.now().toIso8601String(),
           };
+
+          // ✅ Debug: Log what we're about to insert
+          print('📤 DEBUG: Inserting order item:');
+          print('   - Item: ${item.itemName}');
+          print('   - Serial numbers field: ${itemData['serial_numbers']}');
+
+          return itemData;
         }).toList();
 
+        print('📤 DEBUG: Inserting ${orderItemsData.length} order items...');
         await supabase
             .from('order_items')
             .insert(orderItemsData);
+
+        print('✅ DEBUG: Order items inserted successfully');
       }
 
       final createdOrder = OrderModel.fromJson(orderResponse);
+      print('✅ DEBUG: Order creation complete!');
       return createdOrder.copyWithItems(order.items);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ ERROR creating order: $e');
+      print('❌ STACK TRACE: $stackTrace');
       throw Exception('Failed to create order: $e');
     }
   }

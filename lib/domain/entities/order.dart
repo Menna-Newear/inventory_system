@@ -3,7 +3,6 @@ import 'dart:ui';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-import 'inventory_item.dart';
 
 // ✅ Keep your existing OrderStatus - it's perfect
 enum OrderStatus {
@@ -117,6 +116,7 @@ class OrderItem extends Equatable {
   final double? totalPrice;
   final List<String>? serialNumbers; // For serial-tracked items
   final String? notes;
+
 
   const OrderItem({
     required this.itemId,

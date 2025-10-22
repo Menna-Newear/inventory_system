@@ -104,6 +104,7 @@ const _$SerialStatusEnumMap = {
   SerialStatus.available: 'available',
   SerialStatus.reserved: 'reserved',
   SerialStatus.sold: 'sold',
+  SerialStatus.rented: 'rented',
   SerialStatus.damaged: 'damaged',
   SerialStatus.returned: 'returned',
   SerialStatus.recalled: 'recalled',

@@ -20,7 +20,6 @@ class InventoryRepositoryImpl implements InventoryRepository {
   });
 
   // ✅ ADD THIS METHOD - Stock Management Service expects this method name
-  @override
   Future<Either<Failure, List<InventoryItem>>> getInventoryItems() async {
     print('🔄 INVENTORY REPO: getInventoryItems() called by stock management service');
     return getAllInventoryItems();

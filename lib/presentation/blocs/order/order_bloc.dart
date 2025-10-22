@@ -1,7 +1,5 @@
 // ✅ presentation/blocs/order/order_bloc.dart (COMPLETE WITH DEBUG)
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:equatable/equatable.dart';
-import '../../../domain/entities/order.dart';
 import '../../../domain/usecases/get_orders.dart';
 import '../../../domain/usecases/create_order.dart';
 import '../../../domain/usecases/update_order.dart';

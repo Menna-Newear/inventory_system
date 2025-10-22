@@ -1,4 +1,4 @@
-// domain/usecases/add_serial_numbers.dart - FIXED
+// domain/usecases/add_serial_usecase.dart - FIXED
 import 'package:dartz/dartz.dart';
 import '../entities/inventory_item.dart';
 import '../repositories/inventory_repository.dart';

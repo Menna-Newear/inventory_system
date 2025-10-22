@@ -561,33 +561,79 @@ class OrdersDataTable extends StatelessWidget {
           children: [
             Icon(order.orderType.icon, color: order.orderType.typeColor),
             SizedBox(width: 8),
-            Text('${order.orderType.displayName} - ${order.orderNumber}'),
+            Expanded(
+              child: Text(
+                '${order.orderType.displayName} - ${order.orderNumber}',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
           ],
         ),
         content: Container(
-          width: 450,
+          width: 600,
+          constraints: BoxConstraints(maxHeight: 600),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Order Status Badge
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: order.status.statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: order.status.statusColor),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: order.status.statusColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        order.status.displayName,
+                        style: TextStyle(
+                          color: order.status.statusColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 16),
+
                 // Customer Info
+                Text('Customer Information:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                SizedBox(height: 8),
                 _buildDetailRow('Customer:', order.customerName ?? 'Unknown'),
                 if (order.customerEmail != null)
                   _buildDetailRow('Email:', order.customerEmail!),
                 if (order.customerPhone != null)
                   _buildDetailRow('Phone:', order.customerPhone!),
+                if (order.shippingAddress != null)
+                  _buildDetailRow('Address:', order.shippingAddress!),
 
-                SizedBox(height: 12),
-
-                // Order Info
-                _buildDetailRow('Status:', order.status.displayName),
-                _buildDetailRow('Type:', order.orderType.displayName),
-
-                // ✅ NEW: Rental-specific info
+                // ✅ Rental-specific info
                 if (order.isRental) ...[
-                  SizedBox(height: 12),
-                  Text('Rental Information:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple[700])),
+                  SizedBox(height: 16),
+                  Divider(),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, color: Colors.purple[700], size: 20),
+                      SizedBox(width: 8),
+                      Text('Rental Information:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.purple[700])),
+                    ],
+                  ),
+                  SizedBox(height: 8),
                   if (order.rentalStartDate != null)
                     _buildDetailRow('Start Date:', _formatDateShort(order.rentalStartDate!)),
                   if (order.rentalEndDate != null)
@@ -598,32 +644,208 @@ class OrdersDataTable extends StatelessWidget {
                     _buildDetailRow('Daily Rate:', '\$${order.dailyRate!.toStringAsFixed(2)}'),
                   if (order.securityDeposit != null && order.securityDeposit! > 0)
                     _buildDetailRow('Security Deposit:', '\$${order.securityDeposit!.toStringAsFixed(2)}'),
+                  _buildDetailRow('Rental Status:', _getRentalStatusText(order),
+                      color: _getRentalStatusColor(order)),
                 ],
 
-                SizedBox(height: 12),
+                SizedBox(height: 16),
+                Divider(),
+                SizedBox(height: 8),
 
                 // Items
-                Text('Items (${order.items.length}):', style: TextStyle(fontWeight: FontWeight.bold)),
-                ...order.items.map((item) => Padding(
-                  padding: EdgeInsets.only(left: 16, top: 4),
-                  child: Text('• ${item.itemName} (${item.quantity}x) - \$${item.totalPrice?.toStringAsFixed(2) ?? '0.00'}'),
-                )),
-
+                Row(
+                  children: [
+                    Icon(Icons.shopping_basket, color: Colors.blue[700], size: 20),
+                    SizedBox(width: 8),
+                    Text('Order Items (${order.items.length}):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
+                ),
                 SizedBox(height: 12),
+
+                // ✅ UPDATED: Items list with serial numbers
+                ...order.items.map((item) => Container(
+                  margin: EdgeInsets.only(bottom: 12),
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.itemName,
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
+                                Text(
+                                  'SKU: ${item.itemSku}',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            '\$${item.totalPrice?.toStringAsFixed(2) ?? '0.00'}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          _buildItemInfoChip('Qty: ${item.quantity}', Icons.inventory_2, Colors.blue),
+                          SizedBox(width: 8),
+                          _buildItemInfoChip('Unit: \$${item.unitPrice?.toStringAsFixed(2) ?? '0.00'}', Icons.attach_money, Colors.green),
+                        ],
+                      ),
+
+                      // ✅ NEW: Show serial numbers if present
+                      if (item.serialNumbers != null && item.serialNumbers!.isNotEmpty) ...[
+                        SizedBox(height: 12),
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.purple[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.purple[200]!),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.qr_code_2, size: 16, color: Colors.purple[700]),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Assigned Serial Numbers (${item.serialNumbers!.length})',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.purple[700],
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 8),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: item.serialNumbers!.map((serialId) => Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple[100],
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.purple[300]!),
+                                  ),
+                                  child: Text(
+                                    serialId.length > 12 ? '${serialId.substring(0, 12)}...' : serialId,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontFamily: 'monospace',
+                                      color: Colors.purple[900],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                )).toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                )).toList(),
+
+                SizedBox(height: 16),
+                Divider(),
+                SizedBox(height: 8),
 
                 // Total
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green[300]!, width: 2),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total Items:', style: TextStyle(fontSize: 14)),
+                          Text('${order.items.length}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total Quantity:', style: TextStyle(fontSize: 14)),
+                          Text('${order.items.fold(0, (sum, item) => sum + item.quantity)}',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      if (order.isRental && order.securityDeposit != null && order.securityDeposit! > 0) ...[
+                        Divider(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Rental Amount:', style: TextStyle(fontSize: 14)),
+                            Text('\$${(order.totalAmount - order.securityDeposit!).toStringAsFixed(2)}',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Security Deposit:', style: TextStyle(fontSize: 14)),
+                            Text('\$${order.securityDeposit!.toStringAsFixed(2)}',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                      Divider(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('TOTAL AMOUNT:',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          Text('\$${order.totalAmount.toStringAsFixed(2)}',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.green[700])),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 12),
+
+                // Created info
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Total Amount:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('\$${order.totalAmount.toStringAsFixed(2)}',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green[700])),
+                      Text('Created by: ${order.createdBy}', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                      Text('Date: ${_formatDate(order.createdAt)}', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
                     ],
                   ),
                 ),
@@ -639,6 +861,10 @@ class OrdersDataTable extends StatelessWidget {
           ElevatedButton.icon(
             icon: Icon(Icons.picture_as_pdf),
             label: Text('Generate PDF'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[600],
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
               Navigator.of(context).pop();
               _generateOrderPDF(context, order);
@@ -649,17 +875,47 @@ class OrdersDataTable extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildItemInfoChip(String label, IconData icon, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {Color? color}) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 2),
+      padding: EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
-            child: Text(label, style: TextStyle(fontWeight: FontWeight.w500)),
+            width: 130,
+            child: Text(label, style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey[700])),
           ),
-          Expanded(child: Text(value)),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontWeight: color != null ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
         ],
       ),
     );

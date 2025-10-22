@@ -489,7 +489,9 @@ enum SerialStatus {
   @JsonValue('reserved')
   reserved,       // Reserved for specific order/customer
   @JsonValue('sold')
-  sold,          // Sold to customer
+  sold,           // Sold to customer
+  @JsonValue('rented')
+  rented,         //  Rented to customer (for rental orders)
   @JsonValue('damaged')
   damaged,       // Damaged/defective - cannot be sold
   @JsonValue('returned')
@@ -508,6 +510,8 @@ extension SerialStatusExtension on SerialStatus {
         return 'Reserved';
       case SerialStatus.sold:
         return 'Sold';
+      case SerialStatus.rented:
+        return 'Rented';
       case SerialStatus.damaged:
         return 'Damaged';
       case SerialStatus.returned:

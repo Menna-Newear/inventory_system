@@ -1,9 +1,14 @@
-// ✅ presentation/widgets/order/forms/item_selector_grid.dart
+// presentation/widgets/order/forms/item_selector_grid.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../domain/entities/inventory_item.dart';
+import '../../../../domain/entities/order.dart';
 import '../../../blocs/inventory/inventory_bloc.dart';
+import '../../../blocs/serial/serial_number_bloc.dart';
+import '../../../blocs/serial/serial_number_event.dart';
 import '../models/order_form_data.dart';
+import '../serial_selection_dialog.dart';
+import '../../../../injection_container.dart' as di;
 
 class ItemSelectorGrid extends StatefulWidget {
   final OrderFormData formData;
@@ -172,7 +177,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with stock and status
+            // Header with stock, status, and serial indicator
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -191,8 +196,37 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                     ),
                   ),
                 ),
-                if (isInOrder)
-                  Icon(Icons.check_circle, color: Colors.green, size: 16),
+                Row(
+                  children: [
+                    // ✅ NEW: Serial tracking indicator
+                    if (item.isSerialTracked)
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        margin: EdgeInsets.only(right: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.purple[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.purple[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.qr_code_2, size: 12, color: Colors.purple[700]),
+                            SizedBox(width: 2),
+                            Text(
+                              'Serial',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.purple[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (isInOrder)
+                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  ],
+                ),
               ],
             ),
 
@@ -279,10 +313,11 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
   }
 
   List<InventoryItem> _filterItems(List<InventoryItem> items) {
-    return items.where((item) =>
+    return items
+        .where((item) =>
     item.stockQuantity > 0 &&
-        (item.nameEn.toLowerCase().contains(_searchQuery) ||
-            item.sku.toLowerCase().contains(_searchQuery))).toList();
+        (item.nameEn.toLowerCase().contains(_searchQuery) || item.sku.toLowerCase().contains(_searchQuery)))
+        .toList();
   }
 
   void _incrementQuantity(String itemId) {
@@ -300,7 +335,45 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
     });
   }
 
-  void _addToOrder(InventoryItem item, int quantity) {
+  Future<void> _addToOrder(InventoryItem item, int quantity) async {
+    List<String>? selectedSerialNumbers; // ✅ These will now be serial number strings, not IDs
+
+    if (item.isSerialTracked) {
+      selectedSerialNumbers = await showDialog<List<String>>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => BlocProvider(
+          create: (_) => di.getIt<SerialNumberBloc>()..add(LoadSerialNumbers(item.id)),
+          child: SerialSelectionDialog(
+            item: item,
+            requiredQuantity: quantity,
+          ),
+        ),
+      );
+
+      if (selectedSerialNumbers == null || selectedSerialNumbers.length != quantity) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.warning, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Serial selection is required for this item. Please select ${quantity} serial number(s).',
+                  ),
+                ),
+              ],
+            ),
+            duration: Duration(seconds: 3),
+            backgroundColor: Colors.orange[700],
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() {
       widget.formData.selectedItems[item.id] = SelectedOrderItem(
         id: item.id,
@@ -309,6 +382,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
         quantity: quantity,
         unitPrice: item.unitPrice ?? 0.0,
         totalPrice: (item.unitPrice ?? 0.0) * quantity,
+        serialNumbers: selectedSerialNumbers, // ✅ Now contains actual serial numbers like "7071-0001"
       );
     });
 
@@ -316,9 +390,22 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Added ${item.nameEn} to order'),
-        duration: Duration(seconds: 1),
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                selectedSerialNumbers != null
+                    ? '✅ Added ${item.nameEn} with serials: ${selectedSerialNumbers.join(", ")}'
+                    : '✅ Added ${item.nameEn} to order',
+              ),
+            ),
+          ],
+        ),
+        duration: Duration(seconds: 3),
         backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -327,5 +414,11 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
     if (item.stockQuantity <= 0) return Colors.red;
     if (item.stockQuantity < item.minStockLevel) return Colors.orange;
     return Colors.green;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }

@@ -52,7 +52,6 @@ class InventoryManagementApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ CRITICAL FIX: Move MultiBlocProvider to the root level
     return MultiBlocProvider(
       providers: [
         // ✅ App-wide BLoC providers at the root level

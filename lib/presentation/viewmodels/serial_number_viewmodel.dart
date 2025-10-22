@@ -1,7 +1,7 @@
 // presentation/viewmodels/serial_number_viewmodel.dart
 import 'package:flutter/material.dart';
 import '../../domain/entities/inventory_item.dart';
-import '../../domain/usecases/add_serial_numbers.dart';
+import '../../domain/usecases/add_serial_usecase.dart';
 import '../../domain/usecases/update_serial_status.dart';
 
 class SerialNumberViewModel extends ChangeNotifier {

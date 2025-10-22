@@ -79,6 +79,8 @@ class OrderFormData {
         quantity: selected.quantity,
         unitPrice: selected.unitPrice,
         totalPrice: selected.totalPrice,
+        serialNumbers: selected.serialNumbers,
+
       );
     }).toList();
 
@@ -145,6 +147,8 @@ class SelectedOrderItem {
   final int quantity;
   final double unitPrice;
   final double totalPrice;
+  final List<String>? serialNumbers;
+
 
   const SelectedOrderItem({
     required this.id,
@@ -153,5 +157,7 @@ class SelectedOrderItem {
     required this.quantity,
     required this.unitPrice,
     required this.totalPrice,
+    this.serialNumbers,
+
   });
 }

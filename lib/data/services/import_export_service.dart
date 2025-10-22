@@ -752,8 +752,9 @@ class ImportExportService {
       case SerialStatus.available: return PdfColors.green;
       case SerialStatus.reserved: return PdfColors.orange;
       case SerialStatus.sold: return PdfColors.blue;
+      case SerialStatus.rented: return PdfColors.purple;
       case SerialStatus.damaged: return PdfColors.red;
-      case SerialStatus.returned: return PdfColors.purple;
+      case SerialStatus.returned: return PdfColors.amber;
       case SerialStatus.recalled: return PdfColors.red;
     }
   }
