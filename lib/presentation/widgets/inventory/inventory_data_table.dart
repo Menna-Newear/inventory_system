@@ -1,4 +1,4 @@
-// presentation/widgets/inventory/inventory_data_table.dart
+// ✅ presentation/widgets/inventory/inventory_data_table.dart (FIXED WITH SMART REBUILDS)
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:data_table_2/data_table_2.dart';
@@ -19,14 +19,42 @@ class InventoryDataTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<InventoryBloc, InventoryState>(
+    return BlocConsumer<InventoryBloc, InventoryState>(
+      // ✅ Only rebuild when InventoryLoaded state changes
+      buildWhen: (previous, current) {
+        // Don't rebuild for intermediate states
+        if (current is InventoryItemCreated) return false;
+        if (current is InventoryItemUpdated) return false;
+        if (current is InventoryItemDeleted) return false;
+
+        // Rebuild for loading, loaded, error, initial
+        return true;
+      },
+      // ✅ Listen to state changes and update without rebuild
+      listener: (context, state) {
+        if (state is InventoryItemUpdated) {
+          print('✅ TABLE: Item updated - state will refresh automatically');
+        } else if (state is InventoryItemCreated) {
+          print('✅ TABLE: Item created - state will refresh automatically');
+        } else if (state is InventoryItemDeleted) {
+          print('✅ TABLE: Item deleted - state will refresh automatically');
+        }
+      },
       builder: (context, inventoryState) {
         if (inventoryState is InventoryLoading) {
-          return Center(child: CircularProgressIndicator());
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading inventory...', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+              ],
+            ),
+          );
         }
 
         if (inventoryState is InventoryLoaded) {
-          // ✅ Get categories to build name mapping
           return BlocBuilder<CategoryBloc, CategoryState>(
             builder: (context, categoryState) {
               Map<String, String> categoryNamesMap = {};
@@ -53,10 +81,7 @@ class InventoryDataTable extends StatelessWidget {
               children: [
                 Icon(Icons.error_outline, size: 64, color: Colors.red),
                 SizedBox(height: 16),
-                Text(
-                  'Error loading inventory',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
+                Text('Error loading inventory', style: Theme.of(context).textTheme.headlineSmall),
                 SizedBox(height: 8),
                 Text(inventoryState.message),
                 SizedBox(height: 16),
@@ -71,12 +96,20 @@ class InventoryDataTable extends StatelessWidget {
           );
         }
 
-        return Center(child: Text('No data available'));
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Initializing...', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+            ],
+          ),
+        );
       },
     );
   }
 
-  // ✅ ENHANCED - Updated to include serial number column
   Widget _buildDataTable(
       BuildContext context,
       List<InventoryItem> items,
@@ -86,7 +119,7 @@ class InventoryDataTable extends StatelessWidget {
       child: DataTable2(
         columnSpacing: 12,
         horizontalMargin: 12,
-        minWidth: 1200, // ✅ Increased for new column
+        minWidth: 1200,
         columns: [
           DataColumn2(label: Text('SKU'), size: ColumnSize.S),
           DataColumn2(label: Text('Name'), size: ColumnSize.L),
@@ -94,68 +127,62 @@ class InventoryDataTable extends StatelessWidget {
           DataColumn2(label: Text('Category'), size: ColumnSize.M),
           DataColumn2(label: Text('Subcategory'), size: ColumnSize.M),
           DataColumn2(label: Text('Stock'), size: ColumnSize.S, numeric: true),
-          // ✅ NEW - Serial number column
           DataColumn2(label: Text('Serials'), size: ColumnSize.S, numeric: true),
           DataColumn2(label: Text('Price'), size: ColumnSize.S, numeric: true),
-          DataColumn2(
-            label: Text('Total Value'),
-            size: ColumnSize.S,
-            numeric: true,
-          ),
+          DataColumn2(label: Text('Total Value'), size: ColumnSize.S, numeric: true),
           DataColumn2(label: Text('Status'), size: ColumnSize.S),
           DataColumn2(label: Text('Updated'), size: ColumnSize.M),
-          DataColumn2(label: Text('Actions'), size: ColumnSize.M), // ✅ Expanded for new button
+          DataColumn2(label: Text('Actions'), size: ColumnSize.M),
         ],
         rows: items.map((item) => _buildDataRow(context, item, categoryNamesMap)).toList(),
         empty: Center(
           child: Container(
             padding: EdgeInsets.all(20),
             color: Colors.grey[50],
-            child: Text('No items found'),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
+                SizedBox(height: 16),
+                Text('No items found', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // ✅ Helper methods for safe formatting
   String _formatCurrency(double? amount) {
-    if (amount == null) {
-      return 'N/A';
-    }
+    if (amount == null) return 'N/A';
     return currencyFormat.format(amount);
   }
 
   String _formatTotalValue(InventoryItem item) {
-    if (item.unitPrice == null) {
-      return 'N/A';
-    }
+    if (item.unitPrice == null) return 'N/A';
     final totalValue = item.unitPrice! * item.stockQuantity;
     return currencyFormat.format(totalValue);
   }
 
-  // ✅ Helper method to get category name
   String _getCategoryName(String categoryId, Map<String, String> categoryNamesMap) {
     return categoryNamesMap[categoryId] ?? 'Unknown Category';
   }
 
-  // ✅ NEW - Serial number formatting
   String _formatSerialInfo(InventoryItem item) {
     if (!item.isSerialTracked) {
       return 'N/A';
     }
 
-    final available = item.availableStock;
-    final total = item.totalSerialCount;
+    final total = item.serialNumbers.length;
 
     if (total == 0) {
       return 'No Serials';
     }
 
+    final available = item.serialNumbers.where((s) => s.status == SerialStatus.available).length;
     return '$available/$total';
   }
 
-  // ✅ ENHANCED - Updated data row builder with serial info
   DataRow2 _buildDataRow(
       BuildContext context,
       InventoryItem item,
@@ -194,55 +221,39 @@ class InventoryDataTable extends StatelessWidget {
                 _getCategoryName(item.categoryId, categoryNamesMap),
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: categoryNamesMap.containsKey(item.categoryId)
-                      ? null
-                      : Colors.red,
+                  color: categoryNamesMap.containsKey(item.categoryId) ? null : Colors.red,
                 ),
               ),
             ),
           ),
         ),
         DataCell(Text(item.subcategory)),
-        // ✅ ENHANCED - Stock display considers serial tracking
         DataCell(
           Text(
-            item.isSerialTracked
-                ? item.availableStock.toString()
-                : item.stockQuantity.toString(),
+            item.stockQuantity.toString(),
             style: TextStyle(
               color: item.needsRestock ? Colors.red : null,
               fontWeight: item.needsRestock ? FontWeight.bold : null,
             ),
           ),
         ),
-        // ✅ NEW - Serial number info
         DataCell(
           GestureDetector(
-            onTap: item.isSerialTracked
-                ? () => _showSerialDialog(context, item)
-                : null,
+            onTap: item.isSerialTracked ? () => _showSerialDialog(context, item) : null,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: item.isSerialTracked
-                    ? Colors.blue[50]
-                    : Colors.grey[100],
+                color: item.isSerialTracked ? Colors.blue[50] : Colors.grey[100],
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                  color: item.isSerialTracked
-                      ? Colors.blue[200]!
-                      : Colors.grey[300]!,
+                  color: item.isSerialTracked ? Colors.blue[200]! : Colors.grey[300]!,
                 ),
               ),
               child: Text(
                 _formatSerialInfo(item),
                 style: TextStyle(
-                  color: item.isSerialTracked
-                      ? Colors.blue[700]
-                      : Colors.grey[600],
-                  fontWeight: item.isSerialTracked
-                      ? FontWeight.w500
-                      : FontWeight.normal,
+                  color: item.isSerialTracked ? Colors.blue[700] : Colors.grey[600],
+                  fontWeight: item.isSerialTracked ? FontWeight.w500 : FontWeight.normal,
                   fontSize: 12,
                 ),
               ),
@@ -274,13 +285,8 @@ class InventoryDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ ENHANCED - Status chip considers serial tracking
   Widget _buildStatusChip(InventoryItem item) {
-    final isOutOfStock = item.isSerialTracked
-        ? item.availableStock == 0
-        : item.stockQuantity == 0;
-
-    if (isOutOfStock) {
+    if (item.stockQuantity == 0) {
       return Chip(
         label: Text('Out of Stock'),
         backgroundColor: Colors.red[100],
@@ -299,18 +305,17 @@ class InventoryDataTable extends StatelessWidget {
         label: Text(item.isSerialTracked ? 'Serial Tracked' : 'In Stock'),
         backgroundColor: item.isSerialTracked ? Colors.blue[100] : Colors.green[100],
         labelStyle: TextStyle(
-            color: item.isSerialTracked ? Colors.blue[800] : Colors.green[800]
+          color: item.isSerialTracked ? Colors.blue[800] : Colors.green[800],
         ),
         avatar: Icon(
-            item.isSerialTracked ? Icons.qr_code_2 : Icons.check_circle,
-            size: 16,
-            color: item.isSerialTracked ? Colors.blue[800] : Colors.green[800]
+          item.isSerialTracked ? Icons.qr_code_2 : Icons.check_circle,
+          size: 16,
+          color: item.isSerialTracked ? Colors.blue[800] : Colors.green[800],
         ),
       );
     }
   }
 
-  // ✅ ENHANCED - Action buttons with serial management
   Widget _buildActionButtons(BuildContext context, InventoryItem item) {
     return FittedBox(
       fit: BoxFit.scaleDown,
@@ -331,7 +336,6 @@ class InventoryDataTable extends StatelessWidget {
             ),
           ),
           SizedBox(width: 4),
-          // ✅ NEW - Serial management button (only for serial tracked items)
           if (item.isSerialTracked) ...[
             Container(
               width: 32,
@@ -396,7 +400,7 @@ class InventoryDataTable extends StatelessWidget {
     );
   }
 
-// ✅ UPDATED - Show serial number management dialog with BlocProvider
+  // ✅ FIXED - Don't reload all items
   void _showSerialDialog(BuildContext context, InventoryItem item) {
     showDialog(
       context: context,
@@ -406,14 +410,13 @@ class InventoryDataTable extends StatelessWidget {
         child: SerialNumberDialog(
           item: item,
           onUpdated: () {
-            // Refresh inventory list when serials are updated
-            context.read<InventoryBloc>().add(LoadInventoryItems());
-          },
-        ),
+            // ✅ Refresh only this single item
+            context.read<InventoryBloc>().add(RefreshSingleItem(item.id));
+            print('🔄 TABLE: Requesting refresh for item: ${item.id}');
+          },        ),
       ),
     );
   }
-
 
   void _editItem(BuildContext context, InventoryItem item) {
     showDialog(
@@ -421,12 +424,8 @@ class InventoryDataTable extends StatelessWidget {
       barrierDismissible: false,
       builder: (dialogContext) => MultiBlocProvider(
         providers: [
-          BlocProvider.value(
-            value: context.read<InventoryBloc>(),
-          ),
-          BlocProvider(
-            create: (_) => getIt<CategoryBloc>()..add(LoadCategories()),
-          ),
+          BlocProvider.value(value: context.read<InventoryBloc>()),
+          BlocProvider(create: (_) => getIt<CategoryBloc>()..add(LoadCategories())),
         ],
         child: AddEditItemDialog(item: item),
       ),
@@ -459,17 +458,13 @@ class InventoryDataTable extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Item: ${item.nameEn}',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  Text('Item: ${item.nameEn}', style: TextStyle(fontWeight: FontWeight.bold)),
                   Text('SKU: ${item.sku}'),
-                  if (item.unitPrice != null)
-                    Text('Price: ${_formatCurrency(item.unitPrice)}'),
-                  // ✅ NEW - Show serial info in delete confirmation
+                  Text('Stock: ${item.stockQuantity}'),
+                  if (item.unitPrice != null) Text('Price: ${_formatCurrency(item.unitPrice)}'),
                   if (item.isSerialTracked)
                     Text(
-                      'Serial Numbers: ${item.totalSerialCount} will be deleted',
+                      'Serial Numbers: ${item.serialNumbers.length} will be deleted',
                       style: TextStyle(color: Colors.red[600], fontWeight: FontWeight.w500),
                     ),
                 ],
@@ -478,10 +473,7 @@ class InventoryDataTable extends StatelessWidget {
             SizedBox(height: 8),
             Text(
               'This action cannot be undone.',
-              style: TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -579,8 +571,7 @@ class InventoryDataTable extends StatelessWidget {
                             child: Center(
                               child: CircularProgressIndicator(
                                 value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
                                     : null,
                               ),
                             ),
@@ -595,10 +586,7 @@ class InventoryDataTable extends StatelessWidget {
                                 children: [
                                   Icon(Icons.error, size: 48, color: Colors.red),
                                   SizedBox(height: 8),
-                                  Text(
-                                    'Failed to load image',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
+                                  Text('Failed to load image', style: TextStyle(color: Colors.red)),
                                 ],
                               ),
                             ),

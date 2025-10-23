@@ -1,4 +1,4 @@
-// ✅ injection_container.dart (with SerialNumberBloc and dependencies)
+// ✅ injection_container.dart (OPTIMIZED ORDER FOR CACHING)
 import 'package:get_it/get_it.dart';
 import 'package:inventory_system/presentation/blocs/category/category_bloc.dart';
 import 'package:inventory_system/presentation/blocs/order/order_bloc.dart';
@@ -23,7 +23,8 @@ import 'data/repositories/order_repository_impl.dart';
 // Services
 import 'data/services/barcode_service.dart';
 import 'data/services/import_export_service.dart';
-import 'data/services/stock_management_service.dart'; // ✅ NEW
+import 'data/services/serial_number_cache_service.dart';
+import 'data/services/stock_management_service.dart';
 
 // Domain Repositories
 import 'domain/repositories/category_repository.dart';
@@ -52,9 +53,9 @@ import 'domain/usecases/update_order.dart' as update_order_usecase;
 
 // Blocs
 import 'presentation/blocs/inventory/inventory_bloc.dart';
-import 'presentation/blocs/serial/serial_number_bloc.dart'; // ✅ ADD THIS IMPORT
-import 'presentation/blocs/category/category_bloc.dart'; // already imported
-import 'presentation/blocs/order/order_bloc.dart'; // already imported
+import 'presentation/blocs/serial/serial_number_bloc.dart';
+import 'presentation/blocs/category/category_bloc.dart';
+import 'presentation/blocs/order/order_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -82,107 +83,103 @@ Future<void> init() async {
         () => OrderRemoteDataSourceImpl(supabase: getIt()),
   );
 
+  //! CACHE SERVICES ========== (✅ MUST BE REGISTERED BEFORE REPOSITORIES)
+  getIt.registerLazySingleton<SerialNumberCacheService>(
+        () => SerialNumberCacheService(getIt<SharedPreferences>()),
+  );
+
   //! REPOSITORIES ==========
   getIt.registerLazySingleton<CategoryRepository>(
         () => CategoryRepositoryImpl(remoteDataSource: getIt()),
   );
+
   getIt.registerLazySingleton<InventoryRepository>(
-        () =>
-        InventoryRepositoryImpl(
-          remoteDataSource: getIt(),
-          localDataSource: getIt(),
-          networkInfo: getIt(),
-        ),
+        () => InventoryRepositoryImpl(
+      remoteDataSource: getIt(),
+      localDataSource: getIt(),
+      cacheService: getIt(), // ✅ Now available
+      networkInfo: getIt(),
+    ),
   );
 
-  //! SERVICES ==========
+  //! OTHER SERVICES ==========
   getIt.registerLazySingleton<StockManagementService>(
         () => StockManagementService(inventoryRepository: getIt()),
   );
+
   getIt.registerLazySingleton<OrderRepository>(
-        () =>
-        OrderRepositoryImpl(
-          remoteDataSource: getIt(),
-          networkInfo: getIt(),
-          stockManagementService: getIt(),
-        ),
+        () => OrderRepositoryImpl(
+      remoteDataSource: getIt(),
+      networkInfo: getIt(),
+      stockManagementService: getIt(),
+    ),
   );
 
+  getIt.registerLazySingleton<ImportExportService>(
+        () => ImportExportService(
+      getCategories: getIt<get_categories_usecase.GetCategories>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<BarcodeService>(() => BarcodeService());
+
   //! USE CASES ==========
-  getIt.registerLazySingleton(() =>
-      get_categories_usecase.GetCategories(getIt()));
-  getIt.registerLazySingleton(() =>
-      create_category_usecase.CreateCategory(getIt()));
-  getIt.registerLazySingleton(() =>
-      get_items_usecase.GetInventoryItems(getIt()));
-  getIt.registerLazySingleton(() =>
-      create_item_usecase.CreateInventoryItem(getIt()));
-  getIt.registerLazySingleton(() =>
-      update_item_usecase.UpdateInventoryItem(getIt()));
-  getIt.registerLazySingleton(() =>
-      delete_item_usecase.DeleteInventoryItem(getIt()));
-  getIt.registerLazySingleton(() =>
-      search_items_usecase.SearchInventoryItems(getIt()));
-  getIt.registerLazySingleton(() =>
-      filter_items_usecase.FilterInventoryItems(getIt()));
+  getIt.registerLazySingleton(() => get_categories_usecase.GetCategories(getIt()));
+  getIt.registerLazySingleton(() => create_category_usecase.CreateCategory(getIt()));
+  getIt.registerLazySingleton(() => get_items_usecase.GetInventoryItems(getIt()));
+  getIt.registerLazySingleton(() => create_item_usecase.CreateInventoryItem(getIt()));
+  getIt.registerLazySingleton(() => update_item_usecase.UpdateInventoryItem(getIt()));
+  getIt.registerLazySingleton(() => delete_item_usecase.DeleteInventoryItem(getIt()));
+  getIt.registerLazySingleton(() => search_items_usecase.SearchInventoryItems(getIt()));
+  getIt.registerLazySingleton(() => filter_items_usecase.FilterInventoryItems(getIt()));
   getIt.registerLazySingleton(() => get_orders_usecase.GetOrders(getIt()));
   getIt.registerLazySingleton(() => create_order_usecase.CreateOrder(getIt()));
   getIt.registerLazySingleton(() => update_order_usecase.UpdateOrder(getIt()));
   getIt.registerLazySingleton(() => delete_order_usecase.DeleteOrder(getIt()));
-  getIt.registerLazySingleton(() =>
-      approve_order_usecase.ApproveOrder(getIt()));
+  getIt.registerLazySingleton(() => approve_order_usecase.ApproveOrder(getIt()));
   getIt.registerLazySingleton(() => reject_order_usecase.RejectOrder(getIt()));
-  getIt.registerLazySingleton(() =>
-      search_orders_usecase.SearchOrders(getIt()));
-  getIt.registerLazySingleton(() =>
-      filter_orders_usecase.FilterOrders(getIt()));
-
-  //! OTHER SERVICES ==========
-  getIt.registerLazySingleton<ImportExportService>(
-        () =>
-        ImportExportService(
-            getCategories: getIt<get_categories_usecase.GetCategories>()),
-  );
-  getIt.registerLazySingleton<BarcodeService>(() => BarcodeService());
+  getIt.registerLazySingleton(() => search_orders_usecase.SearchOrders(getIt()));
+  getIt.registerLazySingleton(() => filter_orders_usecase.FilterOrders(getIt()));
   getIt.registerLazySingleton(() => add_serial_usecase.AddSerialNumbers(getIt()));
 
   //! BLOCS ==========
   getIt.registerFactory(
-        () =>
-        InventoryBloc(
-          getInventoryItems: getIt(),
-          createInventoryItem: getIt(),
-          updateInventoryItem: getIt(),
-          deleteInventoryItem: getIt(),
-          searchInventoryItems: getIt(),
-          filterInventoryItems: getIt(),
-        ),
-  );
-  getIt.registerFactory(
-        () =>
-        CategoryBloc(
-          getCategories: getIt(),
-          createCategory: getIt(),
-        ),
-  );
-  getIt.registerFactory(
-        () =>
-        OrderBloc(
-          getOrders: getIt(),
-          createOrder: getIt(),
-          updateOrder: getIt(),
-          deleteOrder: getIt(),
-          approveOrder: getIt(),
-          rejectOrder: getIt(),
-          searchOrders: getIt(),
-          filterOrders: getIt(),
-          orderRepository: getIt<OrderRepository>() as OrderRepositoryImpl,
-        ),
+        () => InventoryBloc(
+      getInventoryItems: getIt(),
+      createInventoryItem: getIt(),
+      updateInventoryItem: getIt(),
+      deleteInventoryItem: getIt(),
+      searchInventoryItems: getIt(),
+      filterInventoryItems: getIt(),
+    ),
   );
 
-  // ✅ NEW: Register SerialNumberBloc
-  getIt.registerFactory(() => SerialNumberBloc(
-    addSerialNumbersUseCase: getIt<add_serial_usecase.AddSerialNumbers>(),
-    inventoryRepository: getIt<InventoryRepository>(),
-  ));
+  getIt.registerFactory(
+        () => CategoryBloc(
+      getCategories: getIt(),
+      createCategory: getIt(),
+    ),
+  );
+
+  getIt.registerFactory(
+        () => OrderBloc(
+      getOrders: getIt(),
+      createOrder: getIt(),
+      updateOrder: getIt(),
+      deleteOrder: getIt(),
+      approveOrder: getIt(),
+      rejectOrder: getIt(),
+      searchOrders: getIt(),
+      filterOrders: getIt(),
+      orderRepository: getIt<OrderRepository>() as OrderRepositoryImpl,
+    ),
+  );
+
+  getIt.registerFactory(
+        () => SerialNumberBloc(
+      addSerialNumbersUseCase: getIt<add_serial_usecase.AddSerialNumbers>(),
+      inventoryRepository: getIt<InventoryRepository>(),
+      cacheService: getIt<SerialNumberCacheService>(),
+    ),
+  );
 }

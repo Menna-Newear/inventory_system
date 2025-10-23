@@ -12,6 +12,16 @@ class LoadInventoryItems extends InventoryEvent {}
 
 class RefreshInventoryItems extends InventoryEvent {}
 
+// ✅ NEW EVENT
+class RefreshSingleItem extends InventoryEvent {
+  final String itemId;
+
+  const RefreshSingleItem(this.itemId);
+
+  @override
+  List<Object> get props => [itemId];
+}
+
 class CreateInventoryItem extends InventoryEvent {
   final InventoryItem item;
 

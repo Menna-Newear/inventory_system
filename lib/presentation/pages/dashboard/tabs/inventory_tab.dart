@@ -1,5 +1,7 @@
-// ✅ presentation/pages/dashboard/tabs/inventory_tab.dart
+// ✅ presentation/pages/dashboard/tabs/inventory_tab.dart (FIXED)
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // ✅ Add this import
+import '../../../blocs/inventory/inventory_bloc.dart'; // ✅ Add this import
 import '../../../widgets/inventory/inventory_stats_cards.dart';
 import '../../../widgets/inventory/inventory_search_bar.dart';
 import '../../../widgets/inventory/inventory_filter_panel.dart';
@@ -17,20 +19,26 @@ class _InventoryTabState extends State<InventoryTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
       children: [
-        InventoryStatsCards(),
-        _buildActionBar(),
-        if (_showFilterPanel)
-          InventoryFilterPanel(
-            onClose: () => setState(() => _showFilterPanel = false),
-          ),
-        Expanded(
-          child: Container(
-            padding: EdgeInsets.all(16),
-            child: InventoryDataTable(),
-          ),
+        Column(
+          children: [
+            // ✅ Wrap InventoryStatsCards in BlocBuilder to rebuild on changes
+            BlocBuilder<InventoryBloc, InventoryState>(
+              builder: (context, state) {
+                return InventoryStatsCards();
+              },
+            ),
+            _buildActionBar(),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(16),
+                child: InventoryDataTable(),
+              ),
+            ),
+          ],
         ),
+        if (_showFilterPanel) _buildFilterDrawer(),
       ],
     );
   }
@@ -95,6 +103,40 @@ class _InventoryTabState extends State<InventoryTab> {
       style: ElevatedButton.styleFrom(
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildFilterDrawer() {
+    return GestureDetector(
+      onTap: () => setState(() => _showFilterPanel = false),
+      child: Container(
+        color: Colors.black54,
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            onTap: () {},
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              width: 450,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(-5, 0),
+                  ),
+                ],
+              ),
+              child: InventoryFilterPanel(
+                onClose: () => setState(() => _showFilterPanel = false),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

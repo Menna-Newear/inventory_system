@@ -1,4 +1,4 @@
-// presentation/blocs/inventory/inventory_state.dart
+// ✅ presentation/blocs/inventory/inventory_state.dart
 part of 'inventory_bloc.dart';
 
 abstract class InventoryState extends Equatable {
@@ -42,6 +42,57 @@ class InventoryLoaded extends InventoryState {
   int get totalItems => items.length;
   int get lowStockCount => items.where((item) => item.isLowStock).length;
   double get totalValue => items.fold(0.0, (sum, item) => sum + item.totalValue);
+
+  // ✅ NEW: Update a single item without refetching all data
+  InventoryLoaded updateSingleItem(InventoryItem updatedItem) {
+    // Update in main items list
+    final updatedItems = items.map((item) {
+      return item.id == updatedItem.id ? updatedItem : item;
+    }).toList();
+
+    // Update in filtered items list (if it exists there)
+    final updatedFilteredItems = filteredItems.map((item) {
+      return item.id == updatedItem.id ? updatedItem : item;
+    }).toList();
+
+    return InventoryLoaded(
+      items: updatedItems,
+      filteredItems: filteredItems.isNotEmpty ? updatedFilteredItems : [],
+      hasReachedMax: hasReachedMax,
+      searchQuery: searchQuery,
+      activeFilters: activeFilters,
+    );
+  }
+
+  // ✅ NEW: Remove a single item without refetching
+  InventoryLoaded removeSingleItem(String itemId) {
+    final updatedItems = items.where((item) => item.id != itemId).toList();
+    final updatedFilteredItems = filteredItems.where((item) => item.id != itemId).toList();
+
+    return InventoryLoaded(
+      items: updatedItems,
+      filteredItems: filteredItems.isNotEmpty ? updatedFilteredItems : [],
+      hasReachedMax: hasReachedMax,
+      searchQuery: searchQuery,
+      activeFilters: activeFilters,
+    );
+  }
+
+  // ✅ NEW: Add a single item without refetching
+  InventoryLoaded addSingleItem(InventoryItem newItem) {
+    final updatedItems = [...items, newItem];
+
+    // Also add to filtered items if filters/search would include it
+    // For simplicity, we'll just reload filtered items on next search/filter
+
+    return InventoryLoaded(
+      items: updatedItems,
+      filteredItems: [], // Clear filtered items, will be repopulated on next filter
+      hasReachedMax: hasReachedMax,
+      searchQuery: null, // Clear search query
+      activeFilters: {}, // Clear filters
+    );
+  }
 
   InventoryLoaded copyWith({
     List<InventoryItem>? items,
