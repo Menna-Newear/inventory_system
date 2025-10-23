@@ -43,8 +43,10 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<SearchOrdersEvent>(_onSearchOrders);
     on<FilterOrdersEvent>(_onFilterOrders);
     on<ClearOrderFilters>(_onClearFilters);
-    on<UpdateOrderStatusEvent>(_onUpdateOrderStatus); // ✅ MAIN STOCK MANAGEMENT EVENT
-    on<ReturnRentalEvent>(_onReturnRental); // ✅ RENTAL RETURN EVENT
+    on<UpdateOrderStatusEvent>(_onUpdateOrderStatus);
+    on<ReturnRentalEvent>(_onReturnRental);
+    on<RefreshSingleOrder>(_onRefreshSingleOrder);
+
   }
 
   Future<void> _onLoadOrders(LoadOrders event, Emitter<OrderState> emit) async {
@@ -359,4 +361,41 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       }
     }
   }
+
+  Future<void> _onRefreshSingleOrder(
+      RefreshSingleOrder event,
+      Emitter<OrderState> emit,
+      ) async {
+    final currentState = state;
+
+    if (currentState is! OrderLoaded) {
+      print('⚠️ ORDER BLOC: Not in loaded state, triggering full reload');
+      add(LoadOrders());
+      return;
+    }
+
+    print('🔄 ORDER BLOC: Refreshing single order: ${event.orderId}');
+
+    try {
+      // Get the updated order from the repository
+      final result = await orderRepository.getOrderById(event.orderId);
+
+      result.fold(
+            (failure) {
+          print('❌ ORDER BLOC: Failed to refresh order - ${failure.message}');
+          // Don't emit error, just keep current state
+        },
+            (updatedOrder) {
+          print('✅ ORDER BLOC: Order refreshed successfully');
+          final newState = currentState.updateSingleOrder(updatedOrder);
+          emit(newState);
+          print('✅ ORDER BLOC: Single order updated in state');
+        },
+      );
+    } catch (e) {
+      print('❌ ORDER BLOC: Exception refreshing order: $e');
+      // Don't emit error, just keep current state
+    }
+  }
+
 }

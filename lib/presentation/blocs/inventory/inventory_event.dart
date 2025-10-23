@@ -83,3 +83,11 @@ class FilterInventoryItems extends InventoryEvent {
 }
 
 class ClearFilters extends InventoryEvent {}
+class RefreshMultipleItems extends InventoryEvent {
+  final List<String> itemIds;
+
+  const RefreshMultipleItems(this.itemIds);
+
+  @override
+  List<Object> get props => [itemIds];
+}

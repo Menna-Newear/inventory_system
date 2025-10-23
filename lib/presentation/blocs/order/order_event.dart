@@ -1,4 +1,4 @@
-// ✅ presentation/blocs/order/order_event.dart (COMPLETE WITH MISSING EVENTS)
+// ✅ presentation/blocs/order/order_event.dart
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/order.dart';
 
@@ -106,6 +106,14 @@ class ReturnRentalEvent extends OrderEvent {
   final String orderId;
 
   const ReturnRentalEvent(this.orderId);
+
+  @override
+  List<Object> get props => [orderId];
+}
+class RefreshSingleOrder extends OrderEvent {
+  final String orderId;
+
+  const RefreshSingleOrder(this.orderId);
 
   @override
   List<Object> get props => [orderId];

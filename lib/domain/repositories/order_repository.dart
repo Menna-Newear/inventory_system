@@ -20,4 +20,5 @@ abstract class OrderRepository {
   });
   Future<Either<Failure, List<Order>>> searchOrders(String query);
   Future<Either<Failure, List<Order>>> filterOrders(Map<String, dynamic> filters);
+  Future<Either<Failure, Order>> getOrderById(String orderId);
 }

@@ -423,6 +423,13 @@ class OrdersDataTable extends StatelessWidget {
       newStatus: newStatus,
     ));
 
+    // ✅ After a delay, refresh just this order
+    Future.delayed(Duration(seconds: 2), () {
+      if (context.mounted) {
+        context.read<OrderBloc>().add(RefreshSingleOrder(order.id));
+      }
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -442,7 +449,6 @@ class OrdersDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ Update the return rental method
   void _returnRental(BuildContext context, Order order) {
     showDialog(
       context: context,
@@ -466,6 +472,13 @@ class OrdersDataTable extends StatelessWidget {
 
                 // ✅ Use new event for rental return
                 context.read<OrderBloc>().add(ReturnRentalEvent(order.id));
+
+                // ✅ Refresh just this order after return
+                Future.delayed(Duration(seconds: 2), () {
+                  if (context.mounted) {
+                    context.read<OrderBloc>().add(RefreshSingleOrder(order.id));
+                  }
+                });
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

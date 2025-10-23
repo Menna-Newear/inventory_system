@@ -1,4 +1,4 @@
-// ✅ data/services/stock_management_service.dart
+// ✅ data/services/stock_management_service.dart (OPTIMIZED - NO FULL REFRESH)
 import 'package:dartz/dartz.dart' hide Order;
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/order.dart';
@@ -17,28 +17,20 @@ class StockManagementService {
       OrderStatus oldStatus,
       OrderStatus newStatus,
       ) async {
-    print('🔍 STOCK SERVICE: Starting handleOrderStatusChange');
-    print('🔍 STOCK SERVICE: Order ${order.orderNumber} (${order.orderType.displayName})');
-    print('🔍 STOCK SERVICE: Status change: $oldStatus → $newStatus');
-    print('🔍 STOCK SERVICE: Items count: ${order.items.length}');
+    debugPrint('🔍 STOCK SERVICE: Order ${order.orderNumber} (${order.orderType.displayName})');
+    debugPrint('🔍 STOCK SERVICE: Status change: $oldStatus → $newStatus');
 
     if (!_shouldUpdateStock(oldStatus, newStatus)) {
-      print('❌ STOCK SERVICE: No stock update needed, returning');
+      debugPrint('➡️ STOCK SERVICE: No stock update needed');
       return Right(null);
     }
 
-    print('📦 STOCK SERVICE: Processing stock change for order ${order.orderNumber}: $oldStatus → $newStatus');
-
     try {
-      bool anyStockChanged = false;
       List<String> updatedItemIds = [];
 
-      // ✅ STEP 1: Update stock quantities
+      // STEP 1: Update stock quantities
       for (final orderItem in order.items) {
-        print('🔍 STOCK SERVICE: Processing item ${orderItem.itemName} (ID: ${orderItem.itemId})');
-
         final stockChange = _calculateStockChange(order, orderItem, oldStatus, newStatus);
-        print('🔍 STOCK SERVICE: Calculated stock change: $stockChange');
 
         if (stockChange != 0) {
           final result = await _updateItemStock(
@@ -48,38 +40,31 @@ class StockManagementService {
           );
 
           if (result.isLeft()) {
-            print('❌ STOCK SERVICE: Stock update failed for item ${orderItem.itemName}');
             return result.fold((l) => Left(l), (r) => throw Exception());
           }
 
-          print('✅ STOCK SERVICE: Stock updated successfully for item ${orderItem.itemName}');
-          anyStockChanged = true;
           updatedItemIds.add(orderItem.itemId);
-        } else {
-          print('➡️ STOCK SERVICE: No stock change needed for item ${orderItem.itemName}');
+          debugPrint('✅ STOCK SERVICE: Updated ${orderItem.itemName}');
         }
       }
 
-      // ✅ STEP 2: Update serial statuses
-      if (anyStockChanged) {
-        print('🔄 STOCK SERVICE: Stock changed - now updating serial statuses');
+      // STEP 2: Update serial statuses
+      if (updatedItemIds.isNotEmpty) {
         final serialResult = await _updateSerialStatuses(order, oldStatus, newStatus);
         if (serialResult.isLeft()) {
-          print('⚠️ STOCK SERVICE: Serial status update failed but stock was updated');
-          // Continue anyway - stock is more critical than serial status
+          debugPrint('⚠️ STOCK SERVICE: Serial update failed but stock was updated');
         }
       }
 
-      // ✅ STEP 3: Notify inventory refresh
-      if (anyStockChanged) {
-        print('🔄 STOCK SERVICE: Stock changed for ${updatedItemIds.length} items - triggering inventory refresh');
-        _notifyInventoryRefresh();
+      // STEP 3: Notify ONLY affected items to refresh (NOT full inventory!)
+      if (updatedItemIds.isNotEmpty) {
+        _notifySpecificItemsRefresh(updatedItemIds);
+        debugPrint('✅ STOCK SERVICE: Completed - refreshed ${updatedItemIds.length} items');
       }
 
-      print('✅ STOCK SERVICE: All stock updates completed successfully');
       return Right(null);
     } catch (e) {
-      print('❌ STOCK SERVICE: Exception during stock update: $e');
+      debugPrint('❌ STOCK SERVICE: Exception: $e');
       return Left(ServerFailure('Stock management error: $e'));
     }
   }
@@ -90,27 +75,22 @@ class StockManagementService {
       OrderStatus oldStatus,
       OrderStatus newStatus,
       ) async {
-    print('🔍 STOCK SERVICE: Updating serial statuses for order ${order.orderNumber}');
-
     try {
       for (final orderItem in order.items) {
         if (orderItem.serialNumbers != null && orderItem.serialNumbers!.isNotEmpty) {
-          print('🔍 STOCK SERVICE: Item ${orderItem.itemName} has ${orderItem.serialNumbers!.length} serial numbers');
-          print('🔍 STOCK SERVICE: Serial numbers: ${orderItem.serialNumbers}');
+          debugPrint('🔍 STOCK SERVICE: Updating ${orderItem.serialNumbers!.length} serials for ${orderItem.itemName}');
 
-          // ✅ NEW: Convert serial number strings to IDs
-          final serialIds = await _getSerialIdsByNumbers(orderItem.itemId, orderItem.serialNumbers!);
+          final serialIds = await _getSerialIdsByNumbers(
+            orderItem.itemId,
+            orderItem.serialNumbers!,
+          );
 
           if (serialIds.isEmpty) {
-            print('⚠️ STOCK SERVICE: No serial IDs found for serial numbers: ${orderItem.serialNumbers}');
-            print('⚠️ STOCK SERVICE: Skipping serial status update for ${orderItem.itemName}');
+            debugPrint('⚠️ STOCK SERVICE: No serial IDs found, skipping');
             continue;
           }
 
-          print('🔍 STOCK SERVICE: Found ${serialIds.length} serial IDs to update');
-
           final serialStatus = _getSerialStatusForOrder(newStatus, order.orderType);
-          print('🔍 STOCK SERVICE: Updating serials to status: $serialStatus');
 
           final result = await inventoryRepository.bulkUpdateSerialStatus(
             serialIds,
@@ -118,44 +98,36 @@ class StockManagementService {
           );
 
           if (result.isLeft()) {
-            print('❌ STOCK SERVICE: Failed to update serial statuses for ${orderItem.itemName}');
             return result;
           }
 
-          print('✅ STOCK SERVICE: Serial statuses updated successfully for ${orderItem.itemName}');
-        } else {
-          print('➡️ STOCK SERVICE: No serial numbers to update for ${orderItem.itemName}');
+          debugPrint('✅ STOCK SERVICE: Serial statuses updated to $serialStatus');
         }
       }
 
-      print('✅ STOCK SERVICE: All serial statuses updated successfully');
       return Right(null);
     } catch (e) {
-      print('❌ STOCK SERVICE: Exception during serial status update: $e');
+      debugPrint('❌ STOCK SERVICE: Serial update exception: $e');
       return Left(ServerFailure('Failed to update serial statuses: $e'));
     }
   }
 
-  /// ✅ NEW: Helper method to convert serial number strings to IDs
+  /// Converts serial number strings to IDs
   Future<List<String>> _getSerialIdsByNumbers(String itemId, List<String> serialNumbers) async {
     try {
-      print('🔍 STOCK SERVICE: Looking up serial IDs for ${serialNumbers.length} serial numbers');
-      print('🔍 STOCK SERVICE: Item ID: $itemId');
-      print('🔍 STOCK SERVICE: Serial numbers to find: $serialNumbers');
+      debugPrint('🔍 STOCK SERVICE: Looking up serial IDs for ${serialNumbers.length} serial numbers');
+      debugPrint('🔍 STOCK SERVICE: Item ID: $itemId');
 
-      final itemsResult = await inventoryRepository.getAllInventoryItems();
-      if (itemsResult.isLeft()) {
-        print('❌ STOCK SERVICE: Failed to get inventory items for serial lookup');
+      // ✅ FIX: Fetch ONLY this specific item (not all 299!)
+      final itemResult = await inventoryRepository.getInventoryItem(itemId);
+
+      if (itemResult.isLeft()) {
+        debugPrint('❌ STOCK SERVICE: Failed to get item for serial lookup');
         return [];
       }
 
-      final items = itemsResult.fold((l) => <InventoryItem>[], (r) => r);
-      final item = items.firstWhere(
-            (i) => i.id == itemId,
-        orElse: () => throw Exception('Item not found'),
-      );
-
-      print('🔍 STOCK SERVICE: Found item ${item.nameEn} with ${item.serialNumbers.length} total serials');
+      final item = itemResult.fold((l) => throw Exception(), (r) => r);
+      debugPrint('🔍 STOCK SERVICE: Found item ${item.nameEn} with ${item.serialNumbers.length} total serials');
 
       // Find serial IDs that match the serial number strings
       final matchingSerials = item.serialNumbers
@@ -163,21 +135,17 @@ class StockManagementService {
           .map((serial) => serial.id)
           .toList();
 
-      print('🔍 STOCK SERVICE: Matched ${matchingSerials.length} serial IDs');
-      if (matchingSerials.isNotEmpty) {
-        print('🔍 STOCK SERVICE: Matched serial IDs: $matchingSerials');
-      }
-
+      debugPrint('🔍 STOCK SERVICE: Matched ${matchingSerials.length}/${serialNumbers.length} serial IDs');
       return matchingSerials;
     } catch (e) {
-      print('❌ STOCK SERVICE: Error getting serial IDs: $e');
+      debugPrint('❌ STOCK SERVICE: Error getting serial IDs: $e');
       return [];
     }
   }
 
   /// Determines serial status based on order status and type
   SerialStatus _getSerialStatusForOrder(OrderStatus orderStatus, OrderType orderType) {
-    final status = switch (orderStatus) {
+    return switch (orderStatus) {
       OrderStatus.approved => orderType == OrderType.rental ? SerialStatus.rented : SerialStatus.sold,
       OrderStatus.cancelled => SerialStatus.available,
       OrderStatus.rejected => SerialStatus.available,
@@ -188,234 +156,194 @@ class StockManagementService {
       OrderStatus.shipped => orderType == OrderType.rental ? SerialStatus.rented : SerialStatus.sold,
       OrderStatus.delivered => orderType == OrderType.rental ? SerialStatus.rented : SerialStatus.sold,
     };
-
-    print('🔍 STOCK SERVICE: Serial status for $orderStatus (${orderType.displayName}): $status');
-    return status;
   }
 
   /// Validates if there's enough stock before approving an order
   Future<Either<Failure, void>> validateStockAvailability(Order order) async {
-    print('🔍 STOCK SERVICE: Validating stock availability for order ${order.orderNumber}');
+    debugPrint('🔍 STOCK SERVICE: Validating stock for ${order.orderNumber}');
 
     try {
-      final itemsResult = await inventoryRepository.getAllInventoryItems();
-      if (itemsResult.isLeft()) {
-        print('❌ STOCK SERVICE: Failed to get inventory items');
-        return itemsResult.fold((l) => Left(l), (r) => throw Exception());
-      }
-
-      final items = itemsResult.fold((l) => throw Exception(), (r) => r);
-      print('🔍 STOCK SERVICE: Retrieved ${items.length} inventory items for validation');
-
+      // ✅ OPTIMIZED: Only fetch the specific items we need (without serials!)
       for (final orderItem in order.items) {
-        try {
-          final inventoryItem = items.firstWhere((i) => i.id == orderItem.itemId);
-          print('🔍 STOCK SERVICE: Checking ${inventoryItem.nameEn} - Available: ${inventoryItem.stockQuantity}, Required: ${orderItem.quantity}');
+        final itemResult = await inventoryRepository.getInventoryItem(orderItem.itemId);
 
-          // Check stock availability
-          if (inventoryItem.stockQuantity < orderItem.quantity) {
-            print('❌ STOCK SERVICE: Insufficient stock for ${inventoryItem.nameEn}');
+        if (itemResult.isLeft()) {
+          debugPrint('❌ STOCK SERVICE: Item ${orderItem.itemId} not found');
+          return Left(ValidationFailure('Item ${orderItem.itemId} not found in inventory'));
+        }
+
+        final inventoryItem = itemResult.fold((l) => throw Exception(), (r) => r);
+
+        debugPrint('🔍 STOCK SERVICE: Checking ${inventoryItem.nameEn} - Available: ${inventoryItem.stockQuantity}, Required: ${orderItem.quantity}');
+
+        // Check stock quantity
+        if (inventoryItem.stockQuantity < orderItem.quantity) {
+          debugPrint('❌ STOCK SERVICE: Insufficient stock for ${inventoryItem.nameEn}');
+          return Left(ValidationFailure(
+              'Insufficient stock for ${inventoryItem.nameEn}. '
+                  'Available: ${inventoryItem.stockQuantity}, Required: ${orderItem.quantity}'
+          ));
+        }
+
+        // Validate serial-tracked items
+        if (inventoryItem.isSerialTracked) {
+          if (orderItem.serialNumbers == null || orderItem.serialNumbers!.isEmpty) {
+            debugPrint('❌ STOCK SERVICE: Serial-tracked item ${inventoryItem.nameEn} has no serial numbers assigned');
             return Left(ValidationFailure(
-                'Insufficient stock for ${inventoryItem.nameEn}. '
-                    'Available: ${inventoryItem.stockQuantity}, Required: ${orderItem.quantity}'
+                'Serial-tracked item ${inventoryItem.nameEn} requires serial number selection'
             ));
           }
 
-          // ✅ Validate serial numbers for serial-tracked items
-          if (inventoryItem.isSerialTracked) {
-            if (orderItem.serialNumbers == null || orderItem.serialNumbers!.isEmpty) {
-              print('❌ STOCK SERVICE: Serial-tracked item ${inventoryItem.nameEn} has no serial numbers assigned');
-              return Left(ValidationFailure(
-                  'Serial-tracked item ${inventoryItem.nameEn} requires serial number selection'
-              ));
-            }
-
-            if (orderItem.serialNumbers!.length != orderItem.quantity) {
-              print('❌ STOCK SERVICE: Serial count mismatch for ${inventoryItem.nameEn}');
-              return Left(ValidationFailure(
-                  'Serial count mismatch for ${inventoryItem.nameEn}. '
-                      'Required: ${orderItem.quantity}, Selected: ${orderItem.serialNumbers!.length}'
-              ));
-            }
-
-            // ✅ NEW: Validate that serial numbers exist and are available
-            print('🔍 STOCK SERVICE: Validating serial numbers: ${orderItem.serialNumbers}');
-            final availableSerialNumbers = inventoryItem.serialNumbers
-                .where((s) => s.status == SerialStatus.available)
-                .map((s) => s.serialNumber)
-                .toList();
-
-            for (final serialNumber in orderItem.serialNumbers!) {
-              if (!availableSerialNumbers.contains(serialNumber)) {
-                print('❌ STOCK SERVICE: Serial number $serialNumber is not available');
-                return Left(ValidationFailure(
-                    'Serial number $serialNumber for ${inventoryItem.nameEn} is not available'
-                ));
-              }
-            }
-            print('✅ STOCK SERVICE: All serial numbers are valid and available');
+          if (orderItem.serialNumbers!.length != orderItem.quantity) {
+            debugPrint('❌ STOCK SERVICE: Serial count mismatch for ${inventoryItem.nameEn}');
+            return Left(ValidationFailure(
+                'Serial count mismatch for ${inventoryItem.nameEn}. '
+                    'Required: ${orderItem.quantity}, Selected: ${orderItem.serialNumbers!.length}'
+            ));
           }
-        } catch (e) {
-          print('❌ STOCK SERVICE: Item ${orderItem.itemId} not found in inventory');
-          return Left(ValidationFailure('Item ${orderItem.itemId} not found in inventory'));
+
+          // ✅ Validate that serial numbers exist and are available
+          debugPrint('🔍 STOCK SERVICE: Validating ${orderItem.serialNumbers!.length} serial numbers');
+          final availableSerialNumbers = inventoryItem.serialNumbers
+              .where((s) => s.status == SerialStatus.available)
+              .map((s) => s.serialNumber)
+              .toList();
+
+          for (final serialNumber in orderItem.serialNumbers!) {
+            if (!availableSerialNumbers.contains(serialNumber)) {
+              debugPrint('❌ STOCK SERVICE: Serial number $serialNumber is not available');
+              return Left(ValidationFailure(
+                  'Serial number $serialNumber for ${inventoryItem.nameEn} is not available'
+              ));
+            }
+          }
+          debugPrint('✅ STOCK SERVICE: All serial numbers are valid and available');
         }
       }
 
-      print('✅ STOCK SERVICE: Stock validation passed for all ${order.items.length} items');
+      debugPrint('✅ STOCK SERVICE: Stock validation passed for all ${order.items.length} items');
       return Right(null);
     } catch (e) {
-      print('❌ STOCK SERVICE: Exception during stock validation: $e');
+      debugPrint('❌ STOCK SERVICE: Exception during stock validation: $e');
       return Left(ServerFailure('Failed to validate stock: $e'));
     }
   }
 
-  /// Determines if stock update is needed based on status transition
+  /// Determines if stock update is needed
   bool _shouldUpdateStock(OrderStatus oldStatus, OrderStatus newStatus) {
-    print('🔍 STOCK SERVICE: Checking if stock update is needed: $oldStatus → $newStatus');
-
-    // ✅ REDUCE STOCK: When any order type is approved
+    // Reduce stock: approval from draft/pending
     if ((oldStatus == OrderStatus.draft || oldStatus == OrderStatus.pending) &&
         newStatus == OrderStatus.approved) {
-      print('✅ STOCK SERVICE: Should reduce stock (approval from draft/pending)');
       return true;
     }
 
-    // ✅ RESTORE STOCK: When approved order is cancelled/rejected
+    // Restore stock: cancellation/rejection from approved
     if (oldStatus == OrderStatus.approved &&
         (newStatus == OrderStatus.cancelled || newStatus == OrderStatus.rejected)) {
-      print('✅ STOCK SERVICE: Should restore stock (cancellation/rejection from approved)');
       return true;
     }
 
-    // ✅ RESTORE STOCK: When any order type is returned
+    // Restore stock: return
     if (newStatus == OrderStatus.returned && oldStatus != OrderStatus.returned) {
-      print('✅ STOCK SERVICE: Should restore stock (order returned)');
       return true;
     }
 
-    print('❌ STOCK SERVICE: No stock update needed for this status change');
     return false;
   }
 
-  /// Calculates the stock change quantity for an item
+  /// Calculates stock change quantity
   int _calculateStockChange(Order order, OrderItem orderItem, OrderStatus oldStatus, OrderStatus newStatus) {
-    print('🔍 STOCK SERVICE: Calculating stock change for ${order.orderType.displayName} order');
-    print('🔍 STOCK SERVICE: Item: ${orderItem.itemName}, Quantity: ${orderItem.quantity}');
-    print('🔍 STOCK SERVICE: Status: $oldStatus → $newStatus');
-
-    // ✅ REDUCE STOCK: When approving any order type
+    // Reduce stock on approval
     if (newStatus == OrderStatus.approved &&
         (oldStatus == OrderStatus.draft || oldStatus == OrderStatus.pending)) {
-      print('📉 STOCK SERVICE: Reducing stock by ${orderItem.quantity} (approval)');
       return -orderItem.quantity;
     }
 
-    // ✅ RESTORE STOCK: When cancelling/rejecting approved order
-    else if ((newStatus == OrderStatus.cancelled || newStatus == OrderStatus.rejected) &&
+    // Restore stock on cancel/reject
+    if ((newStatus == OrderStatus.cancelled || newStatus == OrderStatus.rejected) &&
         oldStatus == OrderStatus.approved) {
-      print('📈 STOCK SERVICE: Restoring stock by ${orderItem.quantity} (${newStatus.displayName} from approved)');
       return orderItem.quantity;
     }
 
-    // ✅ RESTORE STOCK: When returning any order type
-    else if (newStatus == OrderStatus.returned && oldStatus != OrderStatus.returned) {
-      print('📈 STOCK SERVICE: Restoring stock by ${orderItem.quantity} (returned)');
+    // Restore stock on return
+    if (newStatus == OrderStatus.returned && oldStatus != OrderStatus.returned) {
       return orderItem.quantity;
     }
 
-    print('➡️ STOCK SERVICE: No stock change calculated');
     return 0;
   }
 
-  /// Gets the reason text for the stock update
+  /// Gets update reason text
   String _getUpdateReason(Order order, OrderStatus newStatus) {
-    final reason = switch (newStatus) {
+    return switch (newStatus) {
       OrderStatus.approved => '${order.orderType.displayName} approved: ${order.orderNumber}',
       OrderStatus.cancelled => '${order.orderType.displayName} cancelled: ${order.orderNumber}',
       OrderStatus.rejected => '${order.orderType.displayName} rejected: ${order.orderNumber}',
       OrderStatus.returned => '${order.orderType.displayName} returned: ${order.orderNumber}',
       _ => '${order.orderType.displayName} status change: ${order.orderNumber}',
     };
-
-    print('🔍 STOCK SERVICE: Update reason: $reason');
-    return reason;
   }
 
-  /// Updates the stock quantity for a specific item
+  /// Updates stock for specific item
+  /// Updates stock for specific item
   Future<Either<Failure, void>> _updateItemStock(
       String itemId,
       int quantityChange,
       String reason,
       ) async {
-    print('🔍 STOCK SERVICE: Updating stock for item $itemId, change: $quantityChange');
-
     try {
-      final itemsResult = await inventoryRepository.getAllInventoryItems();
-      if (itemsResult.isLeft()) {
-        print('❌ STOCK SERVICE: Failed to get inventory items for update');
-        return itemsResult.fold((l) => Left(l), (r) => throw Exception());
+      // ✅ FIX: Fetch ONLY this specific item (not all 299!)
+      final itemResult = await inventoryRepository.getInventoryItem(itemId);
+
+      if (itemResult.isLeft()) {
+        debugPrint('❌ STOCK SERVICE: Failed to get item for update');
+        return itemResult.fold((l) => Left(l), (r) => throw Exception());
       }
 
-      final items = itemsResult.fold((l) => throw Exception(), (r) => r);
+      final item = itemResult.fold((l) => throw Exception(), (r) => r);
+      debugPrint('🔍 STOCK SERVICE: Found item ${item.nameEn}, current stock: ${item.stockQuantity}');
 
-      try {
-        final item = items.firstWhere((i) => i.id == itemId);
-        print('🔍 STOCK SERVICE: Found item ${item.nameEn}, current stock: ${item.stockQuantity}');
+      final newStock = item.stockQuantity + quantityChange;
 
-        final newStock = item.stockQuantity + quantityChange;
-        print('🔍 STOCK SERVICE: New stock will be: $newStock');
-
-        if (newStock < 0) {
-          print('❌ STOCK SERVICE: Insufficient stock for update');
-          return Left(ValidationFailure(
-              'Insufficient stock for ${item.nameEn}. '
-                  'Available: ${item.stockQuantity}, Required: ${-quantityChange}'
-          ));
-        }
-
-        final updatedItem = item.copyWith(
-          stockQuantity: newStock,
-          updatedAt: DateTime.now(),
-        );
-
-        print('📦 STOCK SERVICE: Stock Update: ${item.nameEn} | ${item.stockQuantity} → $newStock | Reason: $reason');
-
-        final updateResult = await inventoryRepository.updateInventoryItem(updatedItem);
-
-        return updateResult.fold(
-              (failure) {
-            print('❌ STOCK SERVICE: Database update failed: ${failure.message}');
-            return Left(failure);
-          },
-              (success) {
-            print('✅ STOCK SERVICE: Database update successful for ${item.nameEn}');
-            return Right(null);
-          },
-        );
-      } catch (e) {
-        print('❌ STOCK SERVICE: Item $itemId not found in inventory items list');
-        return Left(ValidationFailure('Item $itemId not found in inventory'));
+      if (newStock < 0) {
+        return Left(ValidationFailure(
+            'Insufficient stock for ${item.nameEn}. '
+                'Available: ${item.stockQuantity}, Required: ${-quantityChange}'
+        ));
       }
+
+      final updatedItem = item.copyWith(
+        stockQuantity: newStock,
+        updatedAt: DateTime.now(),
+      );
+
+      debugPrint('📦 STOCK UPDATE: ${item.nameEn} | ${item.stockQuantity} → $newStock | $reason');
+
+      final updateResult = await inventoryRepository.updateInventoryItem(updatedItem);
+
+      return updateResult.fold(
+            (failure) => Left(failure),
+            (success) => Right(null),
+      );
     } catch (e) {
-      print('❌ STOCK SERVICE: Exception during stock update: $e');
       return Left(ServerFailure('Failed to update stock for item $itemId: $e'));
     }
   }
 
-  /// Notifies the inventory system to refresh after stock changes
-  void _notifyInventoryRefresh() {
+  /// ✅ NEW: Notifies ONLY specific items to refresh (not full inventory!)
+  void _notifySpecificItemsRefresh(List<String> itemIds) {
     try {
-      print('🔄 STOCK SERVICE: Triggering inventory refresh notification');
-      InventoryRefreshNotifier().notifyInventoryChanged();
-      print('✅ STOCK SERVICE: Inventory refresh notification sent');
+      debugPrint('🔄 STOCK SERVICE: Triggering refresh for ${itemIds.length} specific items');
+      InventoryRefreshNotifier().notifySpecificItemsChanged(itemIds);
+      debugPrint('✅ STOCK SERVICE: Specific items refresh notification sent');
     } catch (e) {
-      print('⚠️ STOCK SERVICE: Failed to notify inventory refresh: $e');
+      debugPrint('⚠️ STOCK SERVICE: Failed to notify refresh: $e');
     }
   }
 
-  /// Gets a summary of stock changes for logging/debugging
+  /// Gets summary of stock changes (for debugging)
   Map<String, dynamic> getStockChangeSummary(Order order, OrderStatus oldStatus, OrderStatus newStatus) {
-    final summary = <String, dynamic>{
+    return {
       'orderNumber': order.orderNumber,
       'orderType': order.orderType.displayName,
       'statusChange': '$oldStatus → $newStatus',
@@ -428,16 +356,12 @@ class StockManagementService {
         'stockChange': _calculateStockChange(order, item, oldStatus, newStatus),
         'hasSerials': item.serialNumbers != null && item.serialNumbers!.isNotEmpty,
         'serialCount': item.serialNumbers?.length ?? 0,
-        'serialNumbers': item.serialNumbers, // ✅ Now shows actual serial numbers
       }).toList(),
     };
-
-    print('📊 STOCK SERVICE: Stock change summary: $summary');
-    return summary;
   }
 }
 
-// ✅ Validation Failure class
+// Validation Failure class
 class ValidationFailure extends Failure {
   ValidationFailure(String message) : super(message);
 
@@ -445,46 +369,78 @@ class ValidationFailure extends Failure {
   List<Object> get props => [message];
 }
 
-// ✅ Global Inventory Refresh Notifier
+// ✅ UPDATED: Inventory Refresh Notifier with specific item support
 class InventoryRefreshNotifier {
   static final _instance = InventoryRefreshNotifier._internal();
   factory InventoryRefreshNotifier() => _instance;
   InventoryRefreshNotifier._internal();
 
   final List<VoidCallback> _listeners = [];
+  final List<Function(List<String>)> _specificItemListeners = [];
 
   void addListener(VoidCallback callback) {
     if (!_listeners.contains(callback)) {
       _listeners.add(callback);
-      print('🔄 REFRESH NOTIFIER: Added listener (total: ${_listeners.length})');
+      debugPrint('🔄 NOTIFIER: Added full refresh listener (total: ${_listeners.length})');
     }
   }
 
   void removeListener(VoidCallback callback) {
     if (_listeners.remove(callback)) {
-      print('🔄 REFRESH NOTIFIER: Removed listener (total: ${_listeners.length})');
+      debugPrint('🔄 NOTIFIER: Removed full refresh listener (total: ${_listeners.length})');
     }
   }
 
+  /// ✅ NEW: Add listener for specific item updates
+  void addSpecificItemListener(Function(List<String>) callback) {
+    if (!_specificItemListeners.contains(callback)) {
+      _specificItemListeners.add(callback);
+      debugPrint('🔄 NOTIFIER: Added specific item listener (total: ${_specificItemListeners.length})');
+    }
+  }
+
+  /// ✅ NEW: Remove specific item listener
+  void removeSpecificItemListener(Function(List<String>) callback) {
+    if (_specificItemListeners.remove(callback)) {
+      debugPrint('🔄 NOTIFIER: Removed specific item listener (total: ${_specificItemListeners.length})');
+    }
+  }
+
+  /// ✅ DEPRECATED: Use notifySpecificItemsChanged instead
   void notifyInventoryChanged() {
-    print('🔄 REFRESH NOTIFIER: Notifying ${_listeners.length} listeners of inventory change');
+    debugPrint('⚠️ NOTIFIER: Full inventory refresh called (consider using specific items)');
 
     for (final listener in _listeners) {
       try {
         listener();
       } catch (e) {
-        print('⚠️ REFRESH NOTIFIER: Error calling listener: $e');
+        debugPrint('⚠️ NOTIFIER: Error calling listener: $e');
+      }
+    }
+  }
+
+  /// ✅ NEW: Notify only specific items changed
+  void notifySpecificItemsChanged(List<String> itemIds) {
+    debugPrint('🔄 NOTIFIER: Notifying ${_specificItemListeners.length} listeners about ${itemIds.length} items');
+
+    for (final listener in _specificItemListeners) {
+      try {
+        listener(itemIds);
+      } catch (e) {
+        debugPrint('⚠️ NOTIFIER: Error calling specific item listener: $e');
       }
     }
 
-    print('✅ REFRESH NOTIFIER: All listeners notified');
+    debugPrint('✅ NOTIFIER: Specific item notifications sent');
   }
 
   void clearListeners() {
-    final count = _listeners.length;
+    final fullCount = _listeners.length;
+    final specificCount = _specificItemListeners.length;
     _listeners.clear();
-    print('🔄 REFRESH NOTIFIER: Cleared $count listeners');
+    _specificItemListeners.clear();
+    debugPrint('🔄 NOTIFIER: Cleared $fullCount full + $specificCount specific listeners');
   }
 
-  int get listenerCount => _listeners.length;
+  int get listenerCount => _listeners.length + _specificItemListeners.length;
 }

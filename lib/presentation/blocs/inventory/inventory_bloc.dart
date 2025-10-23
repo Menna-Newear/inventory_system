@@ -1,16 +1,16 @@
-// ✅ presentation/blocs/inventory/inventory_bloc.dart
+// ✅ presentation/blocs/inventory/inventory_bloc.dart (COMPLETE WITH SPECIFIC ITEM REFRESH)
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../../domain/entities/inventory_item.dart';
-
-// Import use cases with aliases
 import '../../../domain/usecases/get_inventory_items.dart' as get_items_usecase;
 import '../../../domain/usecases/create_inventory_item.dart' as create_item_usecase;
 import '../../../domain/usecases/update_inventory_item.dart' as update_item_usecase;
 import '../../../domain/usecases/delete_inventory_item.dart' as delete_item_usecase;
 import '../../../domain/usecases/search_inventory_items.dart' as search_items_usecase;
 import '../../../domain/usecases/filter_inventory_items.dart' as filter_items_usecase;
+import '../../../data/services/stock_management_service.dart';
 
 part 'inventory_event.dart';
 part 'inventory_state.dart';
@@ -32,32 +32,49 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     required this.filterInventoryItems,
   }) : super(InventoryInitial()) {
     on<LoadInventoryItems>(_onLoadInventoryItems);
-    on<LoadInventoryItemsPage>(_onLoadInventoryItemsPage); // ✅ NEW
-    on<LoadMoreInventoryItems>(_onLoadMoreInventoryItems); // ✅ NEW
+    on<LoadInventoryItemsPage>(_onLoadInventoryItemsPage);
+    on<LoadMoreInventoryItems>(_onLoadMoreInventoryItems);
     on<RefreshInventoryItems>(_onRefreshInventoryItems);
     on<RefreshSingleItem>(_onRefreshSingleItem);
+    on<RefreshMultipleItems>(_onRefreshMultipleItems);
     on<CreateInventoryItem>(_onCreateInventoryItem);
     on<UpdateInventoryItem>(_onUpdateInventoryItem);
     on<DeleteInventoryItem>(_onDeleteInventoryItem);
     on<SearchInventoryItems>(_onSearchInventoryItems);
     on<FilterInventoryItems>(_onFilterInventoryItems);
     on<ClearFilters>(_onClearFilters);
+
+    // ✅ Setup listener for stock updates from orders
+    _setupStockUpdateListener();
   }
 
-  // ✅ Original: Load all items (for backward compatibility)
+  /// ✅ Listen for specific item updates from StockManagementService
+  void _setupStockUpdateListener() {
+    InventoryRefreshNotifier().addSpecificItemListener((itemIds) {
+      debugPrint('🔄 INVENTORY BLOC: Stock service requested refresh for ${itemIds.length} items');
+      add(RefreshMultipleItems(itemIds));
+    });
+  }
+
+  @override
+  Future<void> close() {
+    debugPrint('🔄 INVENTORY BLOC: Closing bloc');
+    return super.close();
+  }
+
+  // ==================== LOAD INVENTORY ====================
+
+  /// Load inventory items (starts with first page)
   Future<void> _onLoadInventoryItems(
       LoadInventoryItems event,
       Emitter<InventoryState> emit,
       ) async {
     emit(InventoryLoading());
-
-    print('🔄 BLOC: Loading inventory with pagination (page 1)');
-
-    // Start with first page
+    debugPrint('🔄 INVENTORY BLOC: Loading inventory with pagination (page 1)');
     add(LoadInventoryItemsPage(page: 1, pageSize: 50));
   }
 
-  // ✅ NEW: Load specific page
+  /// Load specific page of inventory items
   Future<void> _onLoadInventoryItemsPage(
       LoadInventoryItemsPage event,
       Emitter<InventoryState> emit,
@@ -68,11 +85,10 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     if (event.page == 1) {
       emit(InventoryLoading());
     } else if (currentState is InventoryLoaded) {
-      // Show loading indicator at bottom for subsequent pages
       emit(currentState.copyWith(isLoadingMore: true));
     }
 
-    print('🔄 BLOC: Loading page ${event.page} (size: ${event.pageSize})');
+    debugPrint('🔄 INVENTORY BLOC: Loading page ${event.page} (size: ${event.pageSize})');
 
     try {
       // Get total count (only needed once)
@@ -80,7 +96,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       if (event.page == 1) {
         final countResult = await getInventoryItems.repository.getTotalItemCount();
         totalCount = countResult.fold((l) => 0, (r) => r);
-        print('📊 BLOC: Total items in database: $totalCount');
+        debugPrint('📊 INVENTORY BLOC: Total items in database: $totalCount');
       } else if (currentState is InventoryLoaded) {
         totalCount = currentState.totalItems;
       }
@@ -93,11 +109,11 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
 
       result.fold(
             (failure) {
-          print('❌ BLOC: Failed to load page - ${failure.message}');
+          debugPrint('❌ INVENTORY BLOC: Failed to load page - ${failure.message}');
           emit(InventoryError(failure.message));
         },
             (pageItems) {
-          print('✅ BLOC: Loaded ${pageItems.length} items for page ${event.page}');
+          debugPrint('✅ INVENTORY BLOC: Loaded ${pageItems.length} items for page ${event.page}');
 
           if (currentState is InventoryLoaded && event.page > 1) {
             // Append to existing items
@@ -111,7 +127,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
               isLoadingMore: false,
             ));
 
-            print('📊 BLOC: Total loaded: ${allItems.length}/$totalCount');
+            debugPrint('📊 INVENTORY BLOC: Total loaded: ${allItems.length}/$totalCount');
           } else {
             // First load
             emit(InventoryLoaded(
@@ -121,17 +137,17 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
               hasReachedMax: pageItems.length >= totalCount,
             ));
 
-            print('📊 BLOC: Initial load: ${pageItems.length}/$totalCount');
+            debugPrint('📊 INVENTORY BLOC: Initial load: ${pageItems.length}/$totalCount');
           }
         },
       );
     } catch (e) {
-      print('❌ BLOC: Error loading page - $e');
+      debugPrint('❌ INVENTORY BLOC: Error loading page - $e');
       emit(InventoryError('Failed to load items: $e'));
     }
   }
 
-  // ✅ NEW: Load next page (infinite scroll)
+  /// Load next page (infinite scroll)
   Future<void> _onLoadMoreInventoryItems(
       LoadMoreInventoryItems event,
       Emitter<InventoryState> emit,
@@ -139,34 +155,38 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     final currentState = state;
 
     if (currentState is! InventoryLoaded) {
-      print('⚠️ BLOC: Not in loaded state');
+      debugPrint('⚠️ INVENTORY BLOC: Not in loaded state');
       return;
     }
 
     if (currentState.hasReachedMax) {
-      print('⚠️ BLOC: Already loaded all items');
+      debugPrint('⚠️ INVENTORY BLOC: Already loaded all items');
       return;
     }
 
     if (currentState.isLoadingMore) {
-      print('⚠️ BLOC: Already loading more items');
+      debugPrint('⚠️ INVENTORY BLOC: Already loading more items');
       return;
     }
 
-    print('🔄 BLOC: Loading more items (page ${currentState.currentPage + 1})');
+    debugPrint('🔄 INVENTORY BLOC: Loading more items (page ${currentState.currentPage + 1})');
 
     final nextPage = currentState.currentPage + 1;
     add(LoadInventoryItemsPage(page: nextPage, pageSize: 50));
   }
 
+  // ==================== REFRESH OPERATIONS ====================
+
+  /// Refresh all inventory items
   Future<void> _onRefreshInventoryItems(
       RefreshInventoryItems event,
       Emitter<InventoryState> emit,
       ) async {
-    print('🔄 BLOC: Refreshing inventory (reloading from page 1)');
+    debugPrint('🔄 INVENTORY BLOC: Refreshing inventory (reloading from page 1)');
     add(LoadInventoryItems());
   }
 
+  /// Refresh single inventory item
   Future<void> _onRefreshSingleItem(
       RefreshSingleItem event,
       Emitter<InventoryState> emit,
@@ -174,37 +194,89 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     final currentState = state;
 
     if (currentState is! InventoryLoaded) {
-      print('⚠️ BLOC: Not in loaded state, triggering full reload');
+      debugPrint('⚠️ INVENTORY BLOC: Not in loaded state, triggering full reload');
       add(LoadInventoryItems());
       return;
     }
 
-    print('🔄 BLOC: Refreshing single item: ${event.itemId}');
+    debugPrint('🔄 INVENTORY BLOC: Refreshing single item: ${event.itemId}');
 
     final repository = getInventoryItems.repository;
     final result = await repository.getInventoryItem(event.itemId);
 
     result.fold(
           (failure) {
-        print('❌ BLOC: Failed to refresh item - ${failure.message}');
+        debugPrint('❌ INVENTORY BLOC: Failed to refresh item - ${failure.message}');
       },
           (updatedItem) {
-        print('✅ BLOC: Item refreshed with ${updatedItem.serialNumbers.length} serials');
+        debugPrint('✅ INVENTORY BLOC: Item refreshed - ${updatedItem.nameEn} with ${updatedItem.serialNumbers.length} serials');
 
         final newState = currentState.updateSingleItem(updatedItem);
         emit(newState);
-        print('✅ BLOC: Table updated with new data');
+        debugPrint('✅ INVENTORY BLOC: Table updated with new data');
       },
     );
   }
 
+  /// ✅ NEW: Refresh multiple items efficiently (called by StockManagementService)
+  /// Refresh multiple items efficiently (called by StockManagementService)
+  Future<void> _onRefreshMultipleItems(
+      RefreshMultipleItems event,
+      Emitter<InventoryState> emit,
+      ) async {
+    final currentState = state;
+
+    if (currentState is! InventoryLoaded) {
+      debugPrint('⚠️ INVENTORY BLOC: Not in loaded state, skipping multi-refresh');
+      return;
+    }
+
+    debugPrint('🔄 INVENTORY BLOC: Refreshing ${event.itemIds.length} items');
+
+    try {
+      final repository = getInventoryItems.repository;
+      var updatedState = currentState;
+      bool stateChanged = false;
+
+      // Refresh each item
+      for (final itemId in event.itemIds) {
+        final result = await repository.getInventoryItem(itemId);
+
+        result.fold(
+              (failure) {
+            debugPrint('⚠️ INVENTORY BLOC: Failed to refresh item $itemId - ${failure.message}');
+          },
+              (updatedItem) {
+            debugPrint('✅ INVENTORY BLOC: Refreshed ${updatedItem.nameEn} (stock: ${updatedItem.stockQuantity})');
+            updatedState = updatedState.updateSingleItem(updatedItem);
+            stateChanged = true;
+          },
+        );
+      }
+
+      // Emit final state with all updates
+      if (stateChanged) {
+        emit(updatedState);
+        debugPrint('✅ INVENTORY BLOC: ${event.itemIds.length} items updated - UI should refresh now');
+      } else {
+        debugPrint('⚠️ INVENTORY BLOC: No items were updated');
+      }
+    } catch (e) {
+      debugPrint('❌ INVENTORY BLOC: Exception during multi-refresh: $e');
+    }
+  }
+
+
+  // ==================== CRUD OPERATIONS ====================
+
+  /// Create inventory item
   Future<void> _onCreateInventoryItem(
       CreateInventoryItem event,
       Emitter<InventoryState> emit,
       ) async {
     final currentState = state;
 
-    print('🔄 BLOC: Creating inventory item: ${event.item.nameEn}');
+    debugPrint('🔄 INVENTORY BLOC: Creating inventory item: ${event.item.nameEn}');
 
     final result = await createInventoryItem(
       create_item_usecase.CreateInventoryItemParams(event.item),
@@ -212,17 +284,17 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
 
     result.fold(
           (failure) {
-        print('❌ BLOC: Failed to create item - ${failure.message}');
+        debugPrint('❌ INVENTORY BLOC: Failed to create item - ${failure.message}');
         emit(InventoryError(failure.message));
       },
           (newItem) {
-        print('✅ BLOC: Item created successfully');
+        debugPrint('✅ INVENTORY BLOC: Item created successfully');
         emit(InventoryItemCreated(newItem));
 
         if (currentState is InventoryLoaded) {
           final newState = currentState.addSingleItem(newItem);
           emit(newState);
-          print('✅ BLOC: Item added to state');
+          debugPrint('✅ INVENTORY BLOC: Item added to state');
         } else {
           add(RefreshInventoryItems());
         }
@@ -230,13 +302,14 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     );
   }
 
+  /// Update inventory item
   Future<void> _onUpdateInventoryItem(
       UpdateInventoryItem event,
       Emitter<InventoryState> emit,
       ) async {
     final currentState = state;
 
-    print('🔄 BLOC: Updating inventory item: ${event.item.id}');
+    debugPrint('🔄 INVENTORY BLOC: Updating inventory item: ${event.item.id}');
 
     final result = await updateInventoryItem(
       update_item_usecase.UpdateInventoryItemParams(event.item),
@@ -244,17 +317,17 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
 
     result.fold(
           (failure) {
-        print('❌ BLOC: Failed to update item - ${failure.message}');
+        debugPrint('❌ INVENTORY BLOC: Failed to update item - ${failure.message}');
         emit(InventoryError(failure.message));
       },
           (updatedItem) {
-        print('✅ BLOC: Item updated successfully');
+        debugPrint('✅ INVENTORY BLOC: Item updated successfully');
         emit(InventoryItemUpdated(updatedItem));
 
         if (currentState is InventoryLoaded) {
           final newState = currentState.updateSingleItem(updatedItem);
           emit(newState);
-          print('✅ BLOC: State updated with single item');
+          debugPrint('✅ INVENTORY BLOC: State updated with single item');
         } else {
           add(RefreshInventoryItems());
         }
@@ -262,13 +335,14 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     );
   }
 
+  /// Delete inventory item
   Future<void> _onDeleteInventoryItem(
       DeleteInventoryItem event,
       Emitter<InventoryState> emit,
       ) async {
     final currentState = state;
 
-    print('🔄 BLOC: Deleting inventory item: ${event.itemId}');
+    debugPrint('🔄 INVENTORY BLOC: Deleting inventory item: ${event.itemId}');
 
     final result = await deleteInventoryItem(
       delete_item_usecase.DeleteInventoryItemParams(event.itemId),
@@ -276,24 +350,27 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
 
     result.fold(
           (failure) {
-        print('❌ BLOC: Failed to delete item - ${failure.message}');
+        debugPrint('❌ INVENTORY BLOC: Failed to delete item - ${failure.message}');
         emit(InventoryError(failure.message));
       },
           (_) {
-        print('✅ BLOC: Item deleted successfully');
+        debugPrint('✅ INVENTORY BLOC: Item deleted successfully');
         emit(InventoryItemDeleted(event.itemId));
 
         if (currentState is InventoryLoaded) {
           final newState = currentState.removeSingleItem(event.itemId);
           emit(newState);
-          print('✅ BLOC: Item removed from state');
+          debugPrint('✅ INVENTORY BLOC: Item removed from state');
         } else {
           add(RefreshInventoryItems());
         }
       },
     );
   }
-// ✅ ENHANCED: Backend search with proper empty string handling
+
+  // ==================== SEARCH & FILTER ====================
+
+  /// Search inventory items
   Future<void> _onSearchInventoryItems(
       SearchInventoryItems event,
       Emitter<InventoryState> emit,
@@ -301,27 +378,25 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     if (state is! InventoryLoaded) return;
 
     final currentState = state as InventoryLoaded;
-
-    // ✅ FIX: Trim and check for empty
     final query = event.query.trim();
 
     if (query.isEmpty) {
-      // Clear search - go back to paginated view
+      // Clear search
       emit(currentState.copyWith(
         filteredItems: [],
-        searchQuery: null,  // ✅ Must be null, not empty string
+        searchQuery: null,
       ));
-      print('✅ BLOC: Search cleared (query was: "${event.query}")');
+      debugPrint('✅ INVENTORY BLOC: Search cleared');
       return;
     }
 
-    // ✅ Show loading state for search
+    // Show loading state
     emit(currentState.copyWith(
       isLoadingMore: true,
-      searchQuery: query,  // Set trimmed query
+      searchQuery: query,
     ));
 
-    print('🔍 BLOC: Searching ALL items for: "$query"');
+    debugPrint('🔍 INVENTORY BLOC: Searching ALL items for: "$query"');
 
     final result = await searchInventoryItems(
       search_items_usecase.SearchInventoryItemsParams(query),
@@ -337,12 +412,12 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
           searchQuery: query,
           isLoadingMore: false,
         ));
-        print('✅ BLOC: Search found ${searchResults.length} items (searched ${currentState.totalItems} total items)');
+        debugPrint('✅ INVENTORY BLOC: Search found ${searchResults.length} items');
       },
     );
   }
 
-
+  /// Filter inventory items
   Future<void> _onFilterInventoryItems(
       FilterInventoryItems event,
       Emitter<InventoryState> emit,
@@ -351,7 +426,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
 
     final currentState = state as InventoryLoaded;
 
-    print('🔍 BLOC: Applying filters: ${event.filters}');
+    debugPrint('🔍 INVENTORY BLOC: Applying filters: ${event.filters}');
 
     final result = await filterInventoryItems(
       filter_items_usecase.FilterInventoryItemsParams(event.filters),
@@ -364,11 +439,12 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
           filteredItems: items,
           activeFilters: event.filters,
         ));
-        print('✅ BLOC: Filter found ${items.length} items');
+        debugPrint('✅ INVENTORY BLOC: Filter found ${items.length} items');
       },
     );
   }
 
+  /// Clear all filters
   Future<void> _onClearFilters(
       ClearFilters event,
       Emitter<InventoryState> emit,
@@ -381,6 +457,6 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       searchQuery: null,
       activeFilters: {},
     ));
-    print('✅ BLOC: Filters cleared');
+    debugPrint('✅ INVENTORY BLOC: Filters cleared');
   }
 }

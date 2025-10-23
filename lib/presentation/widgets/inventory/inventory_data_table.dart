@@ -349,6 +349,7 @@ class InventoryDataTable extends StatelessWidget {
       Map<String, String> categoryNamesMap,
       ) {
     return DataTable2(
+      key: ValueKey(items.length),
       columnSpacing: 12,
       horizontalMargin: 12,
       minWidth: 1200,
