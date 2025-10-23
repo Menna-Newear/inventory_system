@@ -1,4 +1,4 @@
-// data/datasources/inventory_remote_datasource.dart
+// ✅ data/datasources/inventory_remote_datasource.dart (WITH PAGINATION & BACKEND SEARCH)
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/inventory_item_model.dart';
 import '../../core/constants/supabase_constants.dart';
@@ -14,7 +14,14 @@ abstract class InventoryRemoteDataSource {
   Future<List<InventoryItemModel>> searchInventoryItems(String query);
   Future<List<InventoryItemModel>> filterInventoryItems(Map<String, dynamic> filters);
 
-  // ✅ NEW - Serial Number Operations
+  // ✅ NEW - Pagination Methods
+  Future<List<InventoryItemModel>> getInventoryItemsPaginated({
+    required int page,
+    required int pageSize,
+  });
+  Future<int> getTotalItemCount();
+
+  // ✅ EXISTING - Serial Number Operations
   Future<List<SerialNumber>> addSerialNumbers(String itemId, List<SerialNumber> serialNumbers);
   Future<List<SerialNumber>> getSerialNumbers(String itemId);
   Future<SerialNumber> updateSerialStatus(String serialId, SerialStatus newStatus, {String? notes});
@@ -24,7 +31,6 @@ abstract class InventoryRemoteDataSource {
   Future<bool> serialNumberExists(String serialNumber, {String? excludeId});
   Future<List<SerialNumber>> bulkUpdateSerialStatus(List<String> serialIds, SerialStatus newStatus, {String? notes});
   Future<List<SerialNumber>> getSerialNumbersRequiringAttention();
-
 }
 
 class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
@@ -32,20 +38,103 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
 
   InventoryRemoteDataSourceImpl({required this.supabase});
 
-  // ✅ EXISTING METHODS - Enhanced with debug logging
+  // ✅ NEW - PAGINATION METHODS
+
+  @override
+  Future<List<InventoryItemModel>> getInventoryItemsPaginated({
+    required int page,
+    required int pageSize,
+  }) async {
+    try {
+      final offset = (page - 1) * pageSize;
+
+      print('📦 REMOTE: Fetching page $page (offset: $offset, limit: $pageSize)');
+
+      final response = await supabase
+          .from(SupabaseConstants.inventoryTable)
+          .select()
+          .range(offset, offset + pageSize - 1)
+          .order('created_at', ascending: false);
+
+      final items = (response as List)
+          .map((item) => InventoryItemModel.fromSupabase(item))
+          .toList();
+
+      print('✅ REMOTE: Fetched ${items.length} items for page $page');
+      return items;
+    } catch (e) {
+      print('❌ REMOTE: Pagination error - $e');
+      throw Exception('Failed to fetch paginated inventory items: $e');
+    }
+  }
+
+  @override
+  Future<int> getTotalItemCount() async {
+    try {
+      print('🔢 REMOTE: Getting total item count');
+
+      // ✅ FIXED: Use count() method instead of FetchOptions
+      final response = await supabase
+          .from(SupabaseConstants.inventoryTable)
+          .select()
+          .count(CountOption.exact);
+
+      // ✅ FIXED: Access count directly
+      final count = response.count;
+      print('✅ REMOTE: Total items: $count');
+      return count;
+    } catch (e) {
+      print('❌ REMOTE: Count error - $e');
+      throw Exception('Failed to get total item count: $e');
+    }
+  }
+
+  // ✅ ENHANCED - Search now includes subcategory
+  @override
+  Future<List<InventoryItemModel>> searchInventoryItems(String query) async {
+    try {
+      print('🔍 REMOTE: Searching ALL items for: "$query"');
+
+      final searchPattern = '%$query%';
+
+      final response = await supabase
+          .from(SupabaseConstants.inventoryTable)
+          .select()
+          .or('name_en.ilike.$searchPattern,name_ar.ilike.$searchPattern,sku.ilike.$searchPattern,subcategory.ilike.$searchPattern')
+          .order('created_at', ascending: false);
+
+      final items = (response as List)
+          .map((item) => InventoryItemModel.fromSupabase(item))
+          .toList();
+
+      print('✅ REMOTE: Search found ${items.length} items');
+      return items;
+    } catch (e) {
+      print('❌ REMOTE: Search error - $e');
+      throw Exception('Failed to search inventory items: $e');
+    }
+  }
+
+  // ✅ EXISTING METHODS - Keep as is
 
   @override
   Future<List<InventoryItemModel>> getAllInventoryItems() async {
     try {
+      print('📦 REMOTE: Fetching ALL inventory items');
+
       final response = await supabase
           .from(SupabaseConstants.inventoryTable)
           .select()
           .order('created_at', ascending: false);
 
-      return (response as List)
+      final items = (response as List)
           .map((item) => InventoryItemModel.fromSupabase(item))
           .toList();
+
+      print('✅ REMOTE: Fetched ${items.length} items');
+      return items;
     } catch (e) {
+      print('❌ REMOTE: Failed to fetch all items - $e');
       throw Exception('Failed to fetch inventory items: $e');
     }
   }
@@ -132,23 +221,6 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
   }
 
   @override
-  Future<List<InventoryItemModel>> searchInventoryItems(String query) async {
-    try {
-      final response = await supabase
-          .from(SupabaseConstants.inventoryTable)
-          .select()
-          .or('name_en.ilike.%$query%,name_ar.ilike.%$query%,sku.ilike.%$query%')
-          .order('created_at', ascending: false);
-
-      return (response as List)
-          .map((item) => InventoryItemModel.fromSupabase(item))
-          .toList();
-    } catch (e) {
-      throw Exception('Failed to search inventory items: $e');
-    }
-  }
-
-  @override
   Future<List<InventoryItemModel>> filterInventoryItems(Map<String, dynamic> filters) async {
     try {
       var query = supabase.from(SupabaseConstants.inventoryTable).select();
@@ -170,12 +242,12 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
         query = query.lte('unit_price', filters['max_price']);
       }
 
-      // ✅ NEW - Serial tracking filter
+      // ✅ Serial tracking filter
       if (filters['serial_tracked'] != null) {
         query = query.eq('is_serial_tracked', filters['serial_tracked']);
       }
 
-      // ✅ NEW - Subcategory filter
+      // ✅ Subcategory filter
       if (filters['subcategory'] != null) {
         query = query.ilike('subcategory', '%${filters['subcategory']}%');
       }
@@ -190,7 +262,7 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
     }
   }
 
-  // ✅ NEW - SERIAL NUMBER OPERATIONS
+  // ✅ SERIAL NUMBER OPERATIONS (UNCHANGED)
 
   @override
   Future<List<SerialNumber>> addSerialNumbers(String itemId, List<SerialNumber> serialNumbers) async {
@@ -233,7 +305,7 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
           .eq('item_id', itemId)
           .order('created_at', ascending: false);
 
-      print('🟢 REMOTE: Found ${response.length} serial numbers for item: $itemId');
+      print('🟢 REMOTE: Found ${response.length} serial numbers');
 
       return (response as List).map((json) => SerialNumber.fromJson(json)).toList();
     } catch (e) {
@@ -259,8 +331,6 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
       if (notes != null) {
         updateData['notes'] = notes;
       }
-
-      print('🟡 REMOTE: Update data: $updateData');
 
       final response = await supabase
           .from(SupabaseConstants.serialNumbersTable)
@@ -349,7 +419,7 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
       final response = await query;
       final exists = (response as List).isNotEmpty;
 
-      print('🟢 REMOTE: Serial number $serialNumber exists: $exists');
+      print('🟢 REMOTE: Serial number exists: $exists');
 
       return exists;
     } catch (e) {
@@ -376,13 +446,10 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
         updateData['notes'] = notes;
       }
 
-      print('🟡 REMOTE: Bulk update data: $updateData');
-      print('🟡 REMOTE: Serial IDs: $serialIds');
-
       final response = await supabase
           .from(SupabaseConstants.serialNumbersTable)
           .update(updateData)
-          .inFilter('id', serialIds)  // ✅ CHANGED from .in('id', serialIds)
+          .inFilter('id', serialIds)
           .select();
 
       print('🟢 REMOTE: Successfully bulk updated ${response.length} serial numbers');
@@ -394,9 +461,7 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
     }
   }
 
-  // ✅ NEW - ADVANCED SERIAL NUMBER QUERIES
-
-  /// Get serial numbers that require attention (damaged, recalled, etc.)
+  @override
   Future<List<SerialNumber>> getSerialNumbersRequiringAttention() async {
     try {
       print('🟡 REMOTE: Fetching serial numbers requiring attention');
@@ -404,7 +469,7 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
       final response = await supabase
           .from(SupabaseConstants.serialNumbersTable)
           .select()
-          .inFilter('status', ['damaged', 'recalled'])  // ✅ CHANGED from .in('status', [...])
+          .inFilter('status', ['damaged', 'recalled'])
           .order('updated_at', ascending: false);
 
       print('🟢 REMOTE: Found ${response.length} serial numbers requiring attention');
@@ -416,12 +481,13 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
     }
   }
 
+  // ✅ BONUS METHODS (Optional but useful)
+
   /// Get serial number statistics for reporting
   Future<Map<String, dynamic>> getSerialNumberStats() async {
     try {
       print('🟡 REMOTE: Fetching serial number statistics');
 
-      // Get counts by status
       final response = await supabase
           .from(SupabaseConstants.serialNumbersTable)
           .select('status')

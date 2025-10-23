@@ -32,7 +32,6 @@ import 'domain/repositories/inventory_repository.dart';
 import 'domain/repositories/order_repository.dart';
 
 // Use cases with aliases
-import 'domain/usecases/add_serial_usecase.dart';
 import 'domain/usecases/add_serial_usecase.dart' as add_serial_usecase;
 import 'domain/usecases/approve_order.dart' as approve_order_usecase;
 import 'domain/usecases/create_category.dart' as create_category_usecase;
@@ -54,8 +53,7 @@ import 'domain/usecases/update_order.dart' as update_order_usecase;
 // Blocs
 import 'presentation/blocs/inventory/inventory_bloc.dart';
 import 'presentation/blocs/serial/serial_number_bloc.dart';
-import 'presentation/blocs/category/category_bloc.dart';
-import 'presentation/blocs/order/order_bloc.dart';
+
 
 final getIt = GetIt.instance;
 

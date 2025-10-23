@@ -16,47 +16,6 @@ class OrdersDataTable extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // ✅ ORDERS COUNT HEADER WITH SELL/RENTAL BREAKDOWN
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.shopping_cart, color: Colors.blue),
-                SizedBox(width: 8),
-                Text(
-                  'Orders (${orders.length})',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                SizedBox(width: 16),
-                // ✅ NEW: Show sell vs rental breakdown
-                if (orders.isNotEmpty) ...[
-                  _buildOrderTypeChip('Sales', _getSellOrdersCount(), Colors.blue),
-                  SizedBox(width: 8),
-                  _buildOrderTypeChip('Rentals', _getRentalOrdersCount(), Colors.purple),
-                ],
-                Spacer(),
-                if (orders.isNotEmpty) ...[
-                  Text(
-                    'Total: \$${_calculateTotalRevenue().toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
 
           // ✅ DATA TABLE WITH UPDATED COLUMNS
           SingleChildScrollView(

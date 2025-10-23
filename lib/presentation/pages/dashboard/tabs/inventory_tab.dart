@@ -1,7 +1,7 @@
-// ✅ presentation/pages/dashboard/tabs/inventory_tab.dart (FIXED)
+// ✅ presentation/pages/dashboard/tabs/inventory_tab.dart (THEME-AWARE)
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // ✅ Add this import
-import '../../../blocs/inventory/inventory_bloc.dart'; // ✅ Add this import
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../blocs/inventory/inventory_bloc.dart';
 import '../../../widgets/inventory/inventory_stats_cards.dart';
 import '../../../widgets/inventory/inventory_search_bar.dart';
 import '../../../widgets/inventory/inventory_filter_panel.dart';
@@ -44,11 +44,18 @@ class _InventoryTabState extends State<InventoryTab> {
   }
 
   Widget _buildActionBar() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+        color: isDark ? theme.cardColor : Colors.grey[50],
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+          ),
+        ),
       ),
       child: Row(
         children: [
@@ -65,18 +72,26 @@ class _InventoryTabState extends State<InventoryTab> {
   }
 
   Widget _buildFilterButton() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return ElevatedButton.icon(
       onPressed: () => setState(() => _showFilterPanel = !_showFilterPanel),
       icon: Icon(_showFilterPanel ? Icons.filter_alt_off : Icons.filter_alt),
       label: Text(_showFilterPanel ? 'Hide Filters' : 'Filters'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: _showFilterPanel ? Colors.orange : Colors.grey[600],
+        backgroundColor: _showFilterPanel
+            ? (isDark ? Colors.orange[700] : Colors.orange)
+            : (isDark ? Colors.grey[700] : Colors.grey[600]),
         foregroundColor: Colors.white,
       ),
     );
   }
 
   Widget _buildImportExportButton() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return ElevatedButton.icon(
       onPressed: () => showDialog(
         context: context,
@@ -85,7 +100,7 @@ class _InventoryTabState extends State<InventoryTab> {
       icon: Icon(Icons.import_export),
       label: Text('Import/Export'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue,
+        backgroundColor: isDark ? Colors.blue[700] : Colors.blue,
         foregroundColor: Colors.white,
       ),
     );
@@ -108,6 +123,9 @@ class _InventoryTabState extends State<InventoryTab> {
   }
 
   Widget _buildFilterDrawer() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: () => setState(() => _showFilterPanel = false),
       child: Container(
@@ -122,10 +140,10 @@ class _InventoryTabState extends State<InventoryTab> {
               width: 450,
               height: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? theme.cardColor : Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black26,
+                    color: Colors.black.withOpacity(isDark ? 0.5 : 0.26),
                     blurRadius: 10,
                     offset: Offset(-5, 0),
                   ),

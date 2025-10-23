@@ -1,7 +1,6 @@
-// ✅ presentation/pages/dashboard/tabs/orders_tab.dart
+// ✅ presentation/pages/dashboard/tabs/orders_tab.dart (THEME-AWARE)
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../domain/entities/order.dart';
 import '../../../blocs/order/order_bloc.dart';
 import '../../../blocs/order/order_event.dart';
 import '../../../blocs/order/order_state.dart';
@@ -41,11 +40,18 @@ class _OrdersTabState extends State<OrdersTab> {
   }
 
   Widget _buildActionBar() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+        color: isDark ? theme.cardColor : Colors.grey[50],
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+          ),
+        ),
       ),
       child: Row(
         children: [
@@ -62,18 +68,26 @@ class _OrdersTabState extends State<OrdersTab> {
   }
 
   Widget _buildFilterButton() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return ElevatedButton.icon(
       onPressed: () => setState(() => _showFilterPanel = !_showFilterPanel),
       icon: Icon(_showFilterPanel ? Icons.filter_alt_off : Icons.filter_alt),
       label: Text(_showFilterPanel ? 'Hide Filters' : 'Filters'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: _showFilterPanel ? Colors.orange : Colors.grey[600],
+        backgroundColor: _showFilterPanel
+            ? (isDark ? Colors.orange[700] : Colors.orange)
+            : (isDark ? Colors.grey[700] : Colors.grey[600]),
         foregroundColor: Colors.white,
       ),
     );
   }
 
   Widget _buildReportsButton() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return ElevatedButton.icon(
       onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +99,7 @@ class _OrdersTabState extends State<OrdersTab> {
                 Text('Order reports feature coming soon!'),
               ],
             ),
-            backgroundColor: Colors.blue,
+            backgroundColor: isDark ? Colors.blue[700] : Colors.blue,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -93,13 +107,16 @@ class _OrdersTabState extends State<OrdersTab> {
       icon: Icon(Icons.analytics),
       label: Text('Reports'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.purple,
+        backgroundColor: isDark ? Colors.purple[700] : Colors.purple,
         foregroundColor: Colors.white,
       ),
     );
   }
 
   Widget _buildNewOrderButton() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return ElevatedButton.icon(
       onPressed: () => showDialog(
         context: context,
@@ -109,7 +126,7 @@ class _OrdersTabState extends State<OrdersTab> {
       icon: Icon(Icons.add_shopping_cart),
       label: Text('New Order'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.green,
+        backgroundColor: isDark ? Colors.green[700] : Colors.green,
         foregroundColor: Colors.white,
       ),
     );
@@ -136,26 +153,44 @@ class _OrdersTabState extends State<OrdersTab> {
   }
 
   Widget _buildLoadingState() {
+    final theme = Theme.of(context);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(),
           SizedBox(height: 16),
-          Text('Loading orders...'),
+          Text(
+            'Loading orders...',
+            style: theme.textTheme.bodyLarge,
+          ),
         ],
       ),
     );
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+          Icon(
+            Icons.inbox_outlined,
+            size: 64,
+            color: isDark ? Colors.grey[600] : Colors.grey[400],
+          ),
           SizedBox(height: 16),
-          Text('No orders found', style: TextStyle(fontSize: 18, color: Colors.grey[600])),
+          Text(
+            'No orders found',
+            style: TextStyle(
+              fontSize: 18,
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+            ),
+          ),
           SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () => showDialog(
@@ -165,7 +200,10 @@ class _OrdersTabState extends State<OrdersTab> {
             ),
             icon: Icon(Icons.add_shopping_cart),
             label: Text('Create First Order'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? Colors.green[700] : Colors.green,
+              foregroundColor: Colors.white,
+            ),
           ),
         ],
       ),
@@ -173,20 +211,43 @@ class _OrdersTabState extends State<OrdersTab> {
   }
 
   Widget _buildErrorState(String message) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.red),
+          Icon(
+            Icons.error_outline,
+            size: 64,
+            color: isDark ? Colors.red[400] : Colors.red,
+          ),
           SizedBox(height: 16),
-          Text('Error loading orders', style: TextStyle(fontSize: 18, color: Colors.red)),
+          Text(
+            'Error loading orders',
+            style: TextStyle(
+              fontSize: 18,
+              color: isDark ? Colors.red[400] : Colors.red,
+            ),
+          ),
           SizedBox(height: 8),
-          Text(message, style: TextStyle(color: Colors.grey[600]), textAlign: TextAlign.center),
+          Text(
+            message,
+            style: TextStyle(
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
           SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () => context.read<OrderBloc>().add(LoadOrders()),
             icon: Icon(Icons.refresh),
             label: Text('Retry'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.primaryColor,
+              foregroundColor: Colors.white,
+            ),
           ),
         ],
       ),
@@ -194,16 +255,25 @@ class _OrdersTabState extends State<OrdersTab> {
   }
 
   Widget _buildInitialState() {
+    final theme = Theme.of(context);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Welcome to Orders Management'),
+          Text(
+            'Welcome to Orders Management',
+            style: theme.textTheme.titleLarge,
+          ),
           SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () => context.read<OrderBloc>().add(LoadOrders()),
             icon: Icon(Icons.refresh),
             label: Text('Load Orders'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.primaryColor,
+              foregroundColor: Colors.white,
+            ),
           ),
         ],
       ),
@@ -211,6 +281,9 @@ class _OrdersTabState extends State<OrdersTab> {
   }
 
   Widget _buildFilterDrawer() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: () => setState(() => _showFilterPanel = false),
       child: Container(
@@ -225,10 +298,10 @@ class _OrdersTabState extends State<OrdersTab> {
               width: 450,
               height: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? theme.cardColor : Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black26,
+                    color: Colors.black.withOpacity(isDark ? 0.5 : 0.26),
                     blurRadius: 10,
                     offset: Offset(-5, 0),
                   ),

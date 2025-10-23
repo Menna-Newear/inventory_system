@@ -1,4 +1,4 @@
-// ✅ presentation/widgets/inventory/inventory_data_table.dart (FIXED WITH SMART REBUILDS)
+// ✅ presentation/widgets/inventory/inventory_data_table.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:data_table_2/data_table_2.dart';
@@ -19,25 +19,21 @@ class InventoryDataTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return BlocConsumer<InventoryBloc, InventoryState>(
-      // ✅ Only rebuild when InventoryLoaded state changes
       buildWhen: (previous, current) {
-        // Don't rebuild for intermediate states
         if (current is InventoryItemCreated) return false;
         if (current is InventoryItemUpdated) return false;
         if (current is InventoryItemDeleted) return false;
-
-        // Rebuild for loading, loaded, error, initial
         return true;
       },
-      // ✅ Listen to state changes and update without rebuild
       listener: (context, state) {
         if (state is InventoryItemUpdated) {
-          print('✅ TABLE: Item updated - state will refresh automatically');
+          print('✅ TABLE: Item updated');
         } else if (state is InventoryItemCreated) {
-          print('✅ TABLE: Item created - state will refresh automatically');
+          print('✅ TABLE: Item created');
         } else if (state is InventoryItemDeleted) {
-          print('✅ TABLE: Item deleted - state will refresh automatically');
+          print('✅ TABLE: Item deleted');
         }
       },
       builder: (context, inventoryState) {
@@ -55,22 +51,44 @@ class InventoryDataTable extends StatelessWidget {
         }
 
         if (inventoryState is InventoryLoaded) {
-          return BlocBuilder<CategoryBloc, CategoryState>(
-            builder: (context, categoryState) {
-              Map<String, String> categoryNamesMap = {};
+          return Column(
+            children: [
+              // ✅ Thin progress bar (only show when loading)
+              if (inventoryState.isLoadingMore)
+                SizedBox(
+                  height: 3,
+                  child: LinearProgressIndicator(
+                    backgroundColor: theme.brightness == Brightness.dark
+                        ? Colors.blue[400]!
+                        : Colors.blue[600]!,
+                    valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+                  ),
+                ),
 
-              if (categoryState is CategoryLoaded) {
-                for (var category in categoryState.categories) {
-                  categoryNamesMap[category.id] = category.name;
-                }
-              }
+              // ✅ DataTable
+              Expanded(
+                child: BlocBuilder<CategoryBloc, CategoryState>(
+                  builder: (context, categoryState) {
+                    Map<String, String> categoryNamesMap = {};
 
-              return _buildDataTable(
-                context,
-                inventoryState.displayItems,
-                categoryNamesMap,
-              );
-            },
+                    if (categoryState is CategoryLoaded) {
+                      for (var category in categoryState.categories) {
+                        categoryNamesMap[category.id] = category.name;
+                      }
+                    }
+
+                    return _buildDataTable(
+                      context,
+                      inventoryState.displayItems,
+                      categoryNamesMap,
+                    );
+                  },
+                ),
+              ),
+
+              // ✅ ENHANCED PAGINATION FOOTER
+              _buildPaginationFooter(context, inventoryState),
+            ],
           );
         }
 
@@ -97,16 +115,231 @@ class InventoryDataTable extends StatelessWidget {
         }
 
         return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Initializing...', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-            ],
-          ),
+          child: CircularProgressIndicator(),
         );
       },
+    );
+  }
+
+// ✅ THEME-AWARE PAGINATION FOOTER (FIXED ICON COLORS)
+  Widget _buildPaginationFooter(BuildContext context, InventoryLoaded state) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final startItem = state.items.isEmpty ? 0 : ((state.currentPage - 1) * 50) + 1;
+    final endItem = state.items.length;
+    final totalItems = state.totalItems;
+    final currentPage = state.currentPage;
+    final totalPages = (totalItems / 50).ceil();
+
+    return Container(
+      height: 60,
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+            width: 1,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 4,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // ✅ Left side - Items info
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Showing $startItem-$endItem of $totalItems items',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (state.searchQuery != null && state.searchQuery!.isNotEmpty) ...[
+                  SizedBox(width: 12),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.green[900]?.withOpacity(0.3) : Colors.green[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? Colors.green[700]! : Colors.green[200]!,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.search,
+                          size: 12,
+                          color: isDark ? Colors.green[400] : Colors.green[700],
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          '${state.filteredItems.length} results',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.green[400] : Colors.green[700],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          Spacer(),
+
+          // ✅ Center - Page navigation (FIXED ICON COLORS)
+          if (totalPages > 1)
+            Row(
+              children: [
+                // Previous button with proper styling
+                Container(
+                  decoration: BoxDecoration(
+                    color: currentPage > 1 && !state.isLoadingMore
+                        ? (isDark ? Colors.blue[900]?.withOpacity(0.2) : Colors.blue[50])
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    onPressed: currentPage > 1 && !state.isLoadingMore
+                        ? () => context.read<InventoryBloc>().add(
+                      LoadInventoryItemsPage(page: currentPage - 1, pageSize: 50),
+                    )
+                        : null,
+                    icon: Icon(
+                      Icons.chevron_left,
+                      color: currentPage > 1 && !state.isLoadingMore
+                          ? (isDark ? Colors.blue[300] : Colors.blue[700])
+                          : (isDark ? Colors.grey[700] : Colors.grey[400]),
+                    ),
+                    tooltip: 'Previous page',
+                  ),
+                ),
+
+                SizedBox(width: 8),
+
+                // Page indicator
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[800] : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                    ),
+                  ),
+                  child: Text(
+                    'Page $currentPage of $totalPages',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+                SizedBox(width: 8),
+
+                // Next button with proper styling
+                Container(
+                  decoration: BoxDecoration(
+                    color: !state.hasReachedMax && !state.isLoadingMore
+                        ? (isDark ? Colors.blue[900]?.withOpacity(0.2) : Colors.blue[50])
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    onPressed: !state.hasReachedMax && !state.isLoadingMore
+                        ? () => context.read<InventoryBloc>().add(LoadMoreInventoryItems())
+                        : null,
+                    icon: Icon(
+                      Icons.chevron_right,
+                      color: !state.hasReachedMax && !state.isLoadingMore
+                          ? (isDark ? Colors.blue[300] : Colors.blue[700])
+                          : (isDark ? Colors.grey[700] : Colors.grey[400]),
+                    ),
+                    tooltip: 'Next page',
+                  ),
+                ),
+              ],
+            ),
+
+          Spacer(),
+
+          /*// ✅ Right side - Load more button or completion status
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: state.hasReachedMax
+                ? Row(
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  size: 18,
+                  color: isDark ? Colors.green[400] : Colors.green[600],
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'All items loaded',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.green[400] : Colors.green[700],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            )
+                : state.isLoadingMore
+                ? Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Loading...',
+                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+                ),
+              ],
+            )
+                : ElevatedButton.icon(
+              onPressed: () {
+                context.read<InventoryBloc>().add(LoadMoreInventoryItems());
+              },
+              icon: Icon(Icons.add, size: 18),
+              label: Text('Load More'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? Colors.blue[600] : Colors.blue[600],
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),*/
+        ],
+      ),
     );
   }
 
@@ -115,38 +348,36 @@ class InventoryDataTable extends StatelessWidget {
       List<InventoryItem> items,
       Map<String, String> categoryNamesMap,
       ) {
-    return Card(
-      child: DataTable2(
-        columnSpacing: 12,
-        horizontalMargin: 12,
-        minWidth: 1200,
-        columns: [
-          DataColumn2(label: Text('SKU'), size: ColumnSize.S),
-          DataColumn2(label: Text('Name'), size: ColumnSize.L),
-          DataColumn2(label: Text('Name (AR)'), size: ColumnSize.L),
-          DataColumn2(label: Text('Category'), size: ColumnSize.M),
-          DataColumn2(label: Text('Subcategory'), size: ColumnSize.M),
-          DataColumn2(label: Text('Stock'), size: ColumnSize.S, numeric: true),
-          DataColumn2(label: Text('Serials'), size: ColumnSize.S, numeric: true),
-          DataColumn2(label: Text('Price'), size: ColumnSize.S, numeric: true),
-          DataColumn2(label: Text('Total Value'), size: ColumnSize.S, numeric: true),
-          DataColumn2(label: Text('Status'), size: ColumnSize.S),
-          DataColumn2(label: Text('Updated'), size: ColumnSize.M),
-          DataColumn2(label: Text('Actions'), size: ColumnSize.M),
-        ],
-        rows: items.map((item) => _buildDataRow(context, item, categoryNamesMap)).toList(),
-        empty: Center(
-          child: Container(
-            padding: EdgeInsets.all(20),
-            color: Colors.grey[50],
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
-                SizedBox(height: 16),
-                Text('No items found', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-              ],
-            ),
+    return DataTable2(
+      columnSpacing: 12,
+      horizontalMargin: 12,
+      minWidth: 1200,
+      columns: [
+        DataColumn2(label: Text('SKU'), size: ColumnSize.S),
+        DataColumn2(label: Text('Name'), size: ColumnSize.L),
+        DataColumn2(label: Text('Name (AR)'), size: ColumnSize.L),
+        DataColumn2(label: Text('Category'), size: ColumnSize.M),
+        DataColumn2(label: Text('Subcategory'), size: ColumnSize.M),
+        DataColumn2(label: Text('Stock'), size: ColumnSize.S, numeric: true),
+        DataColumn2(label: Text('Serials'), size: ColumnSize.S, numeric: true),
+        DataColumn2(label: Text('Price'), size: ColumnSize.S, numeric: true),
+        DataColumn2(label: Text('Total Value'), size: ColumnSize.S, numeric: true),
+        DataColumn2(label: Text('Status'), size: ColumnSize.S),
+        DataColumn2(label: Text('Updated'), size: ColumnSize.M),
+        DataColumn2(label: Text('Actions'), size: ColumnSize.M),
+      ],
+      rows: items.map((item) => _buildDataRow(context, item, categoryNamesMap)).toList(),
+      empty: Center(
+        child: Container(
+          padding: EdgeInsets.all(20),
+          color: Colors.grey[50],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
+              SizedBox(height: 16),
+              Text('No items found', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+            ],
           ),
         ),
       ),
@@ -400,7 +631,6 @@ class InventoryDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ FIXED - Don't reload all items
   void _showSerialDialog(BuildContext context, InventoryItem item) {
     showDialog(
       context: context,
@@ -410,10 +640,10 @@ class InventoryDataTable extends StatelessWidget {
         child: SerialNumberDialog(
           item: item,
           onUpdated: () {
-            // ✅ Refresh only this single item
             context.read<InventoryBloc>().add(RefreshSingleItem(item.id));
             print('🔄 TABLE: Requesting refresh for item: ${item.id}');
-          },        ),
+          },
+        ),
       ),
     );
   }

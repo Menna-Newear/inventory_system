@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/inventory_item.dart';
 import '../../blocs/serial/serial_number_bloc.dart';
-import '../../blocs/serial/serial_number_event.dart';
 import '../../blocs/serial/serial_number_state.dart';
 
 class SerialSelectionDialog extends StatefulWidget {

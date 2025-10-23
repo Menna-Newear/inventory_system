@@ -1,4 +1,4 @@
-// presentation/blocs/inventory/inventory_event.dart
+// ✅ presentation/blocs/inventory/inventory_event.dart
 part of 'inventory_bloc.dart';
 
 abstract class InventoryEvent extends Equatable {
@@ -12,7 +12,6 @@ class LoadInventoryItems extends InventoryEvent {}
 
 class RefreshInventoryItems extends InventoryEvent {}
 
-// ✅ NEW EVENT
 class RefreshSingleItem extends InventoryEvent {
   final String itemId;
 
@@ -21,6 +20,22 @@ class RefreshSingleItem extends InventoryEvent {
   @override
   List<Object> get props => [itemId];
 }
+
+// ✅ NEW: Pagination events
+class LoadInventoryItemsPage extends InventoryEvent {
+  final int page;
+  final int pageSize;
+
+  const LoadInventoryItemsPage({
+    required this.page,
+    this.pageSize = 50,
+  });
+
+  @override
+  List<Object> get props => [page, pageSize];
+}
+
+class LoadMoreInventoryItems extends InventoryEvent {}
 
 class CreateInventoryItem extends InventoryEvent {
   final InventoryItem item;

@@ -5,21 +5,22 @@ import '../entities/inventory_item.dart';
 
 abstract class InventoryRepository {
 
-  // ✅ EXISTING - Core Inventory Item Operations
   Future<Either<Failure, List<InventoryItem>>> getAllInventoryItems();
   Future<Either<Failure, InventoryItem>> getInventoryItem(String id);
   Future<Either<Failure, InventoryItem>> createInventoryItem(InventoryItem item);
   Future<Either<Failure, InventoryItem>> updateInventoryItem(InventoryItem item);
   Future<Either<Failure, void>> deleteInventoryItem(String id);
 
-  // ✅ EXISTING - Search, Filter & Monitoring
   Future<Either<Failure, List<InventoryItem>>> searchInventoryItems(String query);
   Future<Either<Failure, List<InventoryItem>>> filterInventoryItems(Map<String, dynamic> filters);
   Future<Either<Failure, List<InventoryItem>>> getLowStockItems();
   Stream<List<InventoryItem>> watchInventoryItems();
+  Future<Either<Failure, List<InventoryItem>>> getInventoryItemsPaginated({
+    required int page,
+    required int pageSize,
+  });
+  Future<Either<Failure, int>> getTotalItemCount();
 
-  // ✅ NEW - Serial Number Management Operations
-  /// Add multiple serial numbers to an inventory item
   Future<Either<Failure, List<SerialNumber>>> addSerialNumbers(
       String itemId,
       List<SerialNumber> serialNumbers,

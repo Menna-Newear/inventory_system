@@ -18,6 +18,9 @@ class InventoryLoaded extends InventoryState {
   final bool hasReachedMax;
   final String? searchQuery;
   final Map<String, dynamic> activeFilters;
+  final int currentPage;
+  final int totalItems;
+  final bool isLoadingMore;
 
   const InventoryLoaded({
     required this.items,
@@ -25,6 +28,9 @@ class InventoryLoaded extends InventoryState {
     this.hasReachedMax = false,
     this.searchQuery,
     this.activeFilters = const {},
+    this.currentPage = 1,
+    this.totalItems = 0,
+    this.isLoadingMore = false,
   });
 
   @override
@@ -33,24 +39,26 @@ class InventoryLoaded extends InventoryState {
     filteredItems,
     hasReachedMax,
     searchQuery ?? '',
-    activeFilters
+    activeFilters,
+    currentPage,
+    totalItems,
+    isLoadingMore,
   ];
 
   List<InventoryItem> get displayItems =>
       filteredItems.isNotEmpty ? filteredItems : items;
 
-  int get totalItems => items.length;
+  int get totalItemsCount => items.length;
   int get lowStockCount => items.where((item) => item.isLowStock).length;
   double get totalValue => items.fold(0.0, (sum, item) => sum + item.totalValue);
 
-  // ✅ NEW: Update a single item without refetching all data
+  double get loadProgress => totalItems > 0 ? items.length / totalItems : 0.0;
+
   InventoryLoaded updateSingleItem(InventoryItem updatedItem) {
-    // Update in main items list
     final updatedItems = items.map((item) {
       return item.id == updatedItem.id ? updatedItem : item;
     }).toList();
 
-    // Update in filtered items list (if it exists there)
     final updatedFilteredItems = filteredItems.map((item) {
       return item.id == updatedItem.id ? updatedItem : item;
     }).toList();
@@ -61,10 +69,12 @@ class InventoryLoaded extends InventoryState {
       hasReachedMax: hasReachedMax,
       searchQuery: searchQuery,
       activeFilters: activeFilters,
+      currentPage: currentPage,
+      totalItems: totalItems,
+      isLoadingMore: isLoadingMore,
     );
   }
 
-  // ✅ NEW: Remove a single item without refetching
   InventoryLoaded removeSingleItem(String itemId) {
     final updatedItems = items.where((item) => item.id != itemId).toList();
     final updatedFilteredItems = filteredItems.where((item) => item.id != itemId).toList();
@@ -75,22 +85,24 @@ class InventoryLoaded extends InventoryState {
       hasReachedMax: hasReachedMax,
       searchQuery: searchQuery,
       activeFilters: activeFilters,
+      currentPage: currentPage,
+      totalItems: totalItems - 1,
+      isLoadingMore: isLoadingMore,
     );
   }
 
-  // ✅ NEW: Add a single item without refetching
   InventoryLoaded addSingleItem(InventoryItem newItem) {
     final updatedItems = [...items, newItem];
 
-    // Also add to filtered items if filters/search would include it
-    // For simplicity, we'll just reload filtered items on next search/filter
-
     return InventoryLoaded(
       items: updatedItems,
-      filteredItems: [], // Clear filtered items, will be repopulated on next filter
+      filteredItems: [],
       hasReachedMax: hasReachedMax,
-      searchQuery: null, // Clear search query
-      activeFilters: {}, // Clear filters
+      searchQuery: null,
+      activeFilters: {},
+      currentPage: currentPage,
+      totalItems: totalItems + 1,
+      isLoadingMore: isLoadingMore,
     );
   }
 
@@ -100,6 +112,9 @@ class InventoryLoaded extends InventoryState {
     bool? hasReachedMax,
     String? searchQuery,
     Map<String, dynamic>? activeFilters,
+    int? currentPage,
+    int? totalItems,
+    bool? isLoadingMore,
   }) {
     return InventoryLoaded(
       items: items ?? this.items,
@@ -107,6 +122,9 @@ class InventoryLoaded extends InventoryState {
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       searchQuery: searchQuery ?? this.searchQuery,
       activeFilters: activeFilters ?? this.activeFilters,
+      currentPage: currentPage ?? this.currentPage,
+      totalItems: totalItems ?? this.totalItems,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
     );
   }
 }

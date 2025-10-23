@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../domain/entities/inventory_item.dart';
-import '../../../../domain/entities/order.dart';
 import '../../../blocs/inventory/inventory_bloc.dart';
 import '../../../blocs/serial/serial_number_bloc.dart';
 import '../../../blocs/serial/serial_number_event.dart';

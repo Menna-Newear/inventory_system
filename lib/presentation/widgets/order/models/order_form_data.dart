@@ -1,7 +1,6 @@
 // ✅ presentation/widgets/order/models/order_form_data.dart
 import 'package:flutter/material.dart';
 import '../../../../domain/entities/order.dart';
-import '../../../../domain/entities/inventory_item.dart';
 
 class OrderFormData {
   // Controllers

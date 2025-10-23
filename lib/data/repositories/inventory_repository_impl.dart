@@ -1,5 +1,6 @@
 // ✅ data/repositories/inventory_repository_impl.dart (WITH SMART CACHING)
 import 'package:dartz/dartz.dart';
+import '../../core/constants/supabase_constants.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/network_info.dart';
 import '../../domain/entities/inventory_item.dart';
@@ -24,12 +25,11 @@ class InventoryRepositoryImpl implements InventoryRepository {
 
   // ✅ Stock Management Service compatibility
   Future<Either<Failure, List<InventoryItem>>> getInventoryItems() async {
-    print('🔄 INVENTORY REPO: getInventoryItems() called by stock management service');
+    print(
+        '🔄 INVENTORY REPO: getInventoryItems() called by stock management service');
     return getAllInventoryItems();
   }
 
-  // ✅ ENHANCED - Get all inventory items with smart caching
-// ✅ FIXED getAllInventoryItems() method - Replace lines 28-70 with this:
 
   @override
   Future<Either<Failure, List<InventoryItem>>> getAllInventoryItems() async {
@@ -52,11 +52,13 @@ class InventoryRepositoryImpl implements InventoryRepository {
             final serialsResult = await getSerialNumbers(item.id);
             final serials = serialsResult.fold(
                   (failure) {
-                print('⚠️ Failed to load serials for ${item.sku}: ${failure.message}');
+                print('⚠️ Failed to load serials for ${item.sku}: ${failure
+                    .message}');
                 return <SerialNumber>[];
               },
                   (serialNumbers) {
-                print('✅ Loaded ${serialNumbers.length} serials for ${item.sku}');
+                print(
+                    '✅ Loaded ${serialNumbers.length} serials for ${item.sku}');
                 return serialNumbers;
               },
             );
@@ -67,7 +69,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
           items.add(item);
         }
 
-        print('✅ INVENTORY REPO: Returning ${items.length} items with serials loaded');
+        print('✅ INVENTORY REPO: Returning ${items
+            .length} items with serials loaded');
         return Right(items);
       } catch (e) {
         print('❌ INVENTORY REPO: Remote fetch failed, trying cache: $e');
@@ -104,6 +107,19 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
+  Future<Either<Failure, int>> getTotalItemCount() async {
+    if (await networkInfo.isConnected) {
+      try {
+        final count = await remoteDataSource.getTotalItemCount();
+        return Right(count);
+      } catch (e) {
+        return Left(ServerFailure('Failed to get item count: $e'));
+      }
+    } else {
+      return Left(NetworkFailure('No internet connection'));
+    }
+  }
+
   // ✅ Get single inventory item with caching
   @override
   Future<Either<Failure, InventoryItem>> getInventoryItem(String id) async {
@@ -132,7 +148,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
-  Future<Either<Failure, InventoryItem>> _loadSingleItemFromCache(String id) async {
+  Future<Either<Failure, InventoryItem>> _loadSingleItemFromCache(
+      String id) async {
     try {
       final cachedItem = await localDataSource.getCachedInventoryItem(id);
       if (cachedItem != null) {
@@ -155,7 +172,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   @override
-  Future<Either<Failure, InventoryItem>> createInventoryItem(InventoryItem item) async {
+  Future<Either<Failure, InventoryItem>> createInventoryItem(
+      InventoryItem item) async {
     if (await networkInfo.isConnected) {
       try {
         final existingItems = await remoteDataSource.getAllInventoryItems();
@@ -169,7 +187,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
         print('🔄 INVENTORY REPO: Creating new item ${item.nameEn}');
 
         final itemModel = InventoryItemModel.fromEntity(item);
-        final createdItem = await remoteDataSource.createInventoryItem(itemModel);
+        final createdItem = await remoteDataSource.createInventoryItem(
+            itemModel);
 
         // ✅ Don't clear all cache - BLoC will add item to state
         // await localDataSource.clearCache(); // ❌ REMOVE THIS
@@ -180,7 +199,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
         InventoryItem newItem = createdItem.toEntity();
 
         if (item.isSerialTracked && item.serialNumbers.isNotEmpty) {
-          final serialsResult = await addSerialNumbers(newItem.id, item.serialNumbers);
+          final serialsResult = await addSerialNumbers(
+              newItem.id, item.serialNumbers);
           final serials = serialsResult.fold(
                 (failure) => <SerialNumber>[],
                 (serialNumbers) => serialNumbers,
@@ -193,19 +213,23 @@ class InventoryRepositoryImpl implements InventoryRepository {
         return Left(ServerFailure('Failed to create inventory item: $e'));
       }
     } else {
-      return Left(NetworkFailure('No internet connection. Cannot create items offline.'));
+      return Left(NetworkFailure(
+          'No internet connection. Cannot create items offline.'));
     }
   }
 
   // ✅ Update inventory item with cache invalidation
   @override
-  Future<Either<Failure, InventoryItem>> updateInventoryItem(InventoryItem item) async {
+  Future<Either<Failure, InventoryItem>> updateInventoryItem(
+      InventoryItem item) async {
     if (await networkInfo.isConnected) {
       try {
-        print('🔄 INVENTORY REPO: Updating item ${item.nameEn} (Stock: ${item.stockQuantity})');
+        print('🔄 INVENTORY REPO: Updating item ${item.nameEn} (Stock: ${item
+            .stockQuantity})');
 
         final itemModel = InventoryItemModel.fromEntity(item);
-        final updatedItem = await remoteDataSource.updateInventoryItem(itemModel);
+        final updatedItem = await remoteDataSource.updateInventoryItem(
+            itemModel);
 
         print('✅ INVENTORY REPO: Database update successful');
 
@@ -213,7 +237,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
         await cacheService.invalidateCache(item.id);
         print('🗑️ INVENTORY REPO: Invalidated cache for item: ${item.id}');
 
-       // await localDataSource.clearCache();
+        // await localDataSource.clearCache();
         await localDataSource.cacheInventoryItem(updatedItem);
         print('💾 INVENTORY REPO: Updated item cached');
 
@@ -235,7 +259,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
         return Left(ServerFailure('Failed to update inventory item: $e'));
       }
     } else {
-      return Left(NetworkFailure('No internet connection. Cannot update items offline.'));
+      return Left(NetworkFailure(
+          'No internet connection. Cannot update items offline.'));
     }
   }
 
@@ -262,28 +287,32 @@ class InventoryRepositoryImpl implements InventoryRepository {
         return Left(ServerFailure('Failed to delete inventory item: $e'));
       }
     } else {
-      return Left(NetworkFailure('No internet connection. Cannot delete items offline.'));
+      return Left(NetworkFailure(
+          'No internet connection. Cannot delete items offline.'));
     }
   }
 
   // ✅ SERIAL NUMBER METHODS WITH SMART CACHING
 
   @override
-  Future<Either<Failure, List<SerialNumber>>> addSerialNumbers(
-      String itemId,
-      List<SerialNumber> serialNumbers,
-      ) async {
+  Future<Either<Failure, List<SerialNumber>>> addSerialNumbers(String itemId,
+      List<SerialNumber> serialNumbers,) async {
     if (await networkInfo.isConnected) {
       try {
-        print('🔄 SERIAL REPO: Adding ${serialNumbers.length} serials to item: $itemId');
-        final addedSerials = await remoteDataSource.addSerialNumbers(itemId, serialNumbers);
+        print('🔄 SERIAL REPO: Adding ${serialNumbers
+            .length} serials to item: $itemId');
+        final addedSerials = await remoteDataSource.addSerialNumbers(
+            itemId, serialNumbers);
 
         // ✅ Cache the serials immediately
         await cacheService.cacheSerialNumbers(itemId, addedSerials);
 
         // ✅ Update count cache
-        final available = addedSerials.where((s) => s.status == SerialStatus.available).length;
-        await cacheService.cacheSerialCount(itemId, addedSerials.length, available);
+        final available = addedSerials
+            .where((s) => s.status == SerialStatus.available)
+            .length;
+        await cacheService.cacheSerialCount(
+            itemId, addedSerials.length, available);
 
         await localDataSource.cacheSerialNumbers(itemId, addedSerials);
         print('✅ SERIAL REPO: Added and cached ${addedSerials.length} serials');
@@ -293,16 +322,19 @@ class InventoryRepositoryImpl implements InventoryRepository {
         return Left(ServerFailure('Failed to add serial numbers: $e'));
       }
     } else {
-      return Left(NetworkFailure('No internet connection. Cannot add serial numbers offline.'));
+      return Left(NetworkFailure(
+          'No internet connection. Cannot add serial numbers offline.'));
     }
   }
 
   @override
-  Future<Either<Failure, List<SerialNumber>>> getSerialNumbers(String itemId) async {
+  Future<Either<Failure, List<SerialNumber>>> getSerialNumbers(
+      String itemId) async {
     // ✅ Try cache first
     final cached = cacheService.getCachedSerialNumbers(itemId);
     if (cached != null) {
-      print('✅ CACHE HIT: Serial numbers for item: $itemId (${cached.length} serials)');
+      print('✅ CACHE HIT: Serial numbers for item: $itemId (${cached
+          .length} serials)');
       return Right(cached);
     }
 
@@ -316,8 +348,11 @@ class InventoryRepositoryImpl implements InventoryRepository {
         await cacheService.cacheSerialNumbers(itemId, remoteSerials);
 
         // ✅ Cache the count
-        final available = remoteSerials.where((s) => s.status == SerialStatus.available).length;
-        await cacheService.cacheSerialCount(itemId, remoteSerials.length, available);
+        final available = remoteSerials
+            .where((s) => s.status == SerialStatus.available)
+            .length;
+        await cacheService.cacheSerialCount(
+            itemId, remoteSerials.length, available);
 
         await localDataSource.cacheSerialNumbers(itemId, remoteSerials);
 
@@ -330,9 +365,11 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
-  Future<Either<Failure, List<SerialNumber>>> _loadSerialsFromCache(String itemId) async {
+  Future<Either<Failure, List<SerialNumber>>> _loadSerialsFromCache(
+      String itemId) async {
     try {
-      final cachedSerials = await localDataSource.getCachedSerialNumbers(itemId);
+      final cachedSerials = await localDataSource.getCachedSerialNumbers(
+          itemId);
       return Right(cachedSerials);
     } catch (e) {
       return Left(CacheFailure('Failed to get cached serial numbers: $e'));
@@ -340,8 +377,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   @override
-  Future<Either<Failure, SerialNumber>> updateSerialStatus(
-      String serialId,
+  Future<Either<Failure, SerialNumber>> updateSerialStatus(String serialId,
       SerialStatus newStatus, {
         String? notes,
       }) async {
@@ -363,7 +399,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
         return Left(ServerFailure('Failed to update serial status: $e'));
       }
     } else {
-      return Left(NetworkFailure('No internet connection. Cannot update serial status offline.'));
+      return Left(NetworkFailure(
+          'No internet connection. Cannot update serial status offline.'));
     }
   }
 
@@ -382,7 +419,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
         return Left(ServerFailure('Failed to delete serial number: $e'));
       }
     } else {
-      return Left(NetworkFailure('No internet connection. Cannot delete serial number offline.'));
+      return Left(NetworkFailure(
+          'No internet connection. Cannot delete serial number offline.'));
     }
   }
 
@@ -414,7 +452,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
         return Left(ServerFailure('Failed to bulk update serial statuses: $e'));
       }
     } else {
-      return Left(NetworkFailure('No internet connection. Cannot update serial statuses offline.'));
+      return Left(NetworkFailure(
+          'No internet connection. Cannot update serial statuses offline.'));
     }
   }
 
@@ -429,25 +468,30 @@ class InventoryRepositoryImpl implements InventoryRepository {
         final serials = await remoteDataSource.getSerialNumbersByStatus(status);
         return Right(serials);
       } catch (e) {
-        return Left(ServerFailure('Failed to get serial numbers by status: $e'));
+        return Left(
+            ServerFailure('Failed to get serial numbers by status: $e'));
       }
     } else {
       try {
         final cachedSerials = await localDataSource.getAllCachedSerialNumbers();
-        final filteredSerials = cachedSerials.where((s) => s.status == status).toList();
+        final filteredSerials = cachedSerials
+            .where((s) => s.status == status)
+            .toList();
         return Right(filteredSerials);
       } catch (e) {
-        return Left(CacheFailure('Failed to get cached serial numbers by status: $e'));
+        return Left(
+            CacheFailure('Failed to get cached serial numbers by status: $e'));
       }
     }
   }
 
   @override
-  Future<Either<Failure, bool>> serialNumberExists(
-      String serialNumber, {String? excludeId}) async {
+  Future<Either<Failure, bool>> serialNumberExists(String serialNumber,
+      {String? excludeId}) async {
     try {
       if (await networkInfo.isConnected) {
-        final exists = await remoteDataSource.serialNumberExists(serialNumber, excludeId: excludeId);
+        final exists = await remoteDataSource.serialNumberExists(
+            serialNumber, excludeId: excludeId);
         return Right(exists);
       } else {
         final cachedSerials = await localDataSource.getAllCachedSerialNumbers();
@@ -462,36 +506,43 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   @override
-  Future<Either<Failure, List<SerialNumber>>> getSerialNumbersRequiringAttention() async {
+  Future<Either<Failure,
+      List<SerialNumber>>> getSerialNumbersRequiringAttention() async {
     if (await networkInfo.isConnected) {
       try {
-        final serials = await remoteDataSource.getSerialNumbersRequiringAttention();
+        final serials = await remoteDataSource
+            .getSerialNumbersRequiringAttention();
         return Right(serials);
       } catch (e) {
-        return Left(ServerFailure('Failed to get serial numbers requiring attention: $e'));
+        return Left(ServerFailure(
+            'Failed to get serial numbers requiring attention: $e'));
       }
     } else {
       try {
         final cachedSerials = await localDataSource.getAllCachedSerialNumbers();
         final attentionSerials = cachedSerials
-            .where((s) => s.status == SerialStatus.damaged || s.status == SerialStatus.recalled)
+            .where((s) =>
+        s.status == SerialStatus.damaged || s.status == SerialStatus.recalled)
             .toList();
         return Right(attentionSerials);
       } catch (e) {
-        return Left(CacheFailure('Failed to get cached serial numbers requiring attention: $e'));
+        return Left(CacheFailure(
+            'Failed to get cached serial numbers requiring attention: $e'));
       }
     }
   }
 
   @override
-  Future<Either<Failure, List<Map<String, dynamic>>>> getSerialNumberHistory(String itemId) async {
+  Future<Either<Failure, List<Map<String, dynamic>>>> getSerialNumberHistory(
+      String itemId) async {
     if (await networkInfo.isConnected) {
       try {
         final serialsResult = await getSerialNumbers(itemId);
         return serialsResult.fold(
               (failure) => Left(failure),
               (serialNumbers) {
-            final history = serialNumbers.map((serial) => {
+            final history = serialNumbers.map((serial) =>
+            {
               'id': serial.id,
               'serial_number': serial.serialNumber,
               'status': serial.status.name,
@@ -510,8 +561,10 @@ class InventoryRepositoryImpl implements InventoryRepository {
       }
     } else {
       try {
-        final cachedSerials = await localDataSource.getCachedSerialNumbers(itemId);
-        final history = cachedSerials.map((serial) => {
+        final cachedSerials = await localDataSource.getCachedSerialNumbers(
+            itemId);
+        final history = cachedSerials.map((serial) =>
+        {
           'id': serial.id,
           'serial_number': serial.serialNumber,
           'status': serial.status.name,
@@ -524,7 +577,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
         }).toList();
         return Right(history);
       } catch (e) {
-        return Left(CacheFailure('Failed to get cached serial number history: $e'));
+        return Left(
+            CacheFailure('Failed to get cached serial number history: $e'));
       }
     }
   }
@@ -533,7 +587,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
   // They remain exactly the same...
 
   @override
-  Future<Either<Failure, Map<String, dynamic>>> getSerialNumberUtilizationReport({
+  Future<
+      Either<Failure, Map<String, dynamic>>> getSerialNumberUtilizationReport({
     DateTime? startDate,
     DateTime? endDate,
     String? categoryId,
@@ -545,19 +600,27 @@ class InventoryRepositoryImpl implements InventoryRepository {
             (items) {
           List<InventoryItem> filteredItems = items;
           if (categoryId != null) {
-            filteredItems = items.where((item) => item.categoryId == categoryId).toList();
+            filteredItems =
+                items.where((item) => item.categoryId == categoryId).toList();
           }
 
-          final serialTrackedItems = filteredItems.where((item) => item.isSerialTracked).toList();
+          final serialTrackedItems = filteredItems.where((item) =>
+          item.isSerialTracked).toList();
 
           final totalItems = serialTrackedItems.length;
-          final totalSerials = serialTrackedItems.fold<int>(0, (sum, item) => sum + item.totalSerialCount);
-          final availableSerials = serialTrackedItems.fold<int>(0, (sum, item) => sum + item.availableStock);
-          final soldSerials = serialTrackedItems.fold<int>(0, (sum, item) => sum + item.soldStock);
-          final damagedSerials = serialTrackedItems.fold<int>(0, (sum, item) => sum + item.damagedStock);
+          final totalSerials = serialTrackedItems.fold<int>(
+              0, (sum, item) => sum + item.totalSerialCount);
+          final availableSerials = serialTrackedItems.fold<int>(
+              0, (sum, item) => sum + item.availableStock);
+          final soldSerials = serialTrackedItems.fold<int>(
+              0, (sum, item) => sum + item.soldStock);
+          final damagedSerials = serialTrackedItems.fold<int>(
+              0, (sum, item) => sum + item.damagedStock);
 
-          final utilizationRate = totalSerials > 0 ? (soldSerials / totalSerials) * 100 : 0.0;
-          final damageRate = totalSerials > 0 ? (damagedSerials / totalSerials) * 100 : 0.0;
+          final utilizationRate = totalSerials > 0 ? (soldSerials /
+              totalSerials) * 100 : 0.0;
+          final damageRate = totalSerials > 0 ? (damagedSerials /
+              totalSerials) * 100 : 0.0;
 
           final categoryBreakdown = <String, Map<String, dynamic>>{};
           for (final item in serialTrackedItems) {
@@ -574,13 +637,19 @@ class InventoryRepositoryImpl implements InventoryRepository {
             categoryBreakdown[item.categoryId]!['total_items'] =
                 (categoryBreakdown[item.categoryId]!['total_items'] as int) + 1;
             categoryBreakdown[item.categoryId]!['total_serials'] =
-                (categoryBreakdown[item.categoryId]!['total_serials'] as int) + item.totalSerialCount;
+                (categoryBreakdown[item.categoryId]!['total_serials'] as int) +
+                    item.totalSerialCount;
             categoryBreakdown[item.categoryId]!['available_serials'] =
-                (categoryBreakdown[item.categoryId]!['available_serials'] as int) + item.availableStock;
+                (categoryBreakdown[item
+                    .categoryId]!['available_serials'] as int) +
+                    item.availableStock;
             categoryBreakdown[item.categoryId]!['sold_serials'] =
-                (categoryBreakdown[item.categoryId]!['sold_serials'] as int) + item.soldStock;
+                (categoryBreakdown[item.categoryId]!['sold_serials'] as int) +
+                    item.soldStock;
             categoryBreakdown[item.categoryId]!['damaged_serials'] =
-                (categoryBreakdown[item.categoryId]!['damaged_serials'] as int) + item.damagedStock;
+                (categoryBreakdown[item
+                    .categoryId]!['damaged_serials'] as int) +
+                    item.damagedStock;
           }
 
           final topItems = serialTrackedItems
@@ -588,14 +657,16 @@ class InventoryRepositoryImpl implements InventoryRepository {
               .toList()
             ..sort((a, b) => b.totalSerialCount.compareTo(a.totalSerialCount));
 
-          final topItemsData = topItems.take(10).map((item) => {
+          final topItemsData = topItems.take(10).map((item) =>
+          {
             'item_id': item.id,
             'sku': item.sku,
             'name': item.nameEn,
             'total_serials': item.totalSerialCount,
             'available_serials': item.availableStock,
             'utilization_rate': item.totalSerialCount > 0
-                ? ((item.soldStock / item.totalSerialCount) * 100).toStringAsFixed(1)
+                ? ((item.soldStock / item.totalSerialCount) * 100)
+                .toStringAsFixed(1)
                 : '0.0',
           }).toList();
 
@@ -626,15 +697,18 @@ class InventoryRepositoryImpl implements InventoryRepository {
         },
       );
     } catch (e) {
-      return Left(ServerFailure('Failed to generate serial number utilization report: $e'));
+      return Left(ServerFailure(
+          'Failed to generate serial number utilization report: $e'));
     }
   }
 
   @override
-  Future<Either<Failure, List<InventoryItem>>> searchInventoryItems(String query) async {
+  Future<Either<Failure, List<InventoryItem>>> searchInventoryItems(
+      String query) async {
     if (await networkInfo.isConnected) {
       try {
-        final searchResults = await remoteDataSource.searchInventoryItems(query);
+        final searchResults = await remoteDataSource.searchInventoryItems(
+            query);
 
         List<InventoryItem> items = [];
         for (final model in searchResults) {
@@ -662,10 +736,12 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   @override
-  Future<Either<Failure, List<InventoryItem>>> filterInventoryItems(Map<String, dynamic> filters) async {
+  Future<Either<Failure, List<InventoryItem>>> filterInventoryItems(
+      Map<String, dynamic> filters) async {
     if (await networkInfo.isConnected) {
       try {
-        final filteredItems = await remoteDataSource.filterInventoryItems(filters);
+        final filteredItems = await remoteDataSource.filterInventoryItems(
+            filters);
 
         List<InventoryItem> items = [];
         for (final model in filteredItems) {
@@ -699,7 +775,9 @@ class InventoryRepositoryImpl implements InventoryRepository {
       return allItemsResult.fold(
             (failure) => Left(failure),
             (items) {
-          final lowStockItems = items.where((item) => item.needsRestock).toList();
+          final lowStockItems = items
+              .where((item) => item.needsRestock)
+              .toList();
           return Right(lowStockItems);
         },
       );
@@ -729,7 +807,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
-  Future<Either<Failure, List<InventoryItem>>> _searchCachedItems(String query) async {
+  Future<Either<Failure, List<InventoryItem>>> _searchCachedItems(
+      String query) async {
     try {
       final cachedItems = await localDataSource.getCachedInventoryItems();
       final queryLower = query.toLowerCase();
@@ -761,39 +840,52 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
-  Future<Either<Failure, List<InventoryItem>>> _filterCachedItems(Map<String, dynamic> filters) async {
+  Future<Either<Failure, List<InventoryItem>>> _filterCachedItems(
+      Map<String, dynamic> filters) async {
     try {
       final cachedItems = await localDataSource.getCachedInventoryItems();
       List<InventoryItemModel> filteredItems = List.from(cachedItems);
 
-      if (filters.containsKey('category_id') && filters['category_id'] != null) {
-        filteredItems = filteredItems.where((item) => item.categoryId == filters['category_id']).toList();
+      if (filters.containsKey('category_id') &&
+          filters['category_id'] != null) {
+        filteredItems = filteredItems.where((item) =>
+        item.categoryId == filters['category_id']).toList();
       }
 
       if (filters.containsKey('low_stock') && filters['low_stock'] == true) {
-        filteredItems = filteredItems.where((item) => item.stockQuantity <= item.minStockLevel).toList();
+        filteredItems = filteredItems.where((item) =>
+        item.stockQuantity <= item.minStockLevel).toList();
       }
 
       if (filters.containsKey('min_price') && filters['min_price'] != null) {
         final minPrice = filters['min_price'] as double;
-        filteredItems = filteredItems.where((item) => (item.unitPrice ?? 0.0) >= minPrice).toList();
+        filteredItems =
+            filteredItems
+                .where((item) => (item.unitPrice ?? 0.0) >= minPrice)
+                .toList();
       }
 
       if (filters.containsKey('max_price') && filters['max_price'] != null) {
         final maxPrice = filters['max_price'] as double;
-        filteredItems = filteredItems.where((item) => (item.unitPrice ?? 0.0) <= maxPrice).toList();
+        filteredItems =
+            filteredItems
+                .where((item) => (item.unitPrice ?? 0.0) <= maxPrice)
+                .toList();
       }
 
-      if (filters.containsKey('subcategory') && filters['subcategory'] != null) {
+      if (filters.containsKey('subcategory') &&
+          filters['subcategory'] != null) {
         filteredItems = filteredItems
             .where((item) =>
-            item.subcategory.toLowerCase().contains(filters['subcategory'].toString().toLowerCase()))
+            item.subcategory.toLowerCase().contains(
+                filters['subcategory'].toString().toLowerCase()))
             .toList();
       }
 
       if (filters.containsKey('serial_tracked')) {
         final isSerialTracked = filters['serial_tracked'] as bool;
-        filteredItems = filteredItems.where((item) => item.isSerialTracked == isSerialTracked).toList();
+        filteredItems = filteredItems.where((item) =>
+        item.isSerialTracked == isSerialTracked).toList();
       }
 
       List<InventoryItem> items = [];
@@ -830,13 +922,17 @@ class InventoryRepositoryImpl implements InventoryRepository {
         for (final item in remoteItems) {
           if (item.isSerialTracked) {
             try {
-              final remoteSerials = await remoteDataSource.getSerialNumbers(item.id);
+              final remoteSerials = await remoteDataSource.getSerialNumbers(
+                  item.id);
               await localDataSource.cacheSerialNumbers(item.id, remoteSerials);
 
               // ✅ Cache in new service too
               await cacheService.cacheSerialNumbers(item.id, remoteSerials);
-              final available = remoteSerials.where((s) => s.status == SerialStatus.available).length;
-              await cacheService.cacheSerialCount(item.id, remoteSerials.length, available);
+              final available = remoteSerials
+                  .where((s) => s.status == SerialStatus.available)
+                  .length;
+              await cacheService.cacheSerialCount(
+                  item.id, remoteSerials.length, available);
             } catch (e) {
               print('Failed to sync serials for item ${item.id}: $e');
             }
@@ -859,27 +955,44 @@ class InventoryRepositoryImpl implements InventoryRepository {
       return itemsResult.fold(
             (failure) => Left(failure),
             (items) {
-          final totalValue = items.fold<double>(0.0, (sum, item) => sum + item.totalValue);
+          final totalValue = items.fold<double>(
+              0.0, (sum, item) => sum + item.totalValue);
 
-          final itemsWithPrice = items.where((item) => item.unitPrice != null).toList();
+          final itemsWithPrice = items
+              .where((item) => item.unitPrice != null)
+              .toList();
           final averagePrice = itemsWithPrice.isNotEmpty
-              ? itemsWithPrice.fold<double>(0.0, (sum, item) => sum + (item.unitPrice ?? 0.0)) /
+              ? itemsWithPrice.fold<double>(
+              0.0, (sum, item) => sum + (item.unitPrice ?? 0.0)) /
               itemsWithPrice.length
               : 0.0;
 
-          final serialTrackedItems = items.where((item) => item.isSerialTracked).toList();
-          final totalSerials = serialTrackedItems.fold<int>(0, (sum, item) => sum + item.totalSerialCount);
-          final availableSerials = serialTrackedItems.fold<int>(0, (sum, item) => sum + item.availableStock);
-          final soldSerials = serialTrackedItems.fold<int>(0, (sum, item) => sum + item.soldStock);
+          final serialTrackedItems = items
+              .where((item) => item.isSerialTracked)
+              .toList();
+          final totalSerials = serialTrackedItems.fold<int>(
+              0, (sum, item) => sum + item.totalSerialCount);
+          final availableSerials = serialTrackedItems.fold<int>(
+              0, (sum, item) => sum + item.availableStock);
+          final soldSerials = serialTrackedItems.fold<int>(
+              0, (sum, item) => sum + item.soldStock);
 
           final stats = {
             'total_items': items.length,
             'total_value': totalValue,
-            'low_stock_count': items.where((item) => item.needsRestock).length,
-            'out_of_stock_count': items
-                .where((item) => item.isSerialTracked ? item.availableStock == 0 : item.stockQuantity == 0)
+            'low_stock_count': items
+                .where((item) => item.needsRestock)
                 .length,
-            'categories_count': items.map((item) => item.categoryId).toSet().length,
+            'out_of_stock_count': items
+                .where((item) =>
+            item.isSerialTracked
+                ? item.availableStock == 0
+                : item.stockQuantity == 0)
+                .length,
+            'categories_count': items
+                .map((item) => item.categoryId)
+                .toSet()
+                .length,
             'average_price': averagePrice,
             'items_with_price': itemsWithPrice.length,
             'items_without_price': items.length - itemsWithPrice.length,
@@ -887,7 +1000,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
             'total_serial_numbers': totalSerials,
             'available_serial_numbers': availableSerials,
             'sold_serial_numbers': soldSerials,
-            'serial_utilization_rate': totalSerials > 0 ? (soldSerials / totalSerials) * 100 : 0,
+            'serial_utilization_rate': totalSerials > 0 ? (soldSerials /
+                totalSerials) * 100 : 0,
           };
           return Right(stats);
         },
@@ -898,14 +1012,16 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> skuExists(String sku, {String? excludeId}) async {
+  Future<Either<Failure, bool>> skuExists(String sku,
+      {String? excludeId}) async {
     try {
       final itemsResult = await getAllInventoryItems();
       return itemsResult.fold(
             (failure) => Left(failure),
             (items) {
           final exists = items.any((item) =>
-          item.sku.toLowerCase() == sku.toLowerCase() && (excludeId == null || item.id != excludeId));
+          item.sku.toLowerCase() == sku.toLowerCase() &&
+              (excludeId == null || item.id != excludeId));
           return Right(exists);
         },
       );
@@ -913,4 +1029,59 @@ class InventoryRepositoryImpl implements InventoryRepository {
       return Left(ServerFailure('Failed to check SKU existence: $e'));
     }
   }
+
+
+  @override
+  Future<Either<Failure, List<InventoryItem>>> getInventoryItemsPaginated({
+    required int page,
+    required int pageSize,
+  }) async {
+    if (await networkInfo.isConnected) {
+      try {
+        print('🔄 INVENTORY REPO: Fetching page $page (size: $pageSize)');
+
+        final remoteItems = await remoteDataSource.getInventoryItemsPaginated(
+          page: page,
+          pageSize: pageSize,
+        );
+
+        print(
+            '✅ INVENTORY REPO: Got ${remoteItems.length} items for page $page');
+
+        // Load serials only for items in this page
+        List<InventoryItem> items = [];
+        for (final model in remoteItems) {
+          InventoryItem item = model.toEntity();
+
+          if (item.isSerialTracked) {
+            print('🔄 Loading serials for ${item.sku}...');
+            final serialsResult = await getSerialNumbers(item.id);
+            final serials = serialsResult.fold(
+                  (failure) {
+                print('⚠️ Failed to load serials: ${failure.message}');
+                return <SerialNumber>[];
+              },
+                  (serialNumbers) {
+                print('✅ Loaded ${serialNumbers.length} serials');
+                return serialNumbers;
+              },
+            );
+            item = item.copyWith(serialNumbers: serials);
+          }
+
+          items.add(item);
+        }
+
+        print('✅ INVENTORY REPO: Page $page complete with serials');
+        return Right(items);
+      } catch (e) {
+        print('❌ INVENTORY REPO: Pagination failed - $e');
+        return Left(ServerFailure('Failed to fetch paginated items: $e'));
+      }
+    } else {
+      return Left(NetworkFailure('No internet connection'));
+    }
+  }
+
+
 }
