@@ -1,5 +1,6 @@
-// ✅ presentation/blocs/order/order_bloc.dart (COMPLETE WITH DEBUG)
+// ✅ presentation/blocs/order/order_bloc.dart (WITH PERMISSIONS!)
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/user.dart';
 import '../../../domain/usecases/get_orders.dart';
 import '../../../domain/usecases/create_order.dart';
 import '../../../domain/usecases/update_order.dart';
@@ -22,6 +23,9 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   final SearchOrders searchOrders;
   final FilterOrders filterOrders;
   final OrderRepositoryImpl orderRepository;
+
+  // ✅ Store current user for permission checks
+  User? _currentUser;
 
   OrderBloc({
     required this.getOrders,
@@ -46,11 +50,33 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<UpdateOrderStatusEvent>(_onUpdateOrderStatus);
     on<ReturnRentalEvent>(_onReturnRental);
     on<RefreshSingleOrder>(_onRefreshSingleOrder);
+    on<SetCurrentUser>(_onSetCurrentUser); // ✅ New event
+  }
 
+  // ✅ New event handler to set current user
+  void _onSetCurrentUser(SetCurrentUser event, Emitter<OrderState> emit) {
+    _currentUser = event.user;
+    print('👤 ORDER BLOC: Current user set: ${_currentUser?.name} (${_currentUser?.role.displayName})');
+  }
+
+  // ✅ Permission check helper
+  bool _hasPermission(Permission permission) {
+    final hasPermission = _currentUser?.hasPermission(permission) ?? false;
+    if (!hasPermission) {
+      print('❌ ORDER BLOC: Permission denied - ${permission.displayName}');
+    }
+    return hasPermission;
   }
 
   Future<void> _onLoadOrders(LoadOrders event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Loading orders...');
+
+    // ✅ Check permission
+    if (!_hasPermission(Permission.orderView)) {
+      emit(OrderError('You don\'t have permission to view orders'));
+      return;
+    }
+
     emit(OrderLoading());
 
     final result = await getOrders();
@@ -68,6 +94,12 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
 
   Future<void> _onCreateOrder(CreateOrderEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Creating order...');
+
+    // ✅ Check permission
+    if (!_hasPermission(Permission.orderCreate)) {
+      emit(OrderError('You don\'t have permission to create orders'));
+      return;
+    }
 
     if (state is OrderLoaded) {
       final currentState = state as OrderLoaded;
@@ -88,6 +120,12 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
 
   Future<void> _onUpdateOrder(UpdateOrderEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Updating order ${event.order.orderNumber}...');
+
+    // ✅ Check permission
+    if (!_hasPermission(Permission.orderEdit)) {
+      emit(OrderError('You don\'t have permission to edit orders'));
+      return;
+    }
 
     if (state is OrderLoaded) {
       final currentState = state as OrderLoaded;
@@ -111,6 +149,12 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onDeleteOrder(DeleteOrderEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Deleting order ${event.orderId}...');
 
+    // ✅ Check permission
+    if (!_hasPermission(Permission.orderDelete)) {
+      emit(OrderError('You don\'t have permission to delete orders'));
+      return;
+    }
+
     if (state is OrderLoaded) {
       final currentState = state as OrderLoaded;
       final result = await deleteOrder(event.orderId);
@@ -132,6 +176,12 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
 
   Future<void> _onApproveOrder(ApproveOrderEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Approving order ${event.orderId}...');
+
+    // ✅ Check permission
+    if (!_hasPermission(Permission.orderConfirm)) {
+      emit(OrderError('You don\'t have permission to approve orders'));
+      return;
+    }
 
     if (state is OrderLoaded) {
       final currentState = state as OrderLoaded;
@@ -159,6 +209,12 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onRejectOrder(RejectOrderEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Rejecting order ${event.orderId}...');
 
+    // ✅ Check permission
+    if (!_hasPermission(Permission.orderCancel)) {
+      emit(OrderError('You don\'t have permission to reject orders'));
+      return;
+    }
+
     if (state is OrderLoaded) {
       final currentState = state as OrderLoaded;
       final result = await rejectOrder(
@@ -184,6 +240,12 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
 
   Future<void> _onSearchOrders(SearchOrdersEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Searching orders with query: "${event.query}"');
+
+    // ✅ Search is allowed (read-only), but need to view permission
+    if (!_hasPermission(Permission.orderView)) {
+      emit(OrderError('You don\'t have permission to view orders'));
+      return;
+    }
 
     if (state is OrderLoaded) {
       final currentState = state as OrderLoaded;
@@ -213,6 +275,12 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onFilterOrders(FilterOrdersEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Filtering orders with ${event.filters.length} filters');
 
+    // ✅ Filter is allowed (read-only), but need to view permission
+    if (!_hasPermission(Permission.orderView)) {
+      emit(OrderError('You don\'t have permission to view orders'));
+      return;
+    }
+
     if (state is OrderLoaded) {
       final currentState = state as OrderLoaded;
       final result = await filterOrders(event.filters);
@@ -241,11 +309,16 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     }
   }
 
-  // ✅ MAIN STOCK MANAGEMENT EVENT HANDLER
   Future<void> _onUpdateOrderStatus(UpdateOrderStatusEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: ===== STARTING ORDER STATUS UPDATE =====');
     print('🔍 ORDER BLOC: Event received - Order ID: ${event.orderId}');
     print('🔍 ORDER BLOC: New Status: ${event.newStatus}');
+
+    // ✅ Check permission - status changes require edit or confirm permission
+    if (!_hasPermission(Permission.orderEdit) && !_hasPermission(Permission.orderConfirm)) {
+      emit(OrderError('You don\'t have permission to change order status'));
+      return;
+    }
 
     if (state is! OrderLoaded) {
       print('❌ ORDER BLOC: State is not OrderLoaded, cannot process');
@@ -263,7 +336,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       print('🔍 ORDER BLOC: Target status: ${event.newStatus}');
       print('🔍 ORDER BLOC: Items count: ${oldOrder.items.length}');
 
-      // Log items details
       for (int i = 0; i < oldOrder.items.length; i++) {
         final item = oldOrder.items[i];
         print('🔍 ORDER BLOC: Item ${i + 1}: ${item.itemName} (ID: ${item.itemId}, Qty: ${item.quantity})');
@@ -306,10 +378,15 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     }
   }
 
-  // ✅ RENTAL RETURN EVENT HANDLER
   Future<void> _onReturnRental(ReturnRentalEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: ===== STARTING RENTAL RETURN =====');
     print('🔍 ORDER BLOC: Rental ID: ${event.orderId}');
+
+    // ✅ Check permission - returning rental requires edit or confirm permission
+    if (!_hasPermission(Permission.orderEdit) && !_hasPermission(Permission.orderConfirm)) {
+      emit(OrderError('You don\'t have permission to return rentals'));
+      return;
+    }
 
     if (state is! OrderLoaded) {
       print('❌ ORDER BLOC: State is not OrderLoaded, cannot process');
@@ -377,13 +454,11 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     print('🔄 ORDER BLOC: Refreshing single order: ${event.orderId}');
 
     try {
-      // Get the updated order from the repository
       final result = await orderRepository.getOrderById(event.orderId);
 
       result.fold(
             (failure) {
           print('❌ ORDER BLOC: Failed to refresh order - ${failure.message}');
-          // Don't emit error, just keep current state
         },
             (updatedOrder) {
           print('✅ ORDER BLOC: Order refreshed successfully');
@@ -394,8 +469,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       );
     } catch (e) {
       print('❌ ORDER BLOC: Exception refreshing order: $e');
-      // Don't emit error, just keep current state
     }
   }
-
 }

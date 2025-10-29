@@ -1,4 +1,4 @@
-// ✅ presentation/blocs/auth/auth_bloc.dart (CORRECTED)
+// ✅ presentation/blocs/auth/auth_bloc.dart (FINAL FIXED VERSION!)
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart';
 import '../../../domain/entities/user.dart';
@@ -6,10 +6,10 @@ import '../../../domain/usecases/auth/login.dart';
 import '../../../domain/usecases/auth/logout.dart';
 import '../../../domain/usecases/auth/get_current_user.dart';
 import '../../../domain/usecases/user/get_all_users.dart';
-import '../../../domain/usecases/user/create_user.dart'; // ✅ Add this
-import '../../../domain/usecases/user/update_user.dart'; // ✅ Add this
-import '../../../domain/usecases/user/delete_user.dart'; // ✅ Add this
-import '../../../domain/usecases/user/update_user_password.dart'; // ✅ Add this
+import '../../../domain/usecases/user/create_user.dart';
+import '../../../domain/usecases/user/update_user.dart';
+import '../../../domain/usecases/user/delete_user.dart';
+import '../../../domain/usecases/user/update_user_password.dart';
 import '../../../core/usecases/usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -39,15 +39,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LogoutRequested>(_onLogoutRequested);
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<LoadAllUsers>(_onLoadAllUsers);
-   on<CreateUserEvent>(_onCreateUser);  // ✅ Note: Event name
-    on<UpdateUserEvent>(_onUpdateUser);  // ✅ Note: Event name
-    on<DeleteUserEvent>(_onDeleteUser);  // ✅ Note: Event name
-    on<UpdateUserPasswordEvent>(_onUpdateUserPassword);  // ✅ Note: Event name
+    on<CreateUserEvent>(_onCreateUser);
+    on<UpdateUserEvent>(_onUpdateUser);
+    on<DeleteUserEvent>(_onDeleteUser);
+    on<UpdateUserPasswordEvent>(_onUpdateUserPassword);
     on<UpdateCurrentUserProfile>(_onUpdateCurrentUserProfile);
     on<ChangePassword>(_onChangePassword);
   }
-
-// ✅ Update this method in auth_bloc.dart
 
   Future<void> _onAppStarted(AppStarted event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
@@ -66,7 +64,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         },
       );
     } catch (e) {
-      // ✅ Catch any unexpected errors
       debugPrint('⚠️ AUTH: Error checking session - $e');
       emit(Unauthenticated());
     }
@@ -151,9 +148,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-
   Future<void> _onCreateUser(
-      CreateUserEvent event,  // ✅ Event, not UseCase
+      CreateUserEvent event,
       Emitter<AuthState> emit,
       ) async {
     if (state is! Authenticated) return;
@@ -170,7 +166,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     debugPrint('➕ AUTH: Creating user ${event.email}...');
 
-    final result = await createUserUseCase(  // ✅ UseCase call
+    final result = await createUserUseCase(
       CreateUserParams(
         email: event.email,
         name: event.name,
@@ -180,23 +176,35 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ),
     );
 
-    result.fold(
-          (failure) {
+    await result.fold(
+          (failure) async {
         debugPrint('❌ AUTH: Failed to create user - ${failure.message}');
         emit(AuthError(failure.message));
         emit(Authenticated(user: currentUser));
       },
-          (newUser) {
+          (newUser) async {
         debugPrint('✅ AUTH: User created - ${newUser.name}');
-        emit(UserCreated(newUser));
-        add(LoadAllUsers());
+
+        // ✅ FIXED: Directly load updated list and emit Authenticated
+        debugPrint('👥 AUTH: Auto-loading updated user list...');
+        final usersResult = await getAllUsersUseCase(NoParams());
+
+        usersResult.fold(
+              (failure) {
+            debugPrint('❌ AUTH: Failed to reload users - ${failure.message}');
+            emit(Authenticated(user: currentUser));
+          },
+              (users) {
+            debugPrint('✅ AUTH: Loaded ${users.length} users after creation');
+            emit(Authenticated(user: currentUser, allUsers: users));
+          },
+        );
       },
     );
   }
 
-
   Future<void> _onUpdateUser(
-      UpdateUserEvent event,  // ✅ Event, not UseCase
+      UpdateUserEvent event,
       Emitter<AuthState> emit,
       ) async {
     if (state is! Authenticated) return;
@@ -213,7 +221,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     debugPrint('✏️ AUTH: Updating user ${event.userId}...');
 
-    final result = await updateUserUseCase(  // ✅ UseCase call
+    final result = await updateUserUseCase(
       UpdateUserParams(
         userId: event.userId,
         name: event.name,
@@ -223,22 +231,35 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ),
     );
 
-    result.fold(
-          (failure) {
+    await result.fold(
+          (failure) async {
         debugPrint('❌ AUTH: Failed to update user - ${failure.message}');
         emit(AuthError(failure.message));
         emit(Authenticated(user: currentUser));
       },
-          (updatedUser) {
+          (updatedUser) async {
         debugPrint('✅ AUTH: User updated - ${updatedUser.name}');
-        emit(UserUpdated(updatedUser));
-        add(LoadAllUsers());
+
+        // ✅ FIXED: Directly load updated list and emit Authenticated
+        debugPrint('👥 AUTH: Auto-loading updated user list...');
+        final usersResult = await getAllUsersUseCase(NoParams());
+
+        usersResult.fold(
+              (failure) {
+            debugPrint('❌ AUTH: Failed to reload users - ${failure.message}');
+            emit(Authenticated(user: currentUser));
+          },
+              (users) {
+            debugPrint('✅ AUTH: Loaded ${users.length} users after update');
+            emit(Authenticated(user: currentUser, allUsers: users));
+          },
+        );
       },
     );
   }
 
   Future<void> _onDeleteUser(
-      DeleteUserEvent event,  // ✅ Event, not UseCase
+      DeleteUserEvent event,
       Emitter<AuthState> emit,
       ) async {
     if (state is! Authenticated) return;
@@ -261,24 +282,37 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     debugPrint('🗑️ AUTH: Deleting user ${event.userId}...');
 
-    final result = await deleteUserUseCase(DeleteUserParams(event.userId));  // ✅ UseCase call
+    final result = await deleteUserUseCase(DeleteUserParams(event.userId));
 
-    result.fold(
-          (failure) {
+    await result.fold(
+          (failure) async {
         debugPrint('❌ AUTH: Failed to delete user - ${failure.message}');
         emit(AuthError(failure.message));
         emit(Authenticated(user: currentUser));
       },
-          (_) {
+          (_) async {
         debugPrint('✅ AUTH: User deleted');
-        emit(UserDeleted(event.userId));
-        add(LoadAllUsers());
+
+        // ✅ FIXED: Directly load updated list and emit Authenticated
+        debugPrint('👥 AUTH: Auto-loading updated user list...');
+        final usersResult = await getAllUsersUseCase(NoParams());
+
+        usersResult.fold(
+              (failure) {
+            debugPrint('❌ AUTH: Failed to reload users - ${failure.message}');
+            emit(Authenticated(user: currentUser));
+          },
+              (users) {
+            debugPrint('✅ AUTH: Loaded ${users.length} users after deletion');
+            emit(Authenticated(user: currentUser, allUsers: users));
+          },
+        );
       },
     );
   }
 
   Future<void> _onUpdateUserPassword(
-      UpdateUserPasswordEvent event,  // ✅ Event, not UseCase
+      UpdateUserPasswordEvent event,
       Emitter<AuthState> emit,
       ) async {
     if (state is! Authenticated) return;
@@ -296,7 +330,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     debugPrint('🔑 AUTH: Updating password for user ${event.userId}...');
 
-    final result = await updateUserPasswordUseCase(  // ✅ UseCase call
+    final result = await updateUserPasswordUseCase(
       UpdateUserPasswordParams(
         userId: event.userId,
         newPassword: event.newPassword,

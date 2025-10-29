@@ -1,9 +1,12 @@
-// ✅ presentation/pages/dashboard/tabs/orders_tab.dart (THEME-AWARE)
+// ✅ presentation/pages/dashboard/tabs/orders_tab.dart (WITH PERMISSIONS!)
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../blocs/order/order_bloc.dart';
 import '../../../blocs/order/order_event.dart';
 import '../../../blocs/order/order_state.dart';
+import '../../../blocs/auth/auth_bloc.dart';
+import '../../../blocs/auth/auth_state.dart';
+import '../../../../domain/entities/user.dart';
 import '../../../widgets/order/order_stats_cards.dart';
 import '../../../widgets/order/order_search_bar.dart';
 import '../../../widgets/order/order_filter_panel.dart';
@@ -19,27 +22,48 @@ class _OrdersTabState extends State<OrdersTab> {
   bool _showFilterPanel = false;
 
   @override
+  void initState() {
+    super.initState();
+
+    // ✅ Set current user in OrderBloc for permission checks
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      context.read<OrderBloc>().add(SetCurrentUser(authState.user));
+    }
+
+    // Load orders
+    context.read<OrderBloc>().add(LoadOrders());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Column(
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        // ✅ Get current user for permission checks
+        final currentUser = authState is Authenticated ? authState.user : null;
+
+        return Stack(
           children: [
-            OrderStatsCards(),
-            _buildActionBar(),
-            Expanded(
-              child: Container(
-                padding: EdgeInsets.all(16),
-                child: _buildOrdersContent(),
-              ),
+            Column(
+              children: [
+                OrderStatsCards(),
+                _buildActionBar(currentUser),
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.all(16),
+                    child: _buildOrdersContent(),
+                  ),
+                ),
+              ],
             ),
+            if (_showFilterPanel) _buildFilterDrawer(),
           ],
-        ),
-        if (_showFilterPanel) _buildFilterDrawer(),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildActionBar() {
+  Widget _buildActionBar(User? currentUser) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -55,22 +79,29 @@ class _OrdersTabState extends State<OrdersTab> {
       ),
       child: Row(
         children: [
+          // Search bar - always visible
           Expanded(flex: 3, child: OrderSearchBar()),
           SizedBox(width: 16),
-          _buildFilterButton(),
+
+          // Filter button - always visible
+          _buildFilterButton(isDark),
           SizedBox(width: 8),
-          _buildReportsButton(),
-          SizedBox(width: 8),
-          _buildNewOrderButton(),
+
+          // Reports button - only if has permission
+          if (currentUser?.hasPermission(Permission.reportsView) == true) ...[
+            _buildReportsButton(isDark),
+            SizedBox(width: 8),
+          ],
+
+          // New Order button - only if has permission
+          if (currentUser?.hasPermission(Permission.orderCreate) == true)
+            _buildNewOrderButton(currentUser!, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildFilterButton() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+  Widget _buildFilterButton(bool isDark) {
     return ElevatedButton.icon(
       onPressed: () => setState(() => _showFilterPanel = !_showFilterPanel),
       icon: Icon(_showFilterPanel ? Icons.filter_alt_off : Icons.filter_alt),
@@ -80,14 +111,12 @@ class _OrdersTabState extends State<OrdersTab> {
             ? (isDark ? Colors.orange[700] : Colors.orange)
             : (isDark ? Colors.grey[700] : Colors.grey[600]),
         foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
 
-  Widget _buildReportsButton() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+  Widget _buildReportsButton(bool isDark) {
     return ElevatedButton.icon(
       onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -109,25 +138,35 @@ class _OrdersTabState extends State<OrdersTab> {
       style: ElevatedButton.styleFrom(
         backgroundColor: isDark ? Colors.purple[700] : Colors.purple,
         foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
 
-  Widget _buildNewOrderButton() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+  Widget _buildNewOrderButton(User currentUser, bool isDark) {
     return ElevatedButton.icon(
-      onPressed: () => showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => CreateOrderDialog(),
-      ),
+      onPressed: () {
+        // ✅ Double-check permission before opening dialog
+        if (!currentUser.hasPermission(Permission.orderCreate)) {
+          _showPermissionDeniedMessage('create orders');
+          return;
+        }
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => BlocProvider.value(
+            value: context.read<OrderBloc>(),
+            child: CreateOrderDialog(),
+          ),
+        );
+      },
       icon: Icon(Icons.add_shopping_cart),
       label: Text('New Order'),
       style: ElevatedButton.styleFrom(
         backgroundColor: isDark ? Colors.green[700] : Colors.green,
         foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -174,6 +213,11 @@ class _OrdersTabState extends State<OrdersTab> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // ✅ Get current user to check permissions
+    final authState = context.read<AuthBloc>().state;
+    final currentUser = authState is Authenticated ? authState.user : null;
+    final canCreate = currentUser?.hasPermission(Permission.orderCreate) ?? false;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -191,20 +235,25 @@ class _OrdersTabState extends State<OrdersTab> {
               color: isDark ? Colors.grey[400] : Colors.grey[600],
             ),
           ),
-          SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () => showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (_) => CreateOrderDialog(),
+          if (canCreate) ...[
+            SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => BlocProvider.value(
+                  value: context.read<OrderBloc>(),
+                  child: CreateOrderDialog(),
+                ),
+              ),
+              icon: Icon(Icons.add_shopping_cart),
+              label: Text('Create First Order'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? Colors.green[700] : Colors.green,
+                foregroundColor: Colors.white,
+              ),
             ),
-            icon: Icon(Icons.add_shopping_cart),
-            label: Text('Create First Order'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? Colors.green[700] : Colors.green,
-              foregroundColor: Colors.white,
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -291,7 +340,7 @@ class _OrdersTabState extends State<OrdersTab> {
         child: Align(
           alignment: Alignment.centerRight,
           child: GestureDetector(
-            onTap: () {},
+            onTap: () {}, // Prevent closing when tapping inside
             child: AnimatedContainer(
               duration: Duration(milliseconds: 300),
               curve: Curves.easeInOut,
@@ -312,6 +361,34 @@ class _OrdersTabState extends State<OrdersTab> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // ✅ Helper method to show permission denied message
+  void _showPermissionDeniedMessage(String action) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.lock, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'You don\'t have permission to $action',
+                style: TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red[700],
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {},
         ),
       ),
     );

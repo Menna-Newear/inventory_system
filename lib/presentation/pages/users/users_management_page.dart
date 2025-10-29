@@ -1,4 +1,4 @@
-// ✅ presentation/pages/users/users_management_page.dart
+// ✅ presentation/pages/users/users_management_page.dart (FIXED AUTO-REFRESH!)
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:data_table_2/data_table_2.dart';
@@ -49,11 +49,26 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
           _buildSearchBar(theme, isDark),
           Expanded(
             child: BlocBuilder<AuthBloc, AuthState>(
+
               builder: (context, state) {
+                // ✅ Show loading spinner
                 if (state is UserManagementLoading) {
-                  return Center(child: CircularProgressIndicator());
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text(
+                          'Loading users...',
+                          style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                        ),
+                      ],
+                    ),
+                  );
                 }
 
+                // ✅ Show user list
                 if (state is Authenticated && state.allUsers != null) {
                   final users = _filterUsers(state.allUsers!);
 
@@ -64,7 +79,26 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                   return _buildUsersTable(users, state.user, theme, isDark);
                 }
 
-                return Center(child: Text('No users found'));
+                // ✅ Fallback
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                      SizedBox(height: 16),
+                      Text(
+                        'No users loaded',
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                      ),
+                      SizedBox(height: 8),
+                      ElevatedButton.icon(
+                        onPressed: () => context.read<AuthBloc>().add(LoadAllUsers()),
+                        icon: Icon(Icons.refresh),
+                        label: Text('Load Users'),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ),
@@ -257,6 +291,11 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
             'No users found',
             style: TextStyle(fontSize: 18, color: Colors.grey[600]),
           ),
+          SizedBox(height: 8),
+          Text(
+            'Try adjusting your search query',
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+          ),
         ],
       ),
     );
@@ -309,6 +348,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                 SnackBar(
                   content: Text('User deleted successfully'),
                   backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
                 ),
               );
             },

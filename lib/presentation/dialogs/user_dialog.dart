@@ -1,4 +1,4 @@
-// ✅ presentation/dialogs/user_dialog.dart (WITH AUTO-REFRESH)
+// ✅ presentation/dialogs/user_dialog.dart (FINAL FIXED VERSION!)
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/auth/auth_bloc.dart';
@@ -23,6 +23,7 @@ class _UserDialogState extends State<UserDialog> {
   late UserRole _selectedRole;
   late Set<Permission> _selectedPermissions;
   bool _isActive = true;
+  bool _isSubmitting = false; // ✅ Track submission state
 
   @override
   void initState() {
@@ -49,27 +50,27 @@ class _UserDialogState extends State<UserDialog> {
     final isEditing = widget.user != null;
 
     return BlocListener<AuthBloc, AuthState>(
-      // ✅ Listen for state changes
       listener: (context, state) {
-        if (state is UserCreated || state is UserUpdated) {
-          // Close dialog on success
+        // ✅ FIXED: Only respond if we're in submit mode and got Authenticated with users
+        if (_isSubmitting && state is Authenticated && state.allUsers != null) {
           Navigator.pop(context);
 
-          // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                state is UserCreated ? 'User created successfully' : 'User updated successfully',
+                isEditing ? 'User updated successfully' : 'User created successfully',
               ),
               backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
           );
         } else if (state is AuthError) {
-          // Show error message
+          _isSubmitting = false; // Reset flag on error
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
               backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
             ),
           );
         }
@@ -272,8 +273,13 @@ class _UserDialogState extends State<UserDialog> {
   void _handleSubmit() {
     if (!_formKey.currentState!.validate()) return;
 
+    // ✅ Set flag to track that we're submitting
+    setState(() {
+      _isSubmitting = true;
+    });
+
     if (widget.user == null) {
-      // ✅ Create new user
+      // Create new user
       context.read<AuthBloc>().add(
         CreateUserEvent(
           email: _emailController.text.trim(),
@@ -284,7 +290,7 @@ class _UserDialogState extends State<UserDialog> {
         ),
       );
     } else {
-      // ✅ Update existing user
+      // Update existing user
       context.read<AuthBloc>().add(
         UpdateUserEvent(
           userId: widget.user!.id,
@@ -295,7 +301,6 @@ class _UserDialogState extends State<UserDialog> {
         ),
       );
     }
-    // Don't close here - BlocListener will handle it
   }
 
   IconData _getRoleIcon(UserRole role) {

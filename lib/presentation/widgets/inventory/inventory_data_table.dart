@@ -1,4 +1,4 @@
-// ✅ presentation/widgets/inventory/inventory_data_table.dart (WITH PERMISSIONS)
+// ✅ presentation/widgets/inventory/inventory_data_table.dart (WITH FULL PERMISSIONS!)
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:data_table_2/data_table_2.dart';
@@ -7,7 +7,10 @@ import 'package:inventory_system/presentation/dialogs/enhanced_barcode_dialog.da
 import 'package:inventory_system/presentation/widgets/inventory/serial_number_dialog.dart';
 import '../../blocs/inventory/inventory_bloc.dart';
 import '../../blocs/category/category_bloc.dart';
+import '../../blocs/auth/auth_bloc.dart';
+import '../../blocs/auth/auth_state.dart';
 import '../../../domain/entities/inventory_item.dart';
+import '../../../domain/entities/user.dart';
 import '../../blocs/serial/serial_number_bloc.dart';
 import '../../blocs/serial/serial_number_event.dart';
 import '../../pages/inventory/add_edit_item_dialog.dart';
@@ -20,102 +23,111 @@ class InventoryDataTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return BlocConsumer<InventoryBloc, InventoryState>(
-      buildWhen: (previous, current) {
-        if (current is InventoryItemCreated) return false;
-        if (current is InventoryItemUpdated) return false;
-        if (current is InventoryItemDeleted) return false;
-        return true;
-      },
-      listener: (context, state) {
-        if (state is InventoryItemUpdated) {
-          debugPrint('✅ TABLE: Item updated');
-        } else if (state is InventoryItemCreated) {
-          debugPrint('✅ TABLE: Item created');
-        } else if (state is InventoryItemDeleted) {
-          debugPrint('✅ TABLE: Item deleted');
-        }
-      },
-      builder: (context, inventoryState) {
-        if (inventoryState is InventoryLoading) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Loading inventory...',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-              ],
-            ),
-          );
-        }
 
-        if (inventoryState is InventoryLoaded) {
-          final hasFilters = inventoryState.activeFilters.isNotEmpty;
-          final isFiltering = inventoryState.isLoadingMore && hasFilters;
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        // ✅ Get current user for permission checks
+        final currentUser = authState is Authenticated ? authState.user : null;
 
-          return Column(
-            children: [
-              if (inventoryState.isLoadingMore)
-                SizedBox(
-                  height: 3,
-                  child: LinearProgressIndicator(
-                    backgroundColor: isFiltering
-                        ? Colors.orange[200]
-                        : (theme.brightness == Brightness.dark
-                        ? Colors.blue[400]
-                        : Colors.blue[600]),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                        isFiltering ? Colors.orange : theme.primaryColor),
+        return BlocConsumer<InventoryBloc, InventoryState>(
+          buildWhen: (previous, current) {
+            if (current is InventoryItemCreated) return false;
+            if (current is InventoryItemUpdated) return false;
+            if (current is InventoryItemDeleted) return false;
+            return true;
+          },
+          listener: (context, state) {
+            if (state is InventoryItemUpdated) {
+              debugPrint('✅ TABLE: Item updated');
+            } else if (state is InventoryItemCreated) {
+              debugPrint('✅ TABLE: Item created');
+            } else if (state is InventoryItemDeleted) {
+              debugPrint('✅ TABLE: Item deleted');
+            }
+          },
+          builder: (context, inventoryState) {
+            if (inventoryState is InventoryLoading) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Loading inventory...',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                  ],
+                ),
+              );
+            }
+
+            if (inventoryState is InventoryLoaded) {
+              final hasFilters = inventoryState.activeFilters.isNotEmpty;
+              final isFiltering = inventoryState.isLoadingMore && hasFilters;
+
+              return Column(
+                children: [
+                  if (inventoryState.isLoadingMore)
+                    SizedBox(
+                      height: 3,
+                      child: LinearProgressIndicator(
+                        backgroundColor: isFiltering
+                            ? Colors.orange[200]
+                            : (theme.brightness == Brightness.dark
+                            ? Colors.blue[400]
+                            : Colors.blue[600]),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            isFiltering ? Colors.orange : theme.primaryColor),
+                      ),
+                    ),
+                  Expanded(
+                    child: BlocBuilder<CategoryBloc, CategoryState>(
+                      builder: (context, categoryState) {
+                        Map<String, String> categoryNamesMap = {};
+                        if (categoryState is CategoryLoaded) {
+                          for (var category in categoryState.categories) {
+                            categoryNamesMap[category.id] = category.name;
+                          }
+                        }
+                        return _buildDataTable(
+                          context,
+                          inventoryState.displayItems,
+                          categoryNamesMap,
+                          currentUser, // ✅ Pass current user
+                        );
+                      },
+                    ),
                   ),
-                ),
-              Expanded(
-                child: BlocBuilder<CategoryBloc, CategoryState>(
-                  builder: (context, categoryState) {
-                    Map<String, String> categoryNamesMap = {};
-                    if (categoryState is CategoryLoaded) {
-                      for (var category in categoryState.categories) {
-                        categoryNamesMap[category.id] = category.name;
-                      }
-                    }
-                    return _buildDataTable(
-                      context,
-                      inventoryState.displayItems,
-                      categoryNamesMap,
-                    );
-                  },
-                ),
-              ),
-              _buildPaginationFooter(context, inventoryState),
-            ],
-          );
-        }
+                  _buildPaginationFooter(context, inventoryState),
+                ],
+              );
+            }
 
-        if (inventoryState is InventoryError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 64, color: Colors.red),
-                SizedBox(height: 16),
-                Text('Error loading inventory',
-                    style: Theme.of(context).textTheme.headlineSmall),
-                SizedBox(height: 8),
-                Text(inventoryState.message),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    context.read<InventoryBloc>().add(LoadInventoryItems());
-                  },
-                  child: Text('Retry'),
+            if (inventoryState is InventoryError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    SizedBox(height: 16),
+                    Text('Error loading inventory',
+                        style: Theme.of(context).textTheme.headlineSmall),
+                    SizedBox(height: 8),
+                    Text(inventoryState.message),
+                    SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.read<InventoryBloc>().add(LoadInventoryItems());
+                      },
+                      child: Text('Retry'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        }
+              );
+            }
 
-        return Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator());
+          },
+        );
       },
     );
   }
@@ -320,6 +332,7 @@ class InventoryDataTable extends StatelessWidget {
       BuildContext context,
       List<InventoryItem> items,
       Map<String, String> categoryNamesMap,
+      User? currentUser, // ✅ Added parameter
       ) {
     return DataTable2(
       key: ValueKey(items.length),
@@ -339,7 +352,7 @@ class InventoryDataTable extends StatelessWidget {
         DataColumn2(label: Text('Updated'), size: ColumnSize.M),
         DataColumn2(label: Text('Actions'), size: ColumnSize.M),
       ],
-      rows: items.map((item) => _buildDataRow(context, item, categoryNamesMap)).toList(),
+      rows: items.map((item) => _buildDataRow(context, item, categoryNamesMap, currentUser)).toList(),
       empty: Center(
         child: Container(
           padding: EdgeInsets.all(20),
@@ -361,6 +374,7 @@ class InventoryDataTable extends StatelessWidget {
       BuildContext context,
       InventoryItem item,
       Map<String, String> categoryNamesMap,
+      User? currentUser, // ✅ Added parameter
       ) {
     return DataRow2(
       cells: [
@@ -426,7 +440,7 @@ class InventoryDataTable extends StatelessWidget {
         ),
         DataCell(_buildStatusChip(item)),
         DataCell(Text(dateFormat.format(item.updatedAt))),
-        DataCell(_buildActionButtons(context, item)),
+        DataCell(_buildActionButtons(context, item, currentUser)), // ✅ Pass user
       ],
     );
   }
@@ -462,27 +476,36 @@ class InventoryDataTable extends StatelessWidget {
     }
   }
 
-  Widget _buildActionButtons(BuildContext context, InventoryItem item) {
+  Widget _buildActionButtons(BuildContext context, InventoryItem item, User? currentUser) {
+    // ✅ Permission checks
+    final canEdit = currentUser?.hasPermission(Permission.inventoryEdit) ?? false;
+    final canDelete = currentUser?.hasPermission(Permission.inventoryDelete) ?? false;
+    final canManageSerial = currentUser?.hasPermission(Permission.serialManage) ?? false;
+
     return FittedBox(
       fit: BoxFit.scaleDown,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            child: IconButton(
-              icon: Icon(Icons.edit, size: 16),
-              onPressed: () => _editItem(context, item),
-              tooltip: 'Edit Item',
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.blue.withOpacity(0.1),
-                foregroundColor: Colors.blue,
+          // Edit button - only if has permission
+          if (canEdit)
+            Container(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                icon: Icon(Icons.edit, size: 16),
+                onPressed: () => _editItem(context, item),
+                tooltip: 'Edit Item',
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.blue.withOpacity(0.1),
+                  foregroundColor: Colors.blue,
+                ),
               ),
             ),
-          ),
-          SizedBox(width: 4),
-          if (item.isSerialTracked) ...[
+          if (canEdit) SizedBox(width: 4),
+
+          // Serial management - only if item is serial tracked AND has permission
+          if (item.isSerialTracked && canManageSerial) ...[
             Container(
               width: 32,
               height: 32,
@@ -498,20 +521,25 @@ class InventoryDataTable extends StatelessWidget {
             ),
             SizedBox(width: 4),
           ],
-          Container(
-            width: 32,
-            height: 32,
-            child: IconButton(
-              icon: Icon(Icons.delete, size: 16),
-              onPressed: () => _deleteItem(context, item),
-              tooltip: 'Delete Item',
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.red.withOpacity(0.1),
-                foregroundColor: Colors.red,
+
+          // Delete button - only if has permission
+          if (canDelete)
+            Container(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                icon: Icon(Icons.delete, size: 16),
+                onPressed: () => _deleteItem(context, item),
+                tooltip: 'Delete Item',
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.red.withOpacity(0.1),
+                  foregroundColor: Colors.red,
+                ),
               ),
             ),
-          ),
-          SizedBox(width: 4),
+          if (canDelete) SizedBox(width: 4),
+
+          // QR Code - always visible (read-only action)
           Container(
             width: 32,
             height: 32,
@@ -525,6 +553,8 @@ class InventoryDataTable extends StatelessWidget {
               ),
             ),
           ),
+
+          // Image viewer - always visible (read-only action)
           if (item.imageUrl != null && item.imageUrl!.isNotEmpty) ...[
             SizedBox(width: 4),
             Container(
