@@ -1,4 +1,5 @@
-// ✅ presentation/pages/dashboard/dashboard_page.dart
+// ✅ presentation/pages/dashboard/dashboard_page.dart (WITH LANGUAGE & THEME TOGGLE!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/services/stock_management_service.dart';
@@ -22,6 +23,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  ThemeMode _themeMode = ThemeMode.system; // ✅ Theme state
 
   @override
   void initState() {
@@ -60,19 +62,18 @@ class _DashboardPageState extends State<DashboardPage>
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              'Inventory Management System',
+              'app_title'.tr(), // ✅ Translated
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             elevation: 0,
             backgroundColor: Theme.of(context).primaryColor,
             foregroundColor: Colors.white,
-            // ✅ Add actions menu
             actions: [
               // User Management Button (only for admins/managers)
               if (currentUser?.hasPermission(Permission.userView) ?? false)
                 IconButton(
                   icon: Icon(Icons.people),
-                  tooltip: 'User Management',
+                  tooltip: 'users.title'.tr(), // ✅ Translated
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -101,6 +102,10 @@ class _DashboardPageState extends State<DashboardPage>
                     _handleLogout(context);
                   } else if (value == 'profile') {
                     _showProfileDialog(context, currentUser!);
+                  } else if (value == 'language') {
+                    _showLanguageDialog(context);
+                  } else if (value == 'theme') {
+                    _showThemeDialog(context);
                   }
                 },
                 itemBuilder: (context) => [
@@ -153,6 +158,47 @@ class _DashboardPageState extends State<DashboardPage>
                     ),
                   ),
 
+                  // ✅ Language Switcher
+                  PopupMenuItem(
+                    value: 'language',
+                    child: Row(
+                      children: [
+                        Icon(Icons.language, size: 20),
+                        SizedBox(width: 12),
+                        Text('Language'),
+                        Spacer(),
+                        Text(
+                          context.locale == Locale('en') ? '🇬🇧 EN' : '🇸🇦 AR',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ✅ Theme Toggle
+                  PopupMenuItem(
+                    value: 'theme',
+                    child: Row(
+                      children: [
+                        Icon(
+                          _themeMode == ThemeMode.dark
+                              ? Icons.dark_mode
+                              : Icons.light_mode,
+                          size: 20,
+                        ),
+                        SizedBox(width: 12),
+                        Text('Theme'),
+                        Spacer(),
+                        Text(
+                          _themeMode == ThemeMode.dark ? 'Dark' : 'Light',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  PopupMenuDivider(),
+
                   // Logout
                   PopupMenuItem(
                     value: 'logout',
@@ -174,8 +220,8 @@ class _DashboardPageState extends State<DashboardPage>
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white70,
               tabs: [
-                Tab(icon: Icon(Icons.inventory_2), text: 'Inventory'),
-                Tab(icon: Icon(Icons.shopping_cart_outlined), text: 'Orders'),
+                Tab(icon: Icon(Icons.inventory_2), text: 'navigation.inventory'.tr()),
+                Tab(icon: Icon(Icons.shopping_cart_outlined), text: 'navigation.orders'.tr()),
                 Tab(icon: Icon(Icons.analytics_outlined), text: 'Analytics'),
               ],
             ),
@@ -190,6 +236,127 @@ class _DashboardPageState extends State<DashboardPage>
           ),
         );
       },
+    );
+  }
+
+  // ✅ Language Switcher Dialog
+  void _showLanguageDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.language, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('Choose Language'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Text('🇬🇧', style: TextStyle(fontSize: 24)),
+              title: Text('English'),
+              trailing: context.locale == Locale('en')
+                  ? Icon(Icons.check_circle, color: Colors.green)
+                  : null,
+              onTap: () async {
+                await context.setLocale(Locale('en'));
+                Navigator.pop(dialogContext);
+                setState(() {}); // Refresh UI
+              },
+            ),
+            ListTile(
+              leading: Text('🇸🇦', style: TextStyle(fontSize: 24)),
+              title: Text('العربية (Arabic)'),
+              trailing: context.locale == Locale('ar')
+                  ? Icon(Icons.check_circle, color: Colors.green)
+                  : null,
+              onTap: () async {
+                await context.setLocale(Locale('ar'));
+                Navigator.pop(dialogContext);
+                setState(() {}); // Refresh UI
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Theme Switcher Dialog
+  void _showThemeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.palette, color: Colors.purple),
+              SizedBox(width: 8),
+              Text('Choose Theme'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<ThemeMode>(
+                title: Text('Light Mode'),
+                subtitle: Text('Bright and clean'),
+                secondary: Icon(Icons.light_mode, color: Colors.orange),
+                value: ThemeMode.light,
+                groupValue: _themeMode,
+                onChanged: (value) {
+                  setDialogState(() {
+                    _themeMode = value!;
+                  });
+                  setState(() {});
+                  // TODO: Update theme in main app (need ThemeBloc)
+                },
+              ),
+              RadioListTile<ThemeMode>(
+                title: Text('Dark Mode'),
+                subtitle: Text('Easy on the eyes'),
+                secondary: Icon(Icons.dark_mode, color: Colors.indigo),
+                value: ThemeMode.dark,
+                groupValue: _themeMode,
+                onChanged: (value) {
+                  setDialogState(() {
+                    _themeMode = value!;
+                  });
+                  setState(() {});
+                  // TODO: Update theme in main app (need ThemeBloc)
+                },
+              ),
+              RadioListTile<ThemeMode>(
+                title: Text('System Default'),
+                subtitle: Text('Follow system settings'),
+                secondary: Icon(Icons.brightness_auto, color: Colors.grey),
+                value: ThemeMode.system,
+                groupValue: _themeMode,
+                onChanged: (value) {
+                  setDialogState(() {
+                    _themeMode = value!;
+                  });
+                  setState(() {});
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text('Close'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -208,7 +375,7 @@ class _DashboardPageState extends State<DashboardPage>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text('Cancel'),
+            child: Text('common.cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () {
@@ -285,7 +452,7 @@ class _DashboardPageState extends State<DashboardPage>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
+            child: Text('common.close'.tr()),
           ),
         ],
       ),

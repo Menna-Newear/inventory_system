@@ -1,4 +1,4 @@
-// ✅ main.dart (FIXED - BLoCs available globally after auth)
+// ✅ main.dart (WITH LOCALIZATION & THEME SWITCHING!)
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,6 +23,9 @@ import 'presentation/blocs/order/order_event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ✅ Initialize EasyLocalization
+  await EasyLocalization.ensureInitialized();
 
   // Initialize Supabase
   await Supabase.initialize(
@@ -52,17 +55,39 @@ void main() async {
   });
 
   runApp(
+    // ✅ Wrap app with EasyLocalization
     EasyLocalization(
       supportedLocales: [Locale('en'), Locale('ar')],
-      path: 'assets/translations', // ✅ Translation files path
+      path: 'assets/translations',
       fallbackLocale: Locale('en'),
-      startLocale: Locale('en'), // ✅ Default language
+      startLocale: Locale('en'),
       child: InventoryManagementApp(),
     ),
-  );}
+  );
+}
 
-class InventoryManagementApp extends StatelessWidget {
+// ✅ Changed to StatefulWidget to support dynamic theme switching
+class InventoryManagementApp extends StatefulWidget {
   const InventoryManagementApp({super.key});
+
+  // ✅ Static method to access state from anywhere
+  static _InventoryManagementAppState? of(BuildContext context) =>
+      context.findAncestorStateOfType<_InventoryManagementAppState>();
+
+  @override
+  State<InventoryManagementApp> createState() => _InventoryManagementAppState();
+}
+
+class _InventoryManagementAppState extends State<InventoryManagementApp> {
+  // ✅ Theme state
+  ThemeMode _themeMode = ThemeMode.system;
+
+  // ✅ Method to change theme from anywhere in the app
+  void changeTheme(ThemeMode themeMode) {
+    setState(() {
+      _themeMode = themeMode;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,10 +111,15 @@ class InventoryManagementApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Inventory Management System',
+        // ✅ Add localization delegates from EasyLocalization
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
+
+        title: 'app_title'.tr(), // ✅ Translated title
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
+        themeMode: _themeMode, // ✅ Use dynamic theme mode
         debugShowCheckedModeBanner: false,
         home: AuthGate(),
       ),
@@ -105,7 +135,7 @@ class AuthGate extends StatelessWidget {
       builder: (context, state) {
         // Show loading splash screen
         if (state is AuthLoading || state is AuthInitial) {
-          return _buildLoadingScreen();
+          return _buildLoadingScreen(context);
         }
 
         // User is authenticated - load data and show dashboard
@@ -124,7 +154,7 @@ class AuthGate extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingScreen() {
+  Widget _buildLoadingScreen(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -175,9 +205,9 @@ class AuthGate extends StatelessWidget {
               ),
               SizedBox(height: 24),
 
-              // Loading text
+              // ✅ Translated loading text
               Text(
-                'Loading Inventory System...',
+                'common.loading'.tr(),
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.white,
