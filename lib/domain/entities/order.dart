@@ -193,6 +193,8 @@ class Order extends Equatable {
   final DateTime? rejectedAt;
   final String? rejectionReason;
   final String createdBy;
+  final String? createdByName;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -221,6 +223,7 @@ class Order extends Equatable {
     this.rejectedAt,
     this.rejectionReason,
     required this.createdBy,
+    this.createdByName,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -314,19 +317,19 @@ class Order extends Equatable {
     String? shippingAddress,
     String? notes,
     double? totalAmount,
-    // ✅ NEW: Rental fields
     DateTime? rentalStartDate,
     DateTime? rentalEndDate,
     int? rentalDurationDays,
     double? dailyRate,
     double? securityDeposit,
-    // Keep existing fields
     String? approvedBy,
     DateTime? approvedAt,
     String? rejectedBy,
     DateTime? rejectedAt,
     String? rejectionReason,
     String? createdBy,
+    String? createdByName,
+
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -355,6 +358,8 @@ class Order extends Equatable {
       rejectedAt: rejectedAt ?? this.rejectedAt,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       createdBy: createdBy ?? this.createdBy,
+      createdByName: createdByName ?? this.createdByName,
+
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -366,7 +371,7 @@ class Order extends Equatable {
     id,
     orderNumber,
     status,
-    orderType, // ✅ NEW
+    orderType,
     items,
     customerName,
     customerEmail,
@@ -374,19 +379,18 @@ class Order extends Equatable {
     shippingAddress,
     notes,
     totalAmount,
-    // ✅ NEW: Rental fields
     rentalStartDate,
     rentalEndDate,
     rentalDurationDays,
     dailyRate,
     securityDeposit,
-    // Keep existing fields
     approvedBy,
     approvedAt,
     rejectedBy,
     rejectedAt,
     rejectionReason,
     createdBy,
+    createdByName,
     createdAt,
     updatedAt,
   ];

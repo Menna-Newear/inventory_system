@@ -1,4 +1,4 @@
-// ✅ data/datasources/order_remote_datasource.dart (COMPLETE FILE)
+// ✅ data/datasources/order_remote_datasource.dart (WITH CREATOR NAME FIX!)
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/order.dart';
 import '../models/order_model.dart';
@@ -38,36 +38,35 @@ abstract class OrderRemoteDataSource {
   Future<Map<String, dynamic>> getOrderStats();
 }
 
-// ✅ IMPLEMENTATION CLASS - THIS IS WHAT YOU MIGHT BE MISSING!
+// ✅ IMPLEMENTATION CLASS
 class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   final SupabaseClient supabase;
 
   OrderRemoteDataSourceImpl({required this.supabase});
 
-  // ✅ UPDATED: getOrders with rental fields
+  // ✅ UPDATED: getOrders with creator name join
   @override
   Future<List<OrderModel>> getOrders() async {
     try {
-      print('🔍 DEBUG: Loading orders with items and rental data...');
+      print('🔍 DEBUG: Loading orders with items, rental data, and creator info...');
 
       final response = await supabase
           .from('orders')
           .select('''
-          *,
-          order_items!fk_order_items_orders (
-            id,
-            item_id,
-            item_name,
-            item_sku,
-            quantity,
-            unit_price,
-            total_price,
-            serial_numbers,
-            notes
-          )
-        ''')
+      *,
+      order_items!fk_order_items_orders (
+        id,
+        item_id,
+        item_name,
+        item_sku,
+        quantity,
+        unit_price,
+        total_price,
+        serial_numbers,
+        notes
+      )
+    ''')
           .order('created_at', ascending: false);
-
       print('🔍 DEBUG: Loaded ${response.length} orders from database');
 
       return (response as List).map<OrderModel>((json) {
@@ -142,7 +141,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       final orderResponse = await supabase
           .from('orders')
           .insert(orderData)
-          .select()
+          .select('*, creator:users!orders_created_by_fkey(id, name, email)')
           .single();
 
       final createdOrderId = orderResponse['id'] as String;
@@ -158,12 +157,11 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
             'quantity': item.quantity,
             'unit_price': item.unitPrice,
             'total_price': item.totalPrice,
-            'serial_numbers': item.serialNumbers, // ✅ This is being included
+            'serial_numbers': item.serialNumbers,
             'notes': item.notes,
             'created_at': DateTime.now().toIso8601String(),
           };
 
-          // ✅ Debug: Log what we're about to insert
           print('📤 DEBUG: Inserting order item:');
           print('   - Item: ${item.itemName}');
           print('   - Serial numbers field: ${itemData['serial_numbers']}');
@@ -199,7 +197,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
           .from('orders')
           .update(orderData)
           .eq('id', order.id)
-          .select()
+          .select('*, creator:users!orders_created_by_fkey(id, name, email)')
           .single();
 
       final updatedOrder = OrderModel.fromJson(orderResponse);
@@ -272,7 +270,8 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
               total_price,
               serial_numbers,
               notes
-            )
+            ),
+            creator:users!orders_created_by_fkey(id, name, email)
           ''')
           .single();
 
@@ -316,7 +315,8 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
               total_price,
               serial_numbers,
               notes
-            )
+            ),
+            creator:users!orders_created_by_fkey(id, name, email)
           ''')
           .single();
 
@@ -348,7 +348,8 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
               total_price,
               serial_numbers,
               notes
-            )
+            ),
+            creator:users!orders_created_by_fkey(id, name, email)
           ''')
           .or('order_number.ilike.%$query%,customer_name.ilike.%$query%,customer_email.ilike.%$query%')
           .order('created_at', ascending: false);
@@ -380,7 +381,8 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
           total_price,
           serial_numbers,
           notes
-        )
+        ),
+        creator:users!orders_created_by_fkey(id, name, email)
       ''');
 
       filters.forEach((key, value) {
@@ -447,7 +449,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     }
   }
 
-  // ✅ NEW: Get active rentals
   @override
   Future<List<OrderModel>> getActiveRentals() async {
     try {
@@ -466,7 +467,8 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
               total_price,
               serial_numbers,
               notes
-            )
+            ),
+            creator:users!orders_created_by_fkey(id, name, email)
           ''')
           .eq('order_type', 'rental')
           .eq('status', 'approved')
@@ -487,7 +489,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     }
   }
 
-  // ✅ NEW: Get overdue rentals
   @override
   Future<List<OrderModel>> getOverdueRentals() async {
     try {
@@ -506,7 +507,8 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
               total_price,
               serial_numbers,
               notes
-            )
+            ),
+            creator:users!orders_created_by_fkey(id, name, email)
           ''')
           .eq('order_type', 'rental')
           .eq('status', 'approved')
@@ -526,7 +528,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     }
   }
 
-  // ✅ NEW: Return rental
   @override
   Future<OrderModel> returnRental(String orderId) async {
     try {
@@ -549,7 +550,8 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
               total_price,
               serial_numbers,
               notes
-            )
+            ),
+            creator:users!orders_created_by_fkey(id, name, email)
           ''')
           .single();
 
@@ -565,7 +567,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     }
   }
 
-  // ✅ NEW: Get order by ID
   @override
   Future<OrderModel> getOrderById(String orderId) async {
     try {
@@ -582,7 +583,8 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
               total_price,
               serial_numbers,
               notes
-            )
+            ),
+            creator:users!orders_created_by_fkey(id, name, email)
           ''')
           .eq('id', orderId)
           .single();
@@ -599,7 +601,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     }
   }
 
-  // ✅ NEW: Get order statistics
   @override
   Future<Map<String, dynamic>> getOrderStats() async {
     try {

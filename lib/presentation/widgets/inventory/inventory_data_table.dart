@@ -480,6 +480,7 @@ class InventoryDataTable extends StatelessWidget {
     // ✅ Permission checks
     final canEdit = currentUser?.hasPermission(Permission.inventoryEdit) ?? false;
     final canDelete = currentUser?.hasPermission(Permission.inventoryDelete) ?? false;
+    final canViewSerial = currentUser?.hasPermission(Permission.serialView) ?? false;
     final canManageSerial = currentUser?.hasPermission(Permission.serialManage) ?? false;
 
     return FittedBox(
@@ -504,15 +505,15 @@ class InventoryDataTable extends StatelessWidget {
             ),
           if (canEdit) SizedBox(width: 4),
 
-          // Serial management - only if item is serial tracked AND has permission
-          if (item.isSerialTracked && canManageSerial) ...[
+          // ✅ FIXED: Serial button - show if can VIEW or MANAGE serials
+          if (item.isSerialTracked && canViewSerial) ...[
             Container(
               width: 32,
               height: 32,
               child: IconButton(
                 icon: Icon(Icons.qr_code_scanner, size: 16),
                 onPressed: () => _showSerialDialog(context, item),
-                tooltip: 'Manage Serials',
+                tooltip: canManageSerial ? 'Manage Serials' : 'View Serials',
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.purple.withOpacity(0.1),
                   foregroundColor: Colors.purple,
@@ -592,6 +593,12 @@ class InventoryDataTable extends StatelessWidget {
   }
 
   void _showSerialDialog(BuildContext context, InventoryItem item) {
+    // ✅ Get current user from BLoC
+    final authState = context.read<AuthBloc>().state;
+    final canManage = authState is Authenticated
+        ? authState.user.hasPermission(Permission.serialManage)
+        : false;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -599,6 +606,7 @@ class InventoryDataTable extends StatelessWidget {
         create: (_) => getIt<SerialNumberBloc>()..add(LoadSerialNumbers(item.id)),
         child: SerialNumberDialog(
           item: item,
+          canManage: canManage, // ✅ Pass permission
           onUpdated: () {
             context.read<InventoryBloc>().add(RefreshSingleItem(item.id));
             debugPrint('🔄 TABLE: Requesting refresh for item: ${item.id}');

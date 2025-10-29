@@ -1,4 +1,4 @@
-// ✅ data/models/order_model.dart
+// ✅ data/models/order_model.dart (FIXED - NO FOREIGN KEY JOIN)
 import '../../domain/entities/order.dart';
 
 class OrderModel extends Order {
@@ -25,12 +25,16 @@ class OrderModel extends Order {
     super.rejectedAt,
     super.rejectionReason,
     required super.createdBy,
+    super.createdByName,
     required super.createdAt,
     required super.updatedAt,
   });
 
-  // ✅ Convert from JSON (database/API response)
+  // ✅ FIXED: Convert from JSON without foreign key join
   factory OrderModel.fromJson(Map<String, dynamic> json) {
+    // ✅ SIMPLE FIX: Just use the created_by value directly
+    final createdByValue = json['created_by'] as String? ?? 'System';
+
     return OrderModel(
       id: json['id'] ?? '',
       orderNumber: json['order_number'] ?? '',
@@ -38,7 +42,7 @@ class OrderModel extends Order {
             (e) => e.toString().split('.').last == json['status'],
         orElse: () => OrderStatus.draft,
       ),
-      orderType: OrderType.values.firstWhere( // ✅ NEW
+      orderType: OrderType.values.firstWhere(
             (e) => e.toString().split('.').last == json['order_type'],
         orElse: () => OrderType.sell,
       ),
@@ -64,8 +68,6 @@ class OrderModel extends Order {
       securityDeposit: json['security_deposit'] != null
           ? (json['security_deposit'] as num).toDouble()
           : null,
-
-
       approvedBy: json['approved_by'],
       approvedAt: json['approved_at'] != null
           ? DateTime.parse(json['approved_at'])
@@ -75,7 +77,8 @@ class OrderModel extends Order {
           ? DateTime.parse(json['rejected_at'])
           : null,
       rejectionReason: json['rejection_reason'],
-      createdBy: json['created_by'] ?? 'System',
+      createdBy: createdByValue,
+      createdByName: createdByValue, // ✅ FIXED: Use the same text value
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
     );
@@ -84,11 +87,10 @@ class OrderModel extends Order {
   // ✅ Convert to JSON (for database/API requests) - WITHOUT items
   Map<String, dynamic> toJson() {
     return {
-      if (id.isNotEmpty) 'id': id, // Only include if not empty (for updates)
+      if (id.isNotEmpty) 'id': id,
       'order_number': orderNumber,
       'status': status.toString().split('.').last,
       'order_type': orderType.toString().split('.').last,
-      // ✅ Items are handled separately in order_items table
       'customer_name': customerName,
       'customer_email': customerEmail,
       'customer_phone': customerPhone,
@@ -125,12 +127,18 @@ class OrderModel extends Order {
       shippingAddress: entity.shippingAddress,
       notes: entity.notes,
       totalAmount: entity.totalAmount,
+      rentalStartDate: entity.rentalStartDate,
+      rentalEndDate: entity.rentalEndDate,
+      rentalDurationDays: entity.rentalDurationDays,
+      dailyRate: entity.dailyRate,
+      securityDeposit: entity.securityDeposit,
       approvedBy: entity.approvedBy,
       approvedAt: entity.approvedAt,
       rejectedBy: entity.rejectedBy,
       rejectedAt: entity.rejectedAt,
       rejectionReason: entity.rejectionReason,
       createdBy: entity.createdBy,
+      createdByName: entity.createdByName,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );
@@ -164,6 +172,7 @@ class OrderModel extends Order {
       rejectedAt: rejectedAt,
       rejectionReason: rejectionReason,
       createdBy: createdBy,
+      createdByName: createdByName,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

@@ -1,4 +1,5 @@
 // ✅ main.dart (FIXED - BLoCs available globally after auth)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:inventory_system/presentation/blocs/auth/auth_bloc.dart';
@@ -50,8 +51,15 @@ void main() async {
     await windowManager.focus();
   });
 
-  runApp(InventoryManagementApp());
-}
+  runApp(
+    EasyLocalization(
+      supportedLocales: [Locale('en'), Locale('ar')],
+      path: 'assets/translations', // ✅ Translation files path
+      fallbackLocale: Locale('en'),
+      startLocale: Locale('en'), // ✅ Default language
+      child: InventoryManagementApp(),
+    ),
+  );}
 
 class InventoryManagementApp extends StatelessWidget {
   const InventoryManagementApp({super.key});

@@ -1,4 +1,4 @@
-// ✅ data/datasources/auth_remote_data_source.dart (COMPLETE WITH REFRESH SESSION)
+// ✅ data/datasources/auth_remote_data_source.dart (WITH DEFAULT PERMISSIONS FIX!)
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 import '../../core/error/exceptions.dart';
@@ -9,7 +9,7 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> login(String email, String password);
   Future<void> logout();
   Future<UserModel> getCurrentUser();
-  Future<UserModel> refreshSession();  // ✅ Added this line!
+  Future<UserModel> refreshSession();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -46,7 +46,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     return permMap[permString];
   }
 
-  // ✅ Helper method to fetch user data from database (reduces code duplication)
+// ✅ FIXED: Always use default permissions based on role
   Future<UserModel> _fetchUserProfile(String userId) async {
     final userData = await supabaseClient
         .from('users')
@@ -54,33 +54,25 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         .eq('id', userId)
         .single();
 
-    // Parse permissions
-    final List<Permission> permissions = [];
-    if (userData['user_permissions'] != null) {
-      for (var perm in userData['user_permissions'] as List) {
-        final permString = perm['permission'] as String?;
-        if (permString != null) {
-          final permission = _parsePermission(permString);
-          if (permission != null) {
-            permissions.add(permission);
-          } else {
-            debugPrint('⚠️ Unknown permission: $permString');
-          }
-        }
-      }
-    }
-
+    // Parse role FIRST
     final role = UserRole.values.firstWhere(
           (r) => r.name == userData['role'],
       orElse: () => UserRole.viewer,
     );
+
+    // ✅ ALWAYS use default permissions for the role (ignore database)
+    final effectivePermissions = role.defaultPermissions;
+
+    debugPrint('🔍 AUTH DS: User role: ${role.name}');
+    debugPrint('✅ AUTH DS: Using default permissions for role');
+    debugPrint('✅ AUTH DS: Effective permissions: ${effectivePermissions.map((p) => p.name).toList()}');
 
     return UserModel(
       id: userData['id'],
       email: userData['email'],
       name: userData['name'],
       role: role,
-      permissions: permissions,
+      permissions: effectivePermissions, // ✅ Use role defaults
       isActive: userData['is_active'] ?? true,
       createdAt: DateTime.parse(userData['created_at']),
       lastLogin: userData['last_login'] != null
@@ -140,7 +132,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<void> logout() async {
     try {
       debugPrint('🚪 AUTH DS: Logging out...');
-      await supabaseClient.auth.signOut(scope: SignOutScope.global);  // ✅ Use global
+      await supabaseClient.auth.signOut(scope: SignOutScope.global);
       debugPrint('✅ AUTH DS: Logged out successfully');
     } catch (e) {
       debugPrint('❌ AUTH DS: Logout error - $e');

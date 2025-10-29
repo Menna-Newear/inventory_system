@@ -1,0 +1,145 @@
+{
+  "app_title": "Inventory Management System",
+
+  "navigation": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventory",
+    "orders": "Orders",
+    "categories": "Categories",
+    "users": "Users",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+
+  "common": {
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "view": "View",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "refresh": "Refresh",
+    "loading": "Loading...",
+    "no_data": "No data available",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "actions": "Actions"
+  },
+
+  "inventory": {
+    "title": "Inventory Management",
+    "add_item": "Add Item",
+    "edit_item": "Edit Item",
+    "delete_item": "Delete Item",
+    "item_name": "Item Name",
+    "sku": "SKU",
+    "quantity": "Quantity",
+    "price": "Price",
+    "category": "Category",
+    "serial_number": "Serial Number",
+    "serial_tracked": "Serial Tracked",
+    "available_stock": "Available Stock",
+    "total_stock": "Total Stock",
+    "unit_price": "Unit Price",
+    "description": "Description"
+  },
+
+  "orders": {
+    "title": "Orders Management",
+    "create_order": "Create Order",
+    "order_number": "Order Number",
+    "order_type": "Order Type",
+    "customer_info": "Customer Information",
+    "customer_name": "Customer Name",
+    "customer_email": "Customer Email",
+    "customer_phone": "Customer Phone",
+    "shipping_address": "Shipping Address",
+    "total_amount": "Total Amount",
+    "status": "Status",
+    "created_by": "Created By",
+    "created_at": "Created At",
+    "notes": "Notes",
+    "items": "Items",
+    "generate_pdf": "Generate PDF"
+  },
+
+  "order_status": {
+    "draft": "Draft",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "processing": "Processing",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled",
+    "returned": "Returned"
+  },
+
+  "order_type": {
+    "sale": "Sale",
+    "rental": "Rental"
+  },
+
+  "rental": {
+    "title": "Rental Information",
+    "start_date": "Start Date",
+    "end_date": "End Date",
+    "duration": "Duration",
+    "days": "days",
+    "daily_rate": "Daily Rate",
+    "security_deposit": "Security Deposit",
+    "active": "Active",
+    "overdue": "Overdue",
+    "scheduled": "Scheduled",
+    "return_rental": "Return Rental"
+  },
+
+  "categories": {
+    "title": "Categories",
+    "add_category": "Add Category",
+    "category_name": "Category Name"
+  },
+
+  "users": {
+    "title": "Users Management",
+    "add_user": "Add User",
+    "user_name": "User Name",
+    "email": "Email",
+    "role": "Role",
+    "permissions": "Permissions"
+  },
+
+  "auth": {
+    "login": "Login",
+    "email": "Email",
+    "password": "Password",
+    "remember_me": "Remember Me",
+    "forgot_password": "Forgot Password?",
+    "welcome_back": "Welcome Back"
+  },
+
+  "validation": {
+    "required": "This field is required",
+    "invalid_email": "Invalid email address",
+    "min_length": "Minimum length is {length}",
+    "max_length": "Maximum length is {length}"
+  },
+
+  "messages": {
+    "item_added": "Item added successfully",
+    "item_updated": "Item updated successfully",
+    "item_deleted": "Item deleted successfully",
+    "order_created": "Order created successfully",
+    "order_updated": "Order updated successfully",
+    "confirm_delete": "Are you sure you want to delete?",
+    "operation_failed": "Operation failed"
+  }
+}

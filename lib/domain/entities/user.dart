@@ -1,4 +1,4 @@
-// ✅ domain/entities/user.dart
+// ✅ domain/entities/user.dart (WITH CORRECT PERMISSIONS!)
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -70,9 +70,9 @@ enum UserRole {
   @JsonValue('admin')
   admin,        // Full access to everything
   @JsonValue('manager')
-  manager,      // Can manage inventory, orders, and staff
+  manager,      // Can manage inventory, orders, and approve orders
   @JsonValue('staff')
-  staff,        // Can process orders and update inventory
+  staff,        // Can create/edit inventory and orders, but NOT approve
   @JsonValue('viewer')
   viewer,       // Read-only access
 }
@@ -155,53 +155,80 @@ extension UserRoleExtension on UserRole {
       case UserRole.admin:
         return 'Full system access';
       case UserRole.manager:
-        return 'Can manage inventory, orders, and users';
+        return 'Can manage inventory, orders, and approve orders';
       case UserRole.staff:
-        return 'Can process orders and update inventory';
+        return 'Can create and edit inventory and orders';
       case UserRole.viewer:
         return 'Read-only access';
     }
   }
 
-  // ✅ Default permissions for each role
+  // ✅ Default permissions for each role (MATCHING YOUR TABLE EXACTLY!)
   List<Permission> get defaultPermissions {
     switch (this) {
       case UserRole.admin:
-        return Permission.values; // All permissions
+        return Permission.values; // ✅ Admin: ALL permissions
+
       case UserRole.manager:
         return [
+          // ✅ Inventory: view, create, edit, delete, export
           Permission.inventoryView,
           Permission.inventoryCreate,
           Permission.inventoryEdit,
+          Permission.inventoryDelete,
           Permission.inventoryExport,
+          // ✅ Serial: view, manage
           Permission.serialView,
           Permission.serialManage,
+          // ✅ Orders: view, create, edit, delete, confirm, cancel
           Permission.orderView,
           Permission.orderCreate,
           Permission.orderEdit,
+          Permission.orderDelete,
           Permission.orderConfirm,
+          Permission.orderCancel,
+          // ✅ Category: view, manage
           Permission.categoryView,
           Permission.categoryManage,
-          Permission.userView,
+          // ✅ Users: NO ACCESS (only Admin)
+          // ✅ Reports: view, export
           Permission.reportsView,
           Permission.reportsExport,
         ];
+
       case UserRole.staff:
         return [
+          // ✅ Inventory: view, create, edit (NO delete, NO export)
           Permission.inventoryView,
+          Permission.inventoryCreate,
           Permission.inventoryEdit,
+          // ✅ Serial: view, manage
           Permission.serialView,
+          Permission.serialManage,
+          // ✅ Orders: view, create, edit (NO delete, NO confirm, NO cancel)
           Permission.orderView,
           Permission.orderCreate,
           Permission.orderEdit,
+          // ✅ Category: view only (NO manage)
           Permission.categoryView,
+          // ✅ Users: NO ACCESS
+          // ✅ Reports: view only (NO export)
+          Permission.reportsView,
         ];
+
       case UserRole.viewer:
         return [
+          // ✅ Inventory: view only
           Permission.inventoryView,
+          // ✅ Serial: view only (NO manage)
           Permission.serialView,
+          // ✅ Orders: view only
           Permission.orderView,
+          // ✅ Category: view only
           Permission.categoryView,
+          // ✅ Users: NO ACCESS
+          // ✅ Reports: view only
+          Permission.reportsView,
         ];
     }
   }

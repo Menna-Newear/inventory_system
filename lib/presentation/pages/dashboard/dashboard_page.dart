@@ -1,4 +1,4 @@
-// ✅ presentation/pages/dashboard/dashboard_page.dart (WITH AUTH MENU)
+// ✅ presentation/pages/dashboard/dashboard_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/services/stock_management_service.dart';

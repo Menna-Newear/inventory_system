@@ -1,4 +1,4 @@
-// ✅ presentation/widgets/order/orders_data_table.dart
+// ✅ presentation/widgets/order/orders_data_table.dart (WITH CREATOR NAME FIX!)
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/services/pdf_service.dart';
@@ -16,7 +16,6 @@ class OrdersDataTable extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
-
           // ✅ DATA TABLE WITH UPDATED COLUMNS
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -24,13 +23,13 @@ class OrdersDataTable extends StatelessWidget {
               columnSpacing: 20,
               horizontalMargin: 16,
               headingRowHeight: 50,
-              dataRowHeight: 50, // ✅ FIXED ROW HEIGHT
+              dataRowHeight: 50,
               columns: [
                 DataColumn(
                   label: Text('Order #', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
                 DataColumn(
-                  label: Text('Type', style: TextStyle(fontWeight: FontWeight.bold)), // ✅ NEW: Type column
+                  label: Text('Type', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
                 DataColumn(
                   label: Text('Customer', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -49,7 +48,6 @@ class OrdersDataTable extends StatelessWidget {
                 DataColumn(
                   label: Text('Created', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
-                // ✅ NEW: Rental info column (conditional)
                 if (_hasRentalOrders())
                   DataColumn(
                     label: Text('Rental Info', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -76,7 +74,7 @@ class OrdersDataTable extends StatelessWidget {
                     ),
                   ),
 
-                  // ✅ NEW: Order Type (Sell/Rental)
+                  // Order Type (Sell/Rental)
                   DataCell(_buildOrderTypeChip(
                     order.orderType.displayName,
                     null,
@@ -101,7 +99,7 @@ class OrdersDataTable extends StatelessWidget {
                   // Status with Dropdown
                   DataCell(_buildStatusDropdown(context, order)),
 
-                  // Items Count (✅ FIXED)
+                  // Items Count
                   DataCell(
                     Container(
                       width: 80,
@@ -148,7 +146,6 @@ class OrdersDataTable extends StatelessWidget {
                               fontSize: 12,
                             ),
                           ),
-                          // ✅ NEW: Show rental breakdown if applicable
                           if (order.isRental && order.dailyRate != null && order.rentalDurationDays != null)
                             Text(
                               '\$${order.dailyRate!.toStringAsFixed(2)}/day × ${order.rentalDurationDays}d',
@@ -161,7 +158,7 @@ class OrdersDataTable extends StatelessWidget {
                     ),
                   ),
 
-                  // ✅ FIXED: Created Date (NO MORE OVERFLOW)
+                  // ✅ FIXED: Created Date with creator name
                   DataCell(
                     Container(
                       width: 100,
@@ -179,7 +176,7 @@ class OrdersDataTable extends StatelessWidget {
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'by ${order.createdBy}',
+                            'by ${order.createdByName ?? order.createdBy}', // ✅ FIXED LINE 148
                             style: TextStyle(fontSize: 9, color: Colors.grey[600]),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -189,7 +186,7 @@ class OrdersDataTable extends StatelessWidget {
                     ),
                   ),
 
-                  // ✅ NEW: Rental Info (conditional column)
+                  // Rental Info (conditional column)
                   if (_hasRentalOrders())
                     DataCell(_buildRentalInfoCell(order)),
 
@@ -212,7 +209,7 @@ class OrdersDataTable extends StatelessWidget {
                             tooltip: 'View Details',
                             onPressed: () => _viewOrderDetails(context, order),
                           ),
-                          // ✅ NEW: Return rental button (for active rentals)
+                          // Return rental button (for active rentals)
                           if (order.isRental &&
                               order.status == OrderStatus.approved &&
                               !order.isRentalOverdue)
@@ -234,7 +231,6 @@ class OrdersDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ NEW: Order type chip builder
   Widget _buildOrderTypeChip(String label, int? count, Color color,
       {bool showIcon = false, IconData? icon}) {
     return Container(
@@ -264,7 +260,6 @@ class OrdersDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ FIXED: Rental info cell
   Widget _buildRentalInfoCell(Order order) {
     if (!order.isRental) {
       return Container(
@@ -295,7 +290,6 @@ class OrdersDataTable extends StatelessWidget {
               '${order.rentalDurationDays} days',
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.purple[800]),
             ),
-          // ✅ Rental status indicator
           Container(
             padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
             decoration: BoxDecoration(
@@ -316,7 +310,6 @@ class OrdersDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ STATUS DROPDOWN WITH CHANGE FUNCTIONALITY
   Widget _buildStatusDropdown(BuildContext context, Order order) {
     return Container(
       width: 120,
@@ -381,9 +374,7 @@ class OrdersDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ STATUS CHANGE HANDLER
   void _changeOrderStatus(BuildContext context, Order order, OrderStatus newStatus) {
-    // Show confirmation dialog for important status changes
     if (newStatus == OrderStatus.cancelled || newStatus == OrderStatus.rejected) {
       showDialog(
         context: context,
@@ -417,13 +408,11 @@ class OrdersDataTable extends StatelessWidget {
   }
 
   void _updateOrderStatus(BuildContext context, Order order, OrderStatus newStatus) {
-    // ✅ Use the new event with stock management
     context.read<OrderBloc>().add(UpdateOrderStatusEvent(
       orderId: order.id,
       newStatus: newStatus,
     ));
 
-    // ✅ After a delay, refresh just this order
     Future.delayed(Duration(seconds: 2), () {
       if (context.mounted) {
         context.read<OrderBloc>().add(RefreshSingleOrder(order.id));
@@ -470,10 +459,8 @@ class OrdersDataTable extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).pop();
 
-                // ✅ Use new event for rental return
                 context.read<OrderBloc>().add(ReturnRentalEvent(order.id));
 
-                // ✅ Refresh just this order after return
                 Future.delayed(Duration(seconds: 2), () {
                   if (context.mounted) {
                     context.read<OrderBloc>().add(RefreshSingleOrder(order.id));
@@ -495,15 +482,12 @@ class OrdersDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ Updated PDF generation method
   void _generateOrderPDF(BuildContext context, Order order) async {
-    // ✅ CHECK IF WIDGET IS STILL MOUNTED
     if (!context.mounted) return;
 
     try {
       await PDFService.generateOrderPDF(order);
 
-      // ✅ CHECK AGAIN BEFORE SHOWING SNACKBAR
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -513,7 +497,6 @@ class OrdersDataTable extends StatelessWidget {
         );
       }
     } catch (e) {
-      // ✅ CHECK AGAIN BEFORE SHOWING ERROR
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -593,7 +576,7 @@ class OrdersDataTable extends StatelessWidget {
                 if (order.shippingAddress != null)
                   _buildDetailRow('Address:', order.shippingAddress!),
 
-                // ✅ Rental-specific info
+                // Rental-specific info
                 if (order.isRental) ...[
                   SizedBox(height: 16),
                   Divider(),
@@ -634,7 +617,7 @@ class OrdersDataTable extends StatelessWidget {
                 ),
                 SizedBox(height: 12),
 
-                // ✅ UPDATED: Items list with serial numbers
+                // Items list with serial numbers
                 ...order.items.map((item) => Container(
                   margin: EdgeInsets.only(bottom: 12),
                   padding: EdgeInsets.all(12),
@@ -683,7 +666,7 @@ class OrdersDataTable extends StatelessWidget {
                         ],
                       ),
 
-                      // ✅ NEW: Show serial numbers if present
+                      // Show serial numbers if present
                       if (item.serialNumbers != null && item.serialNumbers!.isNotEmpty) ...[
                         SizedBox(height: 12),
                         Container(
@@ -806,7 +789,7 @@ class OrdersDataTable extends StatelessWidget {
 
                 SizedBox(height: 12),
 
-                // Created info
+                // ✅ FIXED: Created info with creator name
                 Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -816,8 +799,10 @@ class OrdersDataTable extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Created by: ${order.createdBy}', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
-                      Text('Date: ${_formatDate(order.createdAt)}', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                      Text('Created by: ${order.createdByName ?? order.createdBy}', // ✅ FIXED LINE 708
+                          style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                      Text('Date: ${_formatDate(order.createdAt)}',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[700])),
                     ],
                   ),
                 ),
@@ -893,7 +878,6 @@ class OrdersDataTable extends StatelessWidget {
     );
   }
 
-  // ✅ HELPER METHODS
   double _calculateTotalRevenue() {
     return orders.fold(0.0, (sum, order) => sum + order.totalAmount);
   }
@@ -916,7 +900,7 @@ class OrdersDataTable extends StatelessWidget {
     if (order.isRentalActive) return Colors.green;
     if (order.isRentalOverdue) return Colors.red;
     if (order.status == OrderStatus.returned) return Colors.blue;
-    return Colors.orange; // Scheduled
+    return Colors.orange;
   }
 
   String _getRentalStatusText(Order order) {
@@ -928,7 +912,6 @@ class OrdersDataTable extends StatelessWidget {
     return 'SCHEDULED';
   }
 
-  // ✅ FIXED: Date formatting (single line to prevent overflow)
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year.toString().substring(2)} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
   }

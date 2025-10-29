@@ -9,14 +9,21 @@ import '../../blocs/serial/serial_number_state.dart';
 class SerialNumberDialog extends StatefulWidget {
   final InventoryItem item;
   final VoidCallback? onUpdated;
+  final bool canManage;
 
-  const SerialNumberDialog({Key? key, required this.item, this.onUpdated}) : super(key: key);
+  const SerialNumberDialog({
+    Key? key,
+    required this.item,
+    this.onUpdated,
+    this.canManage = true,
+  }) : super(key: key);
 
   @override
   State<SerialNumberDialog> createState() => _SerialNumberDialogState();
 }
 
-class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTickerProviderStateMixin {
+class _SerialNumberDialogState extends State<SerialNumberDialog>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _quantityController = TextEditingController();
   final _manualSerialController = TextEditingController();
@@ -27,8 +34,10 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _reloadSerials();
+    _tabController = TabController(
+      length: widget.canManage ? 3 : 1, // ✅ 1 tab for viewers, 3 for managers
+      vsync: this,
+    );    _reloadSerials();
   }
 
   void _reloadSerials() {
@@ -46,22 +55,32 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
             _buildHeader(),
             TabBar(
               controller: _tabController,
-              tabs: [
-                Tab(icon: Icon(Icons.list), text: 'View Serials'),
-                Tab(icon: Icon(Icons.add_circle_outline), text: 'Generate'),
-                Tab(icon: Icon(Icons.edit_note), text: 'Manage'),
-              ],
+              tabs: widget.canManage
+                  ? [
+                      Tab(icon: Icon(Icons.list), text: 'View Serials'),
+                      Tab(
+                        icon: Icon(Icons.add_circle_outline),
+                        text: 'Generate',
+                      ),
+                      Tab(icon: Icon(Icons.edit_note), text: 'Manage'),
+                    ]
+                  : [Tab(icon: Icon(Icons.list), text: 'View Serials')],
             ),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: [
+                children: widget.canManage
+                    ? [
                   _buildViewTab(),
                   _buildAddTab(),
                   _buildManageTab(),
+                ]
+                    : [
+                  _buildViewTab(),
                 ],
               ),
             ),
+
             _buildFooter(),
           ],
         ),
@@ -74,7 +93,12 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.8)],
+          colors: [
+            widget.canManage ? Theme.of(context).primaryColor : Colors.grey,
+            widget.canManage
+                ? Theme.of(context).primaryColor.withOpacity(0.8)
+                : Colors.grey.withOpacity(0.8),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -94,9 +118,51 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Serial Number Management',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    Text(
+                      widget.canManage
+                          ? 'Serial Number Management'
+                          : 'Serial Numbers (View Only)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (!widget.canManage) ...[
+                      SizedBox(width: 8),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.visibility,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'READ ONLY',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 SizedBox(height: 4),
                 Text(
@@ -136,7 +202,13 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
         if (state is SerialNumbersLoaded) {
           var serials = state.serials;
           if (_searchText.isNotEmpty) {
-            serials = serials.where((s) => s.serialNumber.toLowerCase().contains(_searchText.toLowerCase())).toList();
+            serials = serials
+                .where(
+                  (s) => s.serialNumber.toLowerCase().contains(
+                    _searchText.toLowerCase(),
+                  ),
+                )
+                .toList();
           }
           if (_filterStatus != null) {
             serials = serials.where((s) => s.status == _filterStatus).toList();
@@ -154,7 +226,9 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                         decoration: InputDecoration(
                           hintText: 'Search serial numbers...',
                           prefixIcon: Icon(Icons.search),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           filled: true,
                           fillColor: Colors.grey[50],
                         ),
@@ -172,26 +246,32 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                         hint: Text('Filter by Status'),
                         underline: SizedBox(),
                         items: [
-                          DropdownMenuItem(value: null, child: Text('All Statuses')),
-                          ...SerialStatus.values.map((status) => DropdownMenuItem(
-                            value: status,
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    color: _getStatusColor(status),
-                                    shape: BoxShape.circle,
+                          DropdownMenuItem(
+                            value: null,
+                            child: Text('All Statuses'),
+                          ),
+                          ...SerialStatus.values.map(
+                            (status) => DropdownMenuItem(
+                              value: status,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(status),
+                                      shape: BoxShape.circle,
+                                    ),
                                   ),
-                                ),
-                                SizedBox(width: 8),
-                                Text(status.displayName),
-                              ],
+                                  SizedBox(width: 8),
+                                  Text(status.displayName),
+                                ],
+                              ),
                             ),
-                          )),
+                          ),
                         ],
-                        onChanged: (value) => setState(() => _filterStatus = value),
+                        onChanged: (value) =>
+                            setState(() => _filterStatus = value),
                       ),
                     ),
                   ],
@@ -200,22 +280,38 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
               Expanded(
                 child: serials.isEmpty
                     ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.qr_code_scanner, size: 64, color: Colors.grey[400]),
-                      SizedBox(height: 16),
-                      Text('No serial numbers found', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-                      SizedBox(height: 8),
-                      Text('Generate serial numbers in the "Generate" tab', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
-                    ],
-                  ),
-                )
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.qr_code_scanner,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'No serial numbers found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Generate serial numbers in the "Generate" tab',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
                     : ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: serials.length,
-                  itemBuilder: (_, i) => _buildSerialCard(serials[i]),
-                ),
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: serials.length,
+                        itemBuilder: (_, i) => _buildSerialCard(serials[i]),
+                      ),
               ),
             ],
           );
@@ -261,11 +357,18 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.auto_awesome, color: Colors.blue, size: 28),
+                          Icon(
+                            Icons.auto_awesome,
+                            color: Colors.blue,
+                            size: 28,
+                          ),
                           SizedBox(width: 12),
                           Text(
                             'Auto-Generate Serial Numbers',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -282,23 +385,37 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Colors.blue[700],
+                                  size: 20,
+                                ),
                                 SizedBox(width: 8),
                                 Text(
                                   'Serial Number Format',
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[900]),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue[900],
+                                  ),
                                 ),
                               ],
                             ),
                             SizedBox(height: 8),
                             Text(
                               'SKU-000001, SKU-000002, etc.',
-                              style: TextStyle(fontFamily: 'monospace', fontSize: 14, color: Colors.blue[800]),
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 14,
+                                color: Colors.blue[800],
+                              ),
                             ),
                             SizedBox(height: 12),
                             Text(
                               'Current Stock: ${widget.item.stockQuantity} units',
-                              style: TextStyle(fontWeight: FontWeight.w500, color: Colors.blue[900]),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.blue[900],
+                              ),
                             ),
                             Text(
                               'Existing Serials: $currentSerialCount',
@@ -309,7 +426,10 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                                 padding: EdgeInsets.only(top: 8),
                                 child: Text(
                                   'Need ${widget.item.stockQuantity - currentSerialCount} more serial numbers',
-                                  style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Colors.orange[800],
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                           ],
@@ -325,7 +445,9 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                               decoration: InputDecoration(
                                 labelText: 'Quantity to Generate',
                                 hintText: 'Enter number of serials',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 filled: true,
                                 fillColor: Colors.grey[50],
                                 prefixIcon: Icon(Icons.numbers),
@@ -338,10 +460,15 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                             icon: Icon(Icons.auto_awesome),
                             label: Text('Generate'),
                             style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
                               backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ],
@@ -366,7 +493,10 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                           SizedBox(width: 12),
                           Text(
                             'Add Manual Serial Number',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -379,7 +509,9 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                               decoration: InputDecoration(
                                 labelText: 'Serial Number',
                                 hintText: '${widget.item.sku}-XXXXXX',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 filled: true,
                                 fillColor: Colors.grey[50],
                                 prefixIcon: Icon(Icons.qr_code),
@@ -392,10 +524,15 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                             icon: Icon(Icons.add),
                             label: Text('Add'),
                             style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
                               backgroundColor: Colors.green,
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ],
@@ -428,28 +565,43 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                   children: [
                     Text(
                       'Selected: ${_selectedSerials.length}',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     SizedBox(width: 16),
                     ElevatedButton.icon(
-                      onPressed: _selectedSerials.isEmpty ? null : () => _bulkUpdateStatus(SerialStatus.sold),
+                      onPressed: _selectedSerials.isEmpty
+                          ? null
+                          : () => _bulkUpdateStatus(SerialStatus.sold),
                       icon: Icon(Icons.shopping_cart, size: 18),
                       label: Text('Mark Sold'),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                      ),
                     ),
                     SizedBox(width: 8),
                     ElevatedButton.icon(
-                      onPressed: _selectedSerials.isEmpty ? null : () => _bulkUpdateStatus(SerialStatus.damaged),
+                      onPressed: _selectedSerials.isEmpty
+                          ? null
+                          : () => _bulkUpdateStatus(SerialStatus.damaged),
                       icon: Icon(Icons.broken_image, size: 18),
                       label: Text('Mark Damaged'),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
                     ),
                     SizedBox(width: 8),
                     ElevatedButton.icon(
-                      onPressed: _selectedSerials.isEmpty ? null : () => _bulkUpdateStatus(SerialStatus.available),
+                      onPressed: _selectedSerials.isEmpty
+                          ? null
+                          : () => _bulkUpdateStatus(SerialStatus.available),
                       icon: Icon(Icons.refresh, size: 18),
                       label: Text('Reset'),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
                     ),
                   ],
                 ),
@@ -465,11 +617,19 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                         value: isSelected,
                         secondary: CircleAvatar(
                           backgroundColor: _getStatusColor(serial.status),
-                          child: Icon(Icons.qr_code, color: Colors.white, size: 20),
+                          child: Icon(
+                            Icons.qr_code,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                         title: Text(
                           serial.serialNumber,
-                          style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace', fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                            fontSize: 16,
+                          ),
                         ),
                         subtitle: Text('Status: ${serial.status.displayName}'),
                         onChanged: (selected) {
@@ -490,7 +650,9 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
           );
         }
         if (state is SerialNumbersError) {
-          return Center(child: Text(state.message, style: TextStyle(color: Colors.red)));
+          return Center(
+            child: Text(state.message, style: TextStyle(color: Colors.red)),
+          );
         }
         return Center(child: CircularProgressIndicator());
       },
@@ -507,7 +669,11 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
         ),
         title: Text(
           serial.serialNumber,
-          style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace', fontSize: 16),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontFamily: 'monospace',
+            fontSize: 16,
+          ),
         ),
         subtitle: Row(
           children: [
@@ -529,7 +695,8 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
             ),
           ],
         ),
-        trailing: PopupMenuButton(
+        trailing: widget.canManage
+            ? PopupMenuButton(
           icon: Icon(Icons.more_vert),
           itemBuilder: (context) => [
             ...SerialStatus.values.map((status) => PopupMenuItem(
@@ -553,7 +720,9 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
           onSelected: (SerialStatus status) {
             context.read<SerialNumberBloc>().add(BulkUpdateSerialStatus([serial.id], status));
           },
-        ),
+        )
+            : null, // ✅ No menu for viewers
+
       ),
     );
   }
@@ -571,7 +740,8 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
         }
 
         final nextNumber = existingCount + 1;
-        final previewSerial = '${widget.item.sku}-${nextNumber.toString().padLeft(6, '0')}';
+        final previewSerial =
+            '${widget.item.sku}-${nextNumber.toString().padLeft(6, '0')}';
 
         return Container(
           padding: EdgeInsets.all(16),
@@ -593,7 +763,10 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
                   SizedBox(width: 8),
                   Text(
                     'Next Serial Preview',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[900]),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[900],
+                    ),
                   ),
                 ],
               ),
@@ -626,10 +799,16 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
           serials = widget.item.serialNumbers;
         }
 
-        final available = serials.where((s) => s.status == SerialStatus.available).length;
+        final available = serials
+            .where((s) => s.status == SerialStatus.available)
+            .length;
         final sold = serials.where((s) => s.status == SerialStatus.sold).length;
-        final rented = serials.where((s) => s.status == SerialStatus.rented).length;
-        final damaged = serials.where((s) => s.status == SerialStatus.damaged).length;
+        final rented = serials
+            .where((s) => s.status == SerialStatus.rented)
+            .length;
+        final damaged = serials
+            .where((s) => s.status == SerialStatus.damaged)
+            .length;
 
         return Container(
           padding: EdgeInsets.all(20),
@@ -641,13 +820,28 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
             children: [
               _buildStatusChip('Total', serials.length, Colors.grey, Icons.tag),
               SizedBox(width: 8),
-              _buildStatusChip('Available', available, Colors.green, Icons.check_circle),
+              _buildStatusChip(
+                'Available',
+                available,
+                Colors.green,
+                Icons.check_circle,
+              ),
               SizedBox(width: 8),
               _buildStatusChip('Sold', sold, Colors.blue, Icons.shopping_cart),
               SizedBox(width: 8),
-              _buildStatusChip('Rented', rented, Colors.purple, Icons.access_time),
+              _buildStatusChip(
+                'Rented',
+                rented,
+                Colors.purple,
+                Icons.access_time,
+              ),
               SizedBox(width: 8),
-              _buildStatusChip('Damaged', damaged, Colors.red, Icons.broken_image),
+              _buildStatusChip(
+                'Damaged',
+                damaged,
+                Colors.red,
+                Icons.broken_image,
+              ),
               Spacer(),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -720,7 +914,8 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
 
     final serials = List.generate(quantity, (i) {
       final serialNumber = existingCount + i + 1;
-      final formattedSerial = '${widget.item.sku}-${serialNumber.toString().padLeft(6, '0')}';
+      final formattedSerial =
+          '${widget.item.sku}-${serialNumber.toString().padLeft(6, '0')}';
 
       return SerialNumber(
         id: '',
@@ -732,7 +927,9 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
       );
     });
 
-    context.read<SerialNumberBloc>().add(AddSerialNumbers(widget.item.id, serials));
+    context.read<SerialNumberBloc>().add(
+      AddSerialNumbers(widget.item.id, serials),
+    );
     _quantityController.clear();
   }
 
@@ -752,12 +949,16 @@ class _SerialNumberDialogState extends State<SerialNumberDialog> with SingleTick
       updatedAt: DateTime.now(),
     );
 
-    context.read<SerialNumberBloc>().add(AddSerialNumbers(widget.item.id, [serial]));
+    context.read<SerialNumberBloc>().add(
+      AddSerialNumbers(widget.item.id, [serial]),
+    );
     _manualSerialController.clear();
   }
 
   void _bulkUpdateStatus(SerialStatus status) {
-    context.read<SerialNumberBloc>().add(BulkUpdateSerialStatus(_selectedSerials, status));
+    context.read<SerialNumberBloc>().add(
+      BulkUpdateSerialStatus(_selectedSerials, status),
+    );
     setState(() => _selectedSerials.clear());
   }
 

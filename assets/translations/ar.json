@@ -1,0 +1,145 @@
+{
+  "app_title": "نظام إدارة المخزون",
+
+  "navigation": {
+    "dashboard": "لوحة التحكم",
+    "inventory": "المخزون",
+    "orders": "الطلبات",
+    "categories": "الفئات",
+    "users": "المستخدمون",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج"
+  },
+
+  "common": {
+    "add": "إضافة",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "view": "عرض",
+    "search": "بحث",
+    "filter": "تصفية",
+    "export": "تصدير",
+    "import": "استيراد",
+    "refresh": "تحديث",
+    "loading": "جارٍ التحميل...",
+    "no_data": "لا توجد بيانات",
+    "error": "خطأ",
+    "success": "نجاح",
+    "confirm": "تأكيد",
+    "yes": "نعم",
+    "no": "لا",
+    "actions": "الإجراءات"
+  },
+
+  "inventory": {
+    "title": "إدارة المخزون",
+    "add_item": "إضافة عنصر",
+    "edit_item": "تعديل عنصر",
+    "delete_item": "حذف عنصر",
+    "item_name": "اسم العنصر",
+    "sku": "رمز التخزين",
+    "quantity": "الكمية",
+    "price": "السعر",
+    "category": "الفئة",
+    "serial_number": "الرقم التسلسلي",
+    "serial_tracked": "مُتتبع بالرقم التسلسلي",
+    "available_stock": "المخزون المتاح",
+    "total_stock": "المخزون الإجمالي",
+    "unit_price": "سعر الوحدة",
+    "description": "الوصف"
+  },
+
+  "orders": {
+    "title": "إدارة الطلبات",
+    "create_order": "إنشاء طلب",
+    "order_number": "رقم الطلب",
+    "order_type": "نوع الطلب",
+    "customer_info": "معلومات العميل",
+    "customer_name": "اسم العميل",
+    "customer_email": "البريد الإلكتروني",
+    "customer_phone": "رقم الهاتف",
+    "shipping_address": "عنوان الشحن",
+    "total_amount": "المبلغ الإجمالي",
+    "status": "الحالة",
+    "created_by": "أنشأ بواسطة",
+    "created_at": "تاريخ الإنشاء",
+    "notes": "ملاحظات",
+    "items": "العناصر",
+    "generate_pdf": "إنشاء PDF"
+  },
+
+  "order_status": {
+    "draft": "مسودة",
+    "pending": "قيد الانتظار",
+    "approved": "معتمد",
+    "rejected": "مرفوض",
+    "processing": "قيد المعالجة",
+    "shipped": "تم الشحن",
+    "delivered": "تم التسليم",
+    "cancelled": "ملغى",
+    "returned": "مُرتجع"
+  },
+
+  "order_type": {
+    "sale": "بيع",
+    "rental": "إيجار"
+  },
+
+  "rental": {
+    "title": "معلومات الإيجار",
+    "start_date": "تاريخ البداية",
+    "end_date": "تاريخ النهاية",
+    "duration": "المدة",
+    "days": "أيام",
+    "daily_rate": "السعر اليومي",
+    "security_deposit": "التأمين",
+    "active": "نشط",
+    "overdue": "متأخر",
+    "scheduled": "مجدول",
+    "return_rental": "إرجاع الإيجار"
+  },
+
+  "categories": {
+    "title": "الفئات",
+    "add_category": "إضافة فئة",
+    "category_name": "اسم الفئة"
+  },
+
+  "users": {
+    "title": "إدارة المستخدمين",
+    "add_user": "إضافة مستخدم",
+    "user_name": "اسم المستخدم",
+    "email": "البريد الإلكتروني",
+    "role": "الدور",
+    "permissions": "الصلاحيات"
+  },
+
+  "auth": {
+    "login": "تسجيل الدخول",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "remember_me": "تذكرني",
+    "forgot_password": "نسيت كلمة المرور؟",
+    "welcome_back": "مرحباً بعودتك"
+  },
+
+  "validation": {
+    "required": "هذا الحقل مطلوب",
+    "invalid_email": "عنوان بريد إلكتروني غير صالح",
+    "min_length": "الحد الأدنى للطول هو {length}",
+    "max_length": "الحد الأقصى للطول هو {length}"
+  },
+
+  "messages": {
+    "item_added": "تمت إضافة العنصر بنجاح",
+    "item_updated": "تم تحديث العنصر بنجاح",
+    "item_deleted": "تم حذف العنصر بنجاح",
+    "order_created": "تم إنشاء الطلب بنجاح",
+    "order_updated": "تم تحديث الطلب بنجاح",
+    "confirm_delete": "هل أنت متأكد من الحذف؟",
+    "operation_failed": "فشلت العملية"
+  }
+}

@@ -1,4 +1,4 @@
-// ✅ presentation/blocs/order/order_bloc.dart (WITH PERMISSIONS!)
+// ✅ presentation/blocs/order/order_bloc.dart (FULLY FIXED PERMISSIONS!)
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/user.dart';
 import '../../../domain/usecases/get_orders.dart';
@@ -50,10 +50,10 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<UpdateOrderStatusEvent>(_onUpdateOrderStatus);
     on<ReturnRentalEvent>(_onReturnRental);
     on<RefreshSingleOrder>(_onRefreshSingleOrder);
-    on<SetCurrentUser>(_onSetCurrentUser); // ✅ New event
+    on<SetCurrentUser>(_onSetCurrentUser);
   }
 
-  // ✅ New event handler to set current user
+  // ✅ Event handler to set current user
   void _onSetCurrentUser(SetCurrentUser event, Emitter<OrderState> emit) {
     _currentUser = event.user;
     print('👤 ORDER BLOC: Current user set: ${_currentUser?.name} (${_currentUser?.role.displayName})');
@@ -71,7 +71,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onLoadOrders(LoadOrders event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Loading orders...');
 
-    // ✅ Check permission
     if (!_hasPermission(Permission.orderView)) {
       emit(OrderError('You don\'t have permission to view orders'));
       return;
@@ -95,7 +94,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onCreateOrder(CreateOrderEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Creating order...');
 
-    // ✅ Check permission
     if (!_hasPermission(Permission.orderCreate)) {
       emit(OrderError('You don\'t have permission to create orders'));
       return;
@@ -121,7 +119,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onUpdateOrder(UpdateOrderEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Updating order ${event.order.orderNumber}...');
 
-    // ✅ Check permission
     if (!_hasPermission(Permission.orderEdit)) {
       emit(OrderError('You don\'t have permission to edit orders'));
       return;
@@ -149,7 +146,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onDeleteOrder(DeleteOrderEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Deleting order ${event.orderId}...');
 
-    // ✅ Check permission
     if (!_hasPermission(Permission.orderDelete)) {
       emit(OrderError('You don\'t have permission to delete orders'));
       return;
@@ -177,7 +173,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onApproveOrder(ApproveOrderEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Approving order ${event.orderId}...');
 
-    // ✅ Check permission
     if (!_hasPermission(Permission.orderConfirm)) {
       emit(OrderError('You don\'t have permission to approve orders'));
       return;
@@ -209,7 +204,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onRejectOrder(RejectOrderEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Rejecting order ${event.orderId}...');
 
-    // ✅ Check permission
     if (!_hasPermission(Permission.orderCancel)) {
       emit(OrderError('You don\'t have permission to reject orders'));
       return;
@@ -241,7 +235,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onSearchOrders(SearchOrdersEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Searching orders with query: "${event.query}"');
 
-    // ✅ Search is allowed (read-only), but need to view permission
     if (!_hasPermission(Permission.orderView)) {
       emit(OrderError('You don\'t have permission to view orders'));
       return;
@@ -275,7 +268,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onFilterOrders(FilterOrdersEvent event, Emitter<OrderState> emit) async {
     print('🔍 ORDER BLOC: Filtering orders with ${event.filters.length} filters');
 
-    // ✅ Filter is allowed (read-only), but need to view permission
     if (!_hasPermission(Permission.orderView)) {
       emit(OrderError('You don\'t have permission to view orders'));
       return;
@@ -314,8 +306,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     print('🔍 ORDER BLOC: Event received - Order ID: ${event.orderId}');
     print('🔍 ORDER BLOC: New Status: ${event.newStatus}');
 
-    // ✅ Check permission - status changes require edit or confirm permission
-    if (!_hasPermission(Permission.orderEdit) && !_hasPermission(Permission.orderConfirm)) {
+    // ✅ FIXED: Status changes require CONFIRM permission ONLY
+    if (!_hasPermission(Permission.orderConfirm)) {
       emit(OrderError('You don\'t have permission to change order status'));
       return;
     }
@@ -382,8 +374,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     print('🔍 ORDER BLOC: ===== STARTING RENTAL RETURN =====');
     print('🔍 ORDER BLOC: Rental ID: ${event.orderId}');
 
-    // ✅ Check permission - returning rental requires edit or confirm permission
-    if (!_hasPermission(Permission.orderEdit) && !_hasPermission(Permission.orderConfirm)) {
+    // ✅ FIXED: Returning rentals requires CONFIRM permission ONLY
+    if (!_hasPermission(Permission.orderConfirm)) {
       emit(OrderError('You don\'t have permission to return rentals'));
       return;
     }

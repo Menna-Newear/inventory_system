@@ -56,6 +56,11 @@ class _InventoryTabState extends State<InventoryTab> {
   Widget _buildActionBar(User? currentUser) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    print('🔍 DEBUG: Current user: ${currentUser?.name}');
+    print('🔍 DEBUG: Role: ${currentUser?.role.displayName}');
+    print('🔍 DEBUG: Permissions: ${currentUser?.permissions.map((p) => p.name).toList()}');
+    print('🔍 DEBUG: Has inventoryCreate? ${currentUser?.hasPermission(Permission.inventoryCreate)}');
+    print('🔍 DEBUG: Has serialManage? ${currentUser?.hasPermission(Permission.serialManage)}');
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
