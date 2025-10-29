@@ -1,4 +1,4 @@
-// ✅ injection_container.dart (OPTIMIZED ORDER FOR CACHING)
+// ✅ injection_container.dart (FIXED)
 import 'package:get_it/get_it.dart';
 import 'package:inventory_system/presentation/blocs/category/category_bloc.dart';
 import 'package:inventory_system/presentation/blocs/order/order_bloc.dart';
@@ -9,29 +9,61 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 // Core
 import 'core/network/network_info.dart';
 
-// Data Sources
+// ===================================
+// DATA SOURCES
+// ===================================
 import 'data/datasources/category_remote_datasource.dart';
 import 'data/datasources/inventory_local_datasource.dart';
 import 'data/datasources/inventory_remote_datasource.dart';
 import 'data/datasources/order_remote_datasource.dart';
+import 'data/datasources/auth_remote_data_source.dart';
+import 'data/datasources/user_remote_data_source.dart';
 
-// Repositories
+// ===================================
+// REPOSITORIES
+// ===================================
 import 'data/repositories/category_repository_impl.dart';
 import 'data/repositories/inventory_repository_impl.dart';
 import 'data/repositories/order_repository_impl.dart';
+import 'data/repositories/auth_repository_impl.dart';
+import 'data/repositories/user_repository_impl.dart';
 
-// Services
+// ===================================
+// SERVICES
+// ===================================
 import 'data/services/barcode_service.dart';
 import 'data/services/import_export_service.dart';
 import 'data/services/serial_number_cache_service.dart';
 import 'data/services/stock_management_service.dart';
 
-// Domain Repositories
+// ===================================
+// DOMAIN REPOSITORIES
+// ===================================
 import 'domain/repositories/category_repository.dart';
 import 'domain/repositories/inventory_repository.dart';
 import 'domain/repositories/order_repository.dart';
+import 'domain/repositories/auth_repository.dart';
+import 'domain/repositories/user_repository.dart';
 
-// Use cases with aliases
+// ===================================
+// USE CASES - AUTH
+// ===================================
+import 'domain/usecases/auth/login.dart';
+import 'domain/usecases/auth/logout.dart';
+import 'domain/usecases/auth/get_current_user.dart';
+
+// ===================================
+// USE CASES - USER MANAGEMENT
+// ===================================
+import 'domain/usecases/user/create_user.dart';
+import 'domain/usecases/user/get_all_users.dart';
+import 'domain/usecases/user/delete_user.dart';
+import 'domain/usecases/user/update_user.dart' as update_user_usecase;
+import 'domain/usecases/user/update_user_password.dart';
+
+// ===================================
+// USE CASES - INVENTORY & ORDERS
+// ===================================
 import 'domain/usecases/add_serial_usecase.dart' as add_serial_usecase;
 import 'domain/usecases/approve_order.dart' as approve_order_usecase;
 import 'domain/usecases/create_category.dart' as create_category_usecase;
@@ -50,24 +82,33 @@ import 'domain/usecases/search_inventory_items.dart' as search_items_usecase;
 import 'domain/usecases/filter_inventory_items.dart' as filter_items_usecase;
 import 'domain/usecases/update_order.dart' as update_order_usecase;
 
-// Blocs
+// ===================================
+// BLOCS
+// ===================================
 import 'presentation/blocs/inventory/inventory_bloc.dart';
 import 'presentation/blocs/serial/serial_number_bloc.dart';
-
+import 'presentation/blocs/auth/auth_bloc.dart';
 
 final getIt = GetIt.instance;
 
 Future<void> init() async {
-  //! EXTERNAL DEPENDENCIES ==========
+  // ===================================
+  // EXTERNAL DEPENDENCIES
+  // ===================================
   final sharedPreferences = await SharedPreferences.getInstance();
   getIt.registerLazySingleton(() => sharedPreferences);
   getIt.registerLazySingleton(() => Supabase.instance.client);
   getIt.registerLazySingleton(() => Connectivity());
+  getIt.registerLazySingleton(() => CreateUser(getIt()));
 
-  //! CORE ==========
+  // ===================================
+  // CORE
+  // ===================================
   getIt.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(getIt()));
 
-  //! DATA SOURCES ==========
+  // ===================================
+  // DATA SOURCES
+  // ===================================
   getIt.registerLazySingleton<InventoryLocalDataSource>(
         () => InventoryLocalDataSourceImpl(sharedPreferences: getIt()),
   );
@@ -80,31 +121,47 @@ Future<void> init() async {
   getIt.registerLazySingleton<OrderRemoteDataSource>(
         () => OrderRemoteDataSourceImpl(supabase: getIt()),
   );
+  getIt.registerLazySingleton<AuthRemoteDataSource>(
+        () => AuthRemoteDataSourceImpl(getIt()),
+  );
+  getIt.registerLazySingleton<UserRemoteDataSource>(
+        () => UserRemoteDataSourceImpl(getIt()),
+  );
 
-  //! CACHE SERVICES ========== (✅ MUST BE REGISTERED BEFORE REPOSITORIES)
+  // ===================================
+  // CACHE SERVICES
+  // ===================================
   getIt.registerLazySingleton<SerialNumberCacheService>(
         () => SerialNumberCacheService(getIt<SharedPreferences>()),
   );
 
-  //! REPOSITORIES ==========
+  // ===================================
+  // REPOSITORIES
+  // ===================================
+  getIt.registerLazySingleton<AuthRepository>(
+        () => AuthRepositoryImpl(remoteDataSource: getIt()),
+  );
+  getIt.registerLazySingleton<UserRepository>(
+        () => UserRepositoryImpl(remoteDataSource: getIt()),
+  );
   getIt.registerLazySingleton<CategoryRepository>(
         () => CategoryRepositoryImpl(remoteDataSource: getIt()),
   );
-
   getIt.registerLazySingleton<InventoryRepository>(
         () => InventoryRepositoryImpl(
       remoteDataSource: getIt(),
       localDataSource: getIt(),
-      cacheService: getIt(), // ✅ Now available
+      cacheService: getIt(),
       networkInfo: getIt(),
     ),
   );
 
-  //! OTHER SERVICES ==========
+  // ===================================
+  // SERVICES
+  // ===================================
   getIt.registerLazySingleton<StockManagementService>(
         () => StockManagementService(inventoryRepository: getIt()),
   );
-
   getIt.registerLazySingleton<OrderRepository>(
         () => OrderRepositoryImpl(
       remoteDataSource: getIt(),
@@ -112,16 +169,23 @@ Future<void> init() async {
       stockManagementService: getIt(),
     ),
   );
-
   getIt.registerLazySingleton<ImportExportService>(
         () => ImportExportService(
       getCategories: getIt<get_categories_usecase.GetCategories>(),
     ),
   );
-
   getIt.registerLazySingleton<BarcodeService>(() => BarcodeService());
 
-  //! USE CASES ==========
+  // ===================================
+  // USE CASES
+  // ===================================
+  getIt.registerLazySingleton(() => Login(getIt()));
+  getIt.registerLazySingleton(() => Logout(getIt()));
+  getIt.registerLazySingleton(() => GetCurrentUser(getIt()));
+  getIt.registerLazySingleton(() => GetAllUsers(getIt()));
+  getIt.registerLazySingleton(() => update_user_usecase.UpdateUser(getIt()));
+  getIt.registerLazySingleton(() => DeleteUser(getIt()));
+  getIt.registerLazySingleton(() => UpdateUserPassword(getIt()));
   getIt.registerLazySingleton(() => get_categories_usecase.GetCategories(getIt()));
   getIt.registerLazySingleton(() => create_category_usecase.CreateCategory(getIt()));
   getIt.registerLazySingleton(() => get_items_usecase.GetInventoryItems(getIt()));
@@ -140,7 +204,21 @@ Future<void> init() async {
   getIt.registerLazySingleton(() => filter_orders_usecase.FilterOrders(getIt()));
   getIt.registerLazySingleton(() => add_serial_usecase.AddSerialNumbers(getIt()));
 
-  //! BLOCS ==========
+  // ===================================
+  // BLOCS
+  // ===================================
+  getIt.registerLazySingleton<AuthBloc>(
+        () => AuthBloc(
+      loginUseCase: getIt(),
+      logoutUseCase: getIt(),
+      getCurrentUserUseCase: getIt(),
+      getAllUsersUseCase: getIt(),
+      updateUserUseCase: getIt(),
+      deleteUserUseCase: getIt(),
+      updateUserPasswordUseCase: getIt(), createUserUseCase: getIt(),
+    ),
+  );
+
   getIt.registerFactory(
         () => InventoryBloc(
       getInventoryItems: getIt(),
@@ -175,7 +253,8 @@ Future<void> init() async {
 
   getIt.registerFactory(
         () => SerialNumberBloc(
-      addSerialNumbersUseCase: getIt<add_serial_usecase.AddSerialNumbers>(),
+          supabaseClient: getIt<SupabaseClient>(),  // ✅ ADD THIS
+          addSerialNumbersUseCase: getIt<add_serial_usecase.AddSerialNumbers>(),
       inventoryRepository: getIt<InventoryRepository>(),
       cacheService: getIt<SerialNumberCacheService>(),
     ),

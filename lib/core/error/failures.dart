@@ -1,4 +1,4 @@
-// core/error/failures.dart
+// ✅ core/error/failures.dart (ENHANCED WITH AUTH FAILURES)
 import 'package:equatable/equatable.dart';
 
 abstract class Failure extends Equatable {
@@ -43,6 +43,47 @@ class UnknownFailure extends Failure {
 }
 
 // ===================================
+// ✅ NEW: AUTH-SPECIFIC FAILURES
+// ===================================
+
+class AuthFailure extends Failure {
+  final String? code;
+
+  const AuthFailure(String message, {this.code}) : super(message);
+
+  @override
+  List<Object> get props => code != null ? [message, code!] : [message];  // ✅ CORRECT
+}
+
+class UnauthorizedFailure extends Failure {
+  const UnauthorizedFailure(String message) : super(message);
+}
+
+class PermissionDeniedFailure extends Failure {
+  const PermissionDeniedFailure(String message) : super(message);
+}
+
+class SessionExpiredFailure extends Failure {
+  const SessionExpiredFailure(String message) : super(message);
+}
+
+class InvalidCredentialsFailure extends Failure {
+  const InvalidCredentialsFailure(String message) : super(message);
+}
+
+class UserNotFoundFailure extends Failure {
+  const UserNotFoundFailure(String message) : super(message);
+}
+
+class UserAlreadyExistsFailure extends Failure {
+  const UserAlreadyExistsFailure(String message) : super(message);
+}
+
+class WeakPasswordFailure extends Failure {
+  const WeakPasswordFailure(String message) : super(message);
+}
+
+// ===================================
 // INVENTORY-SPECIFIC FAILURES
 // ===================================
 
@@ -66,22 +107,18 @@ class InvalidOperationFailure extends Failure {
 // CATEGORY-SPECIFIC FAILURES
 // ===================================
 
-/// Thrown when attempting to create a category with a name that already exists
 class DuplicateNameFailure extends Failure {
   const DuplicateNameFailure(String message) : super(message);
 }
 
-/// Thrown when attempting to access a category that doesn't exist
 class CategoryNotFoundFailure extends Failure {
   const CategoryNotFoundFailure(String message) : super(message);
 }
 
-/// Thrown when attempting to delete a category that is still being used by inventory items
 class CategoryInUseFailure extends Failure {
   const CategoryInUseFailure(String message) : super(message);
 }
 
-/// Thrown when category operation violates business rules
 class CategoryConstraintFailure extends Failure {
   const CategoryConstraintFailure(String message) : super(message);
 }
@@ -90,17 +127,14 @@ class CategoryConstraintFailure extends Failure {
 // FILE/MEDIA FAILURES
 // ===================================
 
-/// Thrown when file upload operations fail
 class FileUploadFailure extends Failure {
   const FileUploadFailure(String message) : super(message);
 }
 
-/// Thrown when file is too large or invalid format
 class InvalidFileFailure extends Failure {
   const InvalidFileFailure(String message) : super(message);
 }
 
-/// Thrown when file download operations fail
 class FileDownloadFailure extends Failure {
   const FileDownloadFailure(String message) : super(message);
 }
@@ -109,17 +143,14 @@ class FileDownloadFailure extends Failure {
 // IMPORT/EXPORT FAILURES
 // ===================================
 
-/// Thrown when CSV import operations fail
 class ImportFailure extends Failure {
   const ImportFailure(String message) : super(message);
 }
 
-/// Thrown when export operations fail
 class ExportFailure extends Failure {
   const ExportFailure(String message) : super(message);
 }
 
-/// Thrown when file format is not supported
 class UnsupportedFormatFailure extends Failure {
   const UnsupportedFormatFailure(String message) : super(message);
 }
@@ -128,17 +159,14 @@ class UnsupportedFormatFailure extends Failure {
 // QR CODE FAILURES
 // ===================================
 
-/// Thrown when QR code generation fails
 class QrCodeGenerationFailure extends Failure {
   const QrCodeGenerationFailure(String message) : super(message);
 }
 
-/// Thrown when QR code scanning fails
 class QrCodeScanFailure extends Failure {
   const QrCodeScanFailure(String message) : super(message);
 }
 
-/// Thrown when QR code data is invalid or corrupted
 class InvalidQrDataFailure extends Failure {
   const InvalidQrDataFailure(String message) : super(message);
 }
@@ -147,12 +175,10 @@ class InvalidQrDataFailure extends Failure {
 // SEARCH/FILTER FAILURES
 // ===================================
 
-/// Thrown when search operations fail
 class SearchFailure extends Failure {
   const SearchFailure(String message) : super(message);
 }
 
-/// Thrown when filter operations fail
 class FilterFailure extends Failure {
   const FilterFailure(String message) : super(message);
 }
@@ -161,17 +187,14 @@ class FilterFailure extends Failure {
 // BUSINESS RULE FAILURES
 // ===================================
 
-/// Thrown when business rules are violated
 class BusinessRuleFailure extends Failure {
   const BusinessRuleFailure(String message) : super(message);
 }
 
-/// Thrown when data constraints are violated
 class DataConstraintFailure extends Failure {
   const DataConstraintFailure(String message) : super(message);
 }
 
-/// Thrown when concurrent modification occurs
 class ConcurrencyFailure extends Failure {
   const ConcurrencyFailure(String message) : super(message);
 }
@@ -180,7 +203,6 @@ class ConcurrencyFailure extends Failure {
 // HELPER EXTENSIONS
 // ===================================
 
-/// Extension to provide user-friendly error messages
 extension FailureExtension on Failure {
   String get userFriendlyMessage {
     switch (runtimeType) {
@@ -193,7 +215,21 @@ extension FailureExtension on Failure {
       case ValidationFailure:
         return 'Please check your input and try again.';
       case AuthenticationFailure:
-        return 'Authentication failed. Please log in again.';
+      case AuthFailure:
+      case InvalidCredentialsFailure:
+        return 'Authentication failed. Please check your credentials.';
+      case UnauthorizedFailure:
+      case SessionExpiredFailure:
+        return 'Your session has expired. Please log in again.';
+      case PermissionDeniedFailure:
+      case PermissionFailure:
+        return 'You don\'t have permission to perform this action.';
+      case UserNotFoundFailure:
+        return 'User not found. Please check the information.';
+      case UserAlreadyExistsFailure:
+        return 'A user with this email already exists.';
+      case WeakPasswordFailure:
+        return 'Password is too weak. Please use a stronger password.';
       case ItemNotFoundFailure:
         return 'The requested item could not be found.';
       case DuplicateSkuFailure:
@@ -216,17 +252,30 @@ extension FailureExtension on Failure {
   String get logMessage => '${runtimeType}: $message';
 
   bool get isNetworkRelated =>
-      this is NetworkFailure ||
-          this is ServerFailure;
+      this is NetworkFailure || this is ServerFailure;
+
+  bool get isAuthRelated =>
+      this is AuthenticationFailure ||
+          this is AuthFailure ||
+          this is UnauthorizedFailure ||
+          this is PermissionDeniedFailure ||
+          this is SessionExpiredFailure ||
+          this is InvalidCredentialsFailure;
 
   bool get isUserActionable =>
       this is ValidationFailure ||
           this is DuplicateSkuFailure ||
           this is DuplicateNameFailure ||
-          this is CategoryInUseFailure;
+          this is CategoryInUseFailure ||
+          this is WeakPasswordFailure ||
+          this is UserAlreadyExistsFailure;
 
   bool get requiresRetry =>
       this is NetworkFailure ||
           this is ServerFailure ||
           this is CacheFailure;
+
+  bool get requiresReauth =>
+      this is UnauthorizedFailure ||
+          this is SessionExpiredFailure;
 }

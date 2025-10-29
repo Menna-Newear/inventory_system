@@ -1,4 +1,4 @@
-// domain/entities/inventory_item.dart
+// ✅ domain/entities/inventory_item.dart
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -38,7 +38,6 @@ class InventoryItem extends Equatable {
   final DateTime updatedAt;
   final String? comment;
 
-  // ✅ NEW - Serial Number Tracking Fields
   @JsonKey(name: 'is_serial_tracked', defaultValue: false)
   final bool isSerialTracked;
   @JsonKey(name: 'serial_number_prefix')
@@ -69,7 +68,6 @@ class InventoryItem extends Equatable {
     required this.createdAt,
     required this.updatedAt,
     this.comment,
-    // ✅ NEW - Serial tracking fields with defaults
     this.isSerialTracked = false,
     this.serialNumberPrefix,
     this.serialNumberLength,
@@ -77,13 +75,12 @@ class InventoryItem extends Equatable {
     this.serialNumbers = const [],
   });
 
-  // ✅ JSON serialization methods
   factory InventoryItem.fromJson(Map<String, dynamic> json) =>
       _$InventoryItemFromJson(json);
 
   Map<String, dynamic> toJson() => _$InventoryItemToJson(this);
 
-  // ✅ EXISTING - Your original getters
+  // ✅ ORIGINAL GETTERS
   bool get isLowStock => stockQuantity <= minStockLevel;
   double get totalValue => (unitPrice ?? 0.0) * stockQuantity;
   bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
@@ -93,38 +90,82 @@ class InventoryItem extends Equatable {
       ? '\$${unitPrice!.toStringAsFixed(2)}'
       : 'Price not set';
 
-  // ✅ NEW - Serial number calculated properties
-  int get availableStock => serialNumbers.where((s) => s.status == SerialStatus.available).length;
-  int get reservedStock => serialNumbers.where((s) => s.status == SerialStatus.reserved).length;
-  int get soldStock => serialNumbers.where((s) => s.status == SerialStatus.sold).length;
-  int get damagedStock => serialNumbers.where((s) => s.status == SerialStatus.damaged).length;
-  int get totalSerialCount => serialNumbers.length;
-
-  // ✅ NEW - Get effective stock quantity
-  int get effectiveStockQuantity {
-    if (isSerialTracked) {
-      return availableStock; // For serialized items, use available serial count
+  // ✅ FIXED: Smart availableStock - handles when serials aren't loaded
+  int get availableStock {
+    if (!isSerialTracked) {
+      return stockQuantity;
     }
-    return stockQuantity; // For regular items, use stock quantity
+
+    // ✅ If serials aren't loaded (empty list), return stockQuantity as fallback
+    if (serialNumbers.isEmpty) {
+      return stockQuantity;
+    }
+
+    // If serials are loaded, count available ones
+    return serialNumbers
+        .where((s) => s.status == SerialStatus.available)
+        .length;
   }
 
-  // ✅ NEW - Enhanced low stock check for serial tracked items
+  // ✅ FIXED: Other stock properties with null safety
+  int get reservedStock {
+    if (!isSerialTracked || serialNumbers.isEmpty) return 0;
+    return serialNumbers
+        .where((s) => s.status == SerialStatus.reserved)
+        .length;
+  }
+
+  int get soldStock {
+    if (!isSerialTracked || serialNumbers.isEmpty) return 0;
+    return serialNumbers
+        .where((s) => s.status == SerialStatus.sold)
+        .length;
+  }
+
+  int get damagedStock {
+    if (!isSerialTracked || serialNumbers.isEmpty) return 0;
+    return serialNumbers
+        .where((s) => s.status == SerialStatus.damaged)
+        .length;
+  }
+
+  int get totalSerialCount => serialNumbers.length;
+
+  // ✅ FIXED: Smart effectiveStockQuantity
+  int get effectiveStockQuantity {
+    if (isSerialTracked) {
+      // If serials aren't loaded, use stockQuantity
+      if (serialNumbers.isEmpty) {
+        return stockQuantity;
+      }
+      return availableStock;
+    }
+    return stockQuantity;
+  }
+
+  // ✅ FIXED: Smart needsRestock - handles when serials aren't loaded
   bool get needsRestock {
     if (isSerialTracked) {
+      // If serials aren't loaded (empty list), use stockQuantity as fallback
+      if (serialNumbers.isEmpty) {
+        return stockQuantity <= minStockLevel;
+      }
+      // If serials are loaded, check availableStock
       return availableStock <= minStockLevel;
     }
+    // For non-serial items, always use stockQuantity
     return stockQuantity <= minStockLevel;
   }
 
-  // ✅ NEW - Generate barcode data with optional serial number
+  // ✅ Generate barcode data with optional serial number
   String getBarcodeData({String? serialNumber}) {
     if (serialNumber != null && isSerialTracked) {
-      return '$sku-$serialNumber'; // Combined format: SKU-SERIAL
+      return '$sku-$serialNumber';
     }
-    return sku; // Standard SKU-only barcode
+    return sku;
   }
 
-  // ✅ NEW - Generate next serial number
+  // ✅ Generate next serial number
   String generateNextSerialNumber() {
     if (!isSerialTracked) {
       throw Exception('Item is not serial tracked');
@@ -133,31 +174,26 @@ class InventoryItem extends Equatable {
     String prefix = serialNumberPrefix ?? '';
     int length = serialNumberLength ?? 6;
 
-    // Find the highest existing serial number
     int maxNumber = 0;
     for (final serial in serialNumbers) {
       String numberPart = serial.serialNumber;
 
-      // Remove prefix if it exists
       if (prefix.isNotEmpty && numberPart.startsWith(prefix)) {
         numberPart = numberPart.substring(prefix.length);
       }
 
-      // Extract numeric part based on format
       int currentNumber = 0;
       switch (serialFormat) {
         case SerialNumberFormat.numeric:
           currentNumber = int.tryParse(numberPart) ?? 0;
           break;
         case SerialNumberFormat.alphanumeric:
-        // Extract numeric part from alphanumeric (simple approach)
           final match = RegExp(r'\d+').firstMatch(numberPart);
           if (match != null) {
             currentNumber = int.tryParse(match.group(0)!) ?? 0;
           }
           break;
         case SerialNumberFormat.custom:
-        // Custom format - try to extract number
           final match = RegExp(r'\d+').firstMatch(numberPart);
           if (match != null) {
             currentNumber = int.tryParse(match.group(0)!) ?? 0;
@@ -170,21 +206,17 @@ class InventoryItem extends Equatable {
       }
     }
 
-    // Generate next number
     int nextNumber = maxNumber + 1;
 
-    // Format according to serial format
     String formattedNumber;
     switch (serialFormat) {
       case SerialNumberFormat.numeric:
         formattedNumber = nextNumber.toString().padLeft(length - prefix.length, '0');
         break;
       case SerialNumberFormat.alphanumeric:
-      // Simple alphanumeric: prefix + padded number
         formattedNumber = nextNumber.toString().padLeft(length - prefix.length, '0');
         break;
       case SerialNumberFormat.custom:
-      // Custom format - default to numeric for now
         formattedNumber = nextNumber.toString().padLeft(length - prefix.length, '0');
         break;
     }
@@ -192,17 +224,17 @@ class InventoryItem extends Equatable {
     return '$prefix$formattedNumber';
   }
 
-  // ✅ NEW - Get available serial numbers
+  // ✅ Get available serial numbers
   List<SerialNumber> getAvailableSerials() {
     return serialNumbers.where((s) => s.status == SerialStatus.available).toList();
   }
 
-  // ✅ NEW - Get serial numbers by status
+  // ✅ Get serial numbers by status
   List<SerialNumber> getSerialsByStatus(SerialStatus status) {
     return serialNumbers.where((s) => s.status == status).toList();
   }
 
-  // ✅ UPDATED - Enhanced QR Code data with new fields and serial support
+  // ✅ Enhanced QR Code data
   Map<String, dynamic> get qrCodeData => {
     'id': id,
     'sku': sku,
@@ -213,18 +245,17 @@ class InventoryItem extends Equatable {
     'price': unitPrice?.toString() ?? '',
     'category': categoryId,
     'subcategory': subcategory,
-    'stock': effectiveStockQuantity.toString(), // ✅ Uses effective stock
+    'stock': effectiveStockQuantity.toString(),
     'comment': comment ?? '',
     'imageUrl': imageUrl ?? '',
     'dimensions': dimensions.dimensionsText,
-    // ✅ NEW - Serial tracking info in QR code
     'isSerialTracked': isSerialTracked.toString(),
     'serialPrefix': serialNumberPrefix ?? '',
     'availableSerials': availableStock.toString(),
     'totalSerials': totalSerialCount.toString(),
   };
 
-  // ✅ ENHANCED - Copy with method including serial fields
+  // ✅ Copy with method
   InventoryItem copyWith({
     String? id,
     String? sku,
@@ -244,7 +275,6 @@ class InventoryItem extends Equatable {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? comment,
-    // ✅ NEW - Serial tracking fields
     bool? isSerialTracked,
     String? serialNumberPrefix,
     int? serialNumberLength,
@@ -270,7 +300,6 @@ class InventoryItem extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       comment: comment ?? this.comment,
-      // Serial tracking fields
       isSerialTracked: isSerialTracked ?? this.isSerialTracked,
       serialNumberPrefix: serialNumberPrefix ?? this.serialNumberPrefix,
       serialNumberLength: serialNumberLength ?? this.serialNumberLength,
@@ -284,7 +313,6 @@ class InventoryItem extends Equatable {
     id, sku, nameEn, nameAr, descriptionEn, descriptionAr,
     categoryId, subcategory, stockQuantity, unitPrice, minStockLevel,
     dimensions, imageProperties, imageUrl, imageFileName, createdAt, updatedAt, comment,
-    // ✅ NEW - Include serial fields in equality check
     isSerialTracked, serialNumberPrefix, serialNumberLength, serialFormat, serialNumbers,
   ];
 
@@ -296,7 +324,6 @@ class InventoryItem extends Equatable {
   }
 }
 
-// ✅ NEW - SerialNumber Entity
 @JsonSerializable()
 class SerialNumber extends Equatable {
   final String id;
@@ -321,13 +348,9 @@ class SerialNumber extends Equatable {
     required this.updatedAt,
   });
 
-  // Generate barcode data combining SKU and serial
   String getBarcodeData(String sku) => '$sku-$serialNumber';
-
-  // Check if serial is available for sale
   bool get isAvailable => status == SerialStatus.available;
 
-  // Copy with method
   SerialNumber copyWith({
     String? id,
     String? itemId,
@@ -374,10 +397,9 @@ class ProductDimensions extends Equatable {
     this.unit = 'mm',
   });
 
-  // ✅ Volume calculation with null safety
   double get volume {
     if (width == null || height == null) {
-      return 0.0; // Can't calculate without both width and height
+      return 0.0;
     }
 
     if (depth != null && depth!.trim().isNotEmpty) {
@@ -386,11 +408,9 @@ class ProductDimensions extends Equatable {
         if (depthValue != null) {
           return width! * height! * depthValue;
         }
-      } catch (_) {
-        // If depth is not a number, return area only
-      }
+      } catch (_) {}
     }
-    return width! * height!; // Return area
+    return width! * height!;
   }
 
   String get displayUnit => unit ?? 'units';
@@ -471,36 +491,34 @@ class ImageProperties extends Equatable {
   List<Object?> get props => [pixelWidth, pixelHeight, otherSp, colorSpace];
 }
 
-// ✅ NEW - Enums for Serial Number Management
 @JsonEnum()
 enum SerialNumberFormat {
   @JsonValue('numeric')
-  numeric,        // Pure numbers: 001234, 567890
+  numeric,
   @JsonValue('alphanumeric')
-  alphanumeric,   // Letters + numbers: ABC123, XYZ789
+  alphanumeric,
   @JsonValue('custom')
-  custom,         // Custom pattern defined by user
+  custom,
 }
 
 @JsonEnum()
 enum SerialStatus {
   @JsonValue('available')
-  available,      // Available for sale/use
+  available,
   @JsonValue('reserved')
-  reserved,       // Reserved for specific order/customer
+  reserved,
   @JsonValue('sold')
-  sold,           // Sold to customer
+  sold,
   @JsonValue('rented')
-  rented,         //  Rented to customer (for rental orders)
+  rented,
   @JsonValue('damaged')
-  damaged,       // Damaged/defective - cannot be sold
+  damaged,
   @JsonValue('returned')
-  returned,      // Returned by customer
+  returned,
   @JsonValue('recalled')
-  recalled,      // Subject to product recall
+  recalled,
 }
 
-// ✅ EXTENSION - Helper methods for SerialStatus
 extension SerialStatusExtension on SerialStatus {
   String get displayName {
     switch (this) {
@@ -525,7 +543,6 @@ extension SerialStatusExtension on SerialStatus {
   bool get isInactive => !isActive;
 }
 
-// ✅ EXTENSION - Helper methods for SerialNumberFormat
 extension SerialNumberFormatExtension on SerialNumberFormat {
   String get displayName {
     switch (this) {

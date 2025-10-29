@@ -1,7 +1,8 @@
-// presentation/widgets/order/forms/item_selector_grid.dart
+// ✅ presentation/widgets/order/forms/item_selector_grid.dart (WITH DATE-AWARE SYSTEM)
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../domain/entities/inventory_item.dart';
+import '../../../../domain/entities/order.dart';
 import '../../../blocs/inventory/inventory_bloc.dart';
 import '../../../blocs/serial/serial_number_bloc.dart';
 import '../../../blocs/serial/serial_number_event.dart';
@@ -30,27 +31,34 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       children: [
-        _buildSearchBar(),
-        Expanded(child: _buildItemsList()),
+        _buildSearchBar(theme, isDark),
+        Expanded(child: _buildItemsList(theme, isDark)),
       ],
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(ThemeData theme, bool isDark) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+        color: isDark ? theme.cardColor : Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+          ),
+        ),
       ),
       child: TextField(
         controller: _searchController,
         onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
         decoration: InputDecoration(
           hintText: 'Search items by name or SKU...',
-          prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+          prefixIcon: Icon(Icons.search, color: theme.iconTheme.color),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
             icon: Icon(Icons.clear),
@@ -62,62 +70,75 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
               : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey[300]!),
+            borderSide: BorderSide(
+              color: isDark ? Colors.grey[600]! : Colors.grey[300]!,
+            ),
           ),
           filled: true,
-          fillColor: Colors.grey[50],
+          fillColor: isDark ? Colors.grey[800] : Colors.grey[50],
         ),
       ),
     );
   }
 
-  Widget _buildItemsList() {
+  Widget _buildItemsList(ThemeData theme, bool isDark) {
     return BlocBuilder<InventoryBloc, InventoryState>(
       builder: (context, state) {
         if (state is InventoryLoading) {
-          return _buildLoadingView();
+          return _buildLoadingView(theme);
         } else if (state is InventoryLoaded) {
-          final filteredItems = _filterItems(state.displayItems);
+          final filteredItems = _filterItems(state.items);
+
           if (filteredItems.isEmpty) {
-            return _buildEmptyView();
+            return _buildEmptyView(theme, isDark);
           }
-          return _buildItemsGrid(filteredItems);
+          return _buildItemsGrid(filteredItems, theme, isDark);
         } else if (state is InventoryError) {
-          return _buildErrorView(state.message);
+          return _buildErrorView(state.message, theme);
         }
-        return _buildEmptyView();
+        return _buildEmptyView(theme, isDark);
       },
     );
   }
 
-  Widget _buildLoadingView() {
+  Widget _buildLoadingView(ThemeData theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(),
+          CircularProgressIndicator(color: theme.primaryColor),
           SizedBox(height: 16),
-          Text('Loading inventory items...'),
+          Text(
+            'Loading inventory items...',
+            style: theme.textTheme.bodyLarge,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyView() {
+  Widget _buildEmptyView(ThemeData theme, bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
-          SizedBox(height: 16),
+          Icon(
+            Icons.search_off,
+            size: 72,
+            color: theme.disabledColor,
+          ),
+          SizedBox(height: 20),
           Text(
             _searchQuery.isEmpty
                 ? 'No items available in stock'
                 : 'No items found for "$_searchQuery"',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 16,
+              color: theme.textTheme.bodyMedium?.color,
+            ),
           ),
           if (_searchQuery.isNotEmpty) ...[
-            SizedBox(height: 8),
+            SizedBox(height: 12),
             TextButton(
               onPressed: () {
                 _searchController.clear();
@@ -131,60 +152,77 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
     );
   }
 
-  Widget _buildErrorView(String message) {
+  Widget _buildErrorView(String message, ThemeData theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.error_outline, size: 64, color: Colors.red),
           SizedBox(height: 16),
-          Text('Error loading inventory', style: TextStyle(fontSize: 16)),
-          Text(message, style: TextStyle(color: Colors.grey[600])),
-          SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () => context.read<InventoryBloc>().add(LoadInventoryItems()),
-            child: Text('Retry'),
+          Text(
+            'Error loading inventory',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            message,
+            style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () =>
+                context.read<InventoryBloc>().add(LoadInventoryItems()),
+            icon: Icon(Icons.refresh),
+            label: Text('Retry'),
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildItemsGrid(List<InventoryItem> items) {
+  Widget _buildItemsGrid(
+      List<InventoryItem> items, ThemeData theme, bool isDark) {
     return GridView.builder(
       padding: EdgeInsets.all(16),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.2,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 1.15,
       ),
       itemCount: items.length,
-      itemBuilder: (context, index) => _buildItemCard(items[index]),
+      itemBuilder: (context, index) => _buildItemCard(items[index], theme, isDark),
     );
   }
 
-  Widget _buildItemCard(InventoryItem item) {
+  Widget _buildItemCard(InventoryItem item, ThemeData theme, bool isDark) {
     final currentQuantity = _tempQuantities[item.id] ?? 1;
     final isInOrder = widget.formData.selectedItems.containsKey(item.id);
 
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: isDark ? 2 : 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      color: isDark ? theme.cardColor : Colors.white,
       child: Padding(
-        padding: EdgeInsets.all(12),
+        padding: EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with stock, status, and serial indicator
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: _getStockColor(item).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: _getStockColor(item).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _getStockColor(item).withOpacity(0.5),
+                    ),
                   ),
                   child: Text(
                     'Stock: ${item.stockQuantity}',
@@ -197,96 +235,170 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                 ),
                 Row(
                   children: [
-                    // ✅ NEW: Serial tracking indicator
                     if (item.isSerialTracked)
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        margin: EdgeInsets.only(right: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        margin: EdgeInsets.only(right: 6),
                         decoration: BoxDecoration(
-                          color: Colors.purple[50],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.purple[200]!),
+                          color: isDark
+                              ? Colors.purple[900]?.withOpacity(0.3)
+                              : Colors.purple[50],
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.purple[isDark ? 600 : 300]!,
+                          ),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.qr_code_2, size: 12, color: Colors.purple[700]),
-                            SizedBox(width: 2),
+                            Icon(
+                              Icons.qr_code_2,
+                              size: 13,
+                              color: Colors.purple[isDark ? 300 : 700],
+                            ),
+                            SizedBox(width: 3),
                             Text(
                               'Serial',
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.purple[700],
+                                color: Colors.purple[isDark ? 300 : 700],
                               ),
                             ),
                           ],
                         ),
                       ),
                     if (isInOrder)
-                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                      Container(
+                        padding: EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                          size: 18,
+                        ),
+                      ),
                   ],
                 ),
               ],
             ),
 
-            SizedBox(height: 8),
+            SizedBox(height: 10),
 
-            // Item details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     item.nameEn.isNotEmpty ? item.nameEn : 'Unknown Item',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: theme.textTheme.bodyLarge?.color,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 4),
-                  Text('SKU: ${item.sku.isNotEmpty ? item.sku : 'N/A'}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 11)),
-                  Text('Price: \$${item.unitPrice?.toStringAsFixed(2) ?? '0.00'}',
-                      style: TextStyle(color: Colors.green[700], fontSize: 12, fontWeight: FontWeight.w600)),
+                  SizedBox(height: 5),
+                  Text(
+                    'SKU: ${item.sku.isNotEmpty ? item.sku : 'N/A'}',
+                    style: TextStyle(
+                      color: theme.textTheme.bodySmall?.color,
+                      fontSize: 11,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Price: \$${item.unitPrice?.toStringAsFixed(2) ?? '0.00'}',
+                    style: TextStyle(
+                      color: Colors.green[isDark ? 400 : 700],
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
 
-            // Quantity controls
-            Row(
-              children: [
-                Expanded(
-                  child: Row(
+            SizedBox(height: 10),
+
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.grey[800]?.withOpacity(0.5)
+                    : Colors.grey[100],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Quantity:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: theme.textTheme.bodyMedium?.color,
+                    ),
+                  ),
+                  Row(
                     children: [
-                      _buildQuantityButton(Icons.remove, () => _decrementQuantity(item.id)),
+                      _buildQuantityButton(
+                        Icons.remove,
+                            () => _decrementQuantity(item.id),
+                        theme,
+                      ),
                       Container(
-                        width: 30,
+                        width: 35,
                         child: Center(
-                          child: Text('$currentQuantity', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text(
+                            '$currentQuantity',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       ),
-                      _buildQuantityButton(Icons.add,
-                          currentQuantity < item.stockQuantity ? () => _incrementQuantity(item.id) : null),
+                      _buildQuantityButton(
+                        Icons.add,
+                        currentQuantity < item.stockQuantity
+                            ? () => _incrementQuantity(item.id)
+                            : null,
+                        theme,
+                      ),
                     ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
 
-            SizedBox(height: 8),
+            SizedBox(height: 10),
 
-            // Add button
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
                 onPressed: () => _addToOrder(item, currentQuantity),
+                icon: Icon(
+                  isInOrder ? Icons.edit : Icons.add_shopping_cart,
+                  size: 16,
+                ),
+                label: Text(
+                  isInOrder ? 'Update Order' : 'Add to Order',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isInOrder ? Colors.orange : Colors.green,
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                ),
-                child: Text(
-                  isInOrder ? 'Update' : 'Add',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),
@@ -296,17 +408,29 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
     );
   }
 
-  Widget _buildQuantityButton(IconData icon, VoidCallback? onTap) {
+  Widget _buildQuantityButton(
+      IconData icon,
+      VoidCallback? onTap,
+      ThemeData theme,
+      ) {
+    final isDark = theme.brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        width: 24,
-        height: 24,
+        width: 28,
+        height: 28,
         decoration: BoxDecoration(
-          color: onTap != null ? Colors.grey[200] : Colors.grey[100],
-          shape: BoxShape.circle,
+          color: onTap != null
+              ? (isDark ? Colors.grey[700] : Colors.grey[300])
+              : (isDark ? Colors.grey[800] : Colors.grey[200]),
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, size: 14, color: onTap != null ? Colors.black87 : Colors.grey),
+        child: Icon(
+          icon,
+          size: 16,
+          color: onTap != null ? theme.iconTheme.color : theme.disabledColor,
+        ),
       ),
     );
   }
@@ -315,7 +439,8 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
     return items
         .where((item) =>
     item.stockQuantity > 0 &&
-        (item.nameEn.toLowerCase().contains(_searchQuery) || item.sku.toLowerCase().contains(_searchQuery)))
+        (item.nameEn.toLowerCase().contains(_searchQuery) ||
+            item.sku.toLowerCase().contains(_searchQuery)))
         .toList();
   }
 
@@ -335,28 +460,50 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
   }
 
   Future<void> _addToOrder(InventoryItem item, int quantity) async {
-    List<String>? selectedSerialNumbers; // ✅ These will now be serial number strings, not IDs
+    List<String>? selectedSerialNumbers;
 
     if (item.isSerialTracked) {
+      // ✅ Get rental dates from formData if this is a rental order
+      final isRentalOrder = widget.formData.orderType == OrderType.rental;
+      final rentalStartDate = isRentalOrder ? widget.formData.rentalStartDate : null;
+      final rentalEndDate = isRentalOrder ? widget.formData.rentalEndDate : null;
+
       selectedSerialNumbers = await showDialog<List<String>>(
         context: context,
         barrierDismissible: false,
         builder: (_) => BlocProvider(
-          create: (_) => di.getIt<SerialNumberBloc>()..add(LoadSerialNumbers(item.id)),
+          create: (_) {
+            final bloc = di.getIt<SerialNumberBloc>();
+            // ✅ Load serials with date-awareness if rental order
+            if (rentalStartDate != null && rentalEndDate != null) {
+              bloc.add(LoadAvailableSerialsByDate(
+                item.id,
+                startDate: rentalStartDate,
+                endDate: rentalEndDate,
+              ));
+            } else {
+              bloc.add(LoadSerialNumbers(item.id));
+            }
+            return bloc;
+          },
           child: SerialSelectionDialog(
             item: item,
             requiredQuantity: quantity,
+            // ✅ Pass rental dates to dialog
+            rentalStartDate: rentalStartDate,
+            rentalEndDate: rentalEndDate,
           ),
         ),
       );
 
-      if (selectedSerialNumbers == null || selectedSerialNumbers.length != quantity) {
+      if (selectedSerialNumbers == null ||
+          selectedSerialNumbers.length != quantity) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 Icon(Icons.warning, color: Colors.white),
-                SizedBox(width: 8),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Serial selection is required for this item. Please select ${quantity} serial number(s).',
@@ -367,6 +514,9 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
             duration: Duration(seconds: 3),
             backgroundColor: Colors.orange[700],
             behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
         return;
@@ -381,7 +531,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
         quantity: quantity,
         unitPrice: item.unitPrice ?? 0.0,
         totalPrice: (item.unitPrice ?? 0.0) * quantity,
-        serialNumbers: selectedSerialNumbers, // ✅ Now contains actual serial numbers like "7071-0001"
+        serialNumbers: selectedSerialNumbers,
       );
     });
 
@@ -392,7 +542,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
         content: Row(
           children: [
             Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 8),
+            SizedBox(width: 12),
             Expanded(
               child: Text(
                 selectedSerialNumbers != null
@@ -405,6 +555,9 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
         duration: Duration(seconds: 3),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 // ✅ data/repositories/inventory_repository_impl.dart (WITH SMART CACHING)
 import 'package:dartz/dartz.dart';
+import 'package:flutter/material.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/network_info.dart';
 import '../../domain/entities/inventory_item.dart';
@@ -582,8 +583,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
-  // Continue with all your other existing methods (getSerialNumberUtilizationReport, searchInventoryItems, etc.)
-  // They remain exactly the same...
+
 
   @override
   Future<
@@ -734,38 +734,93 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
+// ✅ OPTIMIZED: inventory_repository_impl.dart - filterInventoryItems
   @override
   Future<Either<Failure, List<InventoryItem>>> filterInventoryItems(
-      Map<String, dynamic> filters) async {
+      Map<String, dynamic> filters,
+      ) async {
     if (await networkInfo.isConnected) {
       try {
-        final filteredItems = await remoteDataSource.filterInventoryItems(
-            filters);
+        debugPrint('🔍 INVENTORY REPO: Filtering with: $filters');
 
-        List<InventoryItem> items = [];
-        for (final model in filteredItems) {
-          InventoryItem item = model.toEntity();
+        final allItems = await remoteDataSource.getAllInventoryItems();
+        debugPrint('📦 INVENTORY REPO: Got ${allItems.length} items to filter');
 
-          if (item.isSerialTracked) {
-            final serialsResult = await getSerialNumbers(item.id);
-            final serials = serialsResult.fold(
-                  (failure) => <SerialNumber>[],
-                  (serialNumbers) => serialNumbers,
-            );
-            item = item.copyWith(serialNumbers: serials);
-          }
+        // Apply filters locally
+        List<InventoryItemModel> filteredModels = List.from(allItems);
 
-          items.add(item);
+        if (filters.containsKey('category_id') && filters['category_id'] != null) {
+          filteredModels = filteredModels
+              .where((item) => item.categoryId == filters['category_id'])
+              .toList();
         }
 
+        if (filters.containsKey('subcategory') && filters['subcategory'] != null) {
+          final subcategory = filters['subcategory'].toString().toLowerCase();
+          filteredModels = filteredModels
+              .where((item) => item.subcategory.toLowerCase().contains(subcategory))
+              .toList();
+        }
+
+        if (filters.containsKey('low_stock') && filters['low_stock'] == true) {
+          filteredModels = filteredModels
+              .where((item) => item.stockQuantity <= item.minStockLevel)
+              .toList();
+        }
+
+        if (filters.containsKey('serial_tracked') && filters['serial_tracked'] == true) {
+          filteredModels = filteredModels
+              .where((item) => item.isSerialTracked)
+              .toList();
+        }
+
+        if (filters.containsKey('min_stock') && filters['min_stock'] != null) {
+          final minStock = filters['min_stock'] as int;
+          filteredModels = filteredModels
+              .where((item) => item.stockQuantity >= minStock)
+              .toList();
+        }
+
+        if (filters.containsKey('max_stock') && filters['max_stock'] != null) {
+          final maxStock = filters['max_stock'] as int;
+          filteredModels = filteredModels
+              .where((item) => item.stockQuantity <= maxStock)
+              .toList();
+        }
+
+        if (filters.containsKey('min_price') && filters['min_price'] != null) {
+          final minPrice = filters['min_price'] as double;
+          filteredModels = filteredModels
+              .where((item) => (item.unitPrice ?? 0.0) >= minPrice)
+              .toList();
+        }
+
+        if (filters.containsKey('max_price') && filters['max_price'] != null) {
+          final maxPrice = filters['max_price'] as double;
+          filteredModels = filteredModels
+              .where((item) => (item.unitPrice ?? double.infinity) <= maxPrice)
+              .toList();
+        }
+
+        debugPrint('✅ INVENTORY REPO: Final filtered count: ${filteredModels.length} items');
+
+        // ✅ SUPER OPTIMIZATION: Don't load serials during filtering!
+        // Serials will be loaded on-demand when user clicks "Manage Serials"
+        List<InventoryItem> items = filteredModels
+            .map((model) => model.toEntity())
+            .toList();
+
+        debugPrint('⚡ INVENTORY REPO: Returning ${items.length} items WITHOUT serials (faster!)');
         return Right(items);
       } catch (e) {
+        debugPrint('❌ INVENTORY REPO: Filter failed, trying cache: $e');
         return _filterCachedItems(filters);
       }
     } else {
       return _filterCachedItems(filters);
     }
   }
+
 
   @override
   Future<Either<Failure, List<InventoryItem>>> getLowStockItems() async {
@@ -840,51 +895,66 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   Future<Either<Failure, List<InventoryItem>>> _filterCachedItems(
-      Map<String, dynamic> filters) async {
+      Map<String, dynamic> filters,
+      ) async {
     try {
       final cachedItems = await localDataSource.getCachedInventoryItems();
       List<InventoryItemModel> filteredItems = List.from(cachedItems);
 
-      if (filters.containsKey('category_id') &&
-          filters['category_id'] != null) {
-        filteredItems = filteredItems.where((item) =>
-        item.categoryId == filters['category_id']).toList();
+      if (filters.containsKey('category_id') && filters['category_id'] != null) {
+        filteredItems = filteredItems
+            .where((item) => item.categoryId == filters['category_id'])
+            .toList();
       }
 
       if (filters.containsKey('low_stock') && filters['low_stock'] == true) {
-        filteredItems = filteredItems.where((item) =>
-        item.stockQuantity <= item.minStockLevel).toList();
+        filteredItems = filteredItems
+            .where((item) => item.stockQuantity <= item.minStockLevel)
+            .toList();
+      }
+
+      // ✅ NEW: Min stock filter
+      if (filters.containsKey('min_stock') && filters['min_stock'] != null) {
+        final minStock = filters['min_stock'] as int;
+        filteredItems = filteredItems
+            .where((item) => item.stockQuantity >= minStock)
+            .toList();
+      }
+
+      // ✅ NEW: Max stock filter
+      if (filters.containsKey('max_stock') && filters['max_stock'] != null) {
+        final maxStock = filters['max_stock'] as int;
+        filteredItems = filteredItems
+            .where((item) => item.stockQuantity <= maxStock)
+            .toList();
       }
 
       if (filters.containsKey('min_price') && filters['min_price'] != null) {
         final minPrice = filters['min_price'] as double;
-        filteredItems =
-            filteredItems
-                .where((item) => (item.unitPrice ?? 0.0) >= minPrice)
-                .toList();
+        filteredItems = filteredItems
+            .where((item) => (item.unitPrice ?? 0.0) >= minPrice)
+            .toList();
       }
 
       if (filters.containsKey('max_price') && filters['max_price'] != null) {
         final maxPrice = filters['max_price'] as double;
-        filteredItems =
-            filteredItems
-                .where((item) => (item.unitPrice ?? 0.0) <= maxPrice)
-                .toList();
+        filteredItems = filteredItems
+            .where((item) => (item.unitPrice ?? 0.0) <= maxPrice)
+            .toList();
       }
 
-      if (filters.containsKey('subcategory') &&
-          filters['subcategory'] != null) {
+      if (filters.containsKey('subcategory') && filters['subcategory'] != null) {
         filteredItems = filteredItems
-            .where((item) =>
-            item.subcategory.toLowerCase().contains(
-                filters['subcategory'].toString().toLowerCase()))
+            .where((item) => item.subcategory.toLowerCase().contains(
+            filters['subcategory'].toString().toLowerCase()))
             .toList();
       }
 
       if (filters.containsKey('serial_tracked')) {
         final isSerialTracked = filters['serial_tracked'] as bool;
-        filteredItems = filteredItems.where((item) =>
-        item.isSerialTracked == isSerialTracked).toList();
+        filteredItems = filteredItems
+            .where((item) => item.isSerialTracked == isSerialTracked)
+            .toList();
       }
 
       List<InventoryItem> items = [];

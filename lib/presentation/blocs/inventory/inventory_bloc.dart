@@ -428,6 +428,12 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
 
     debugPrint('🔍 INVENTORY BLOC: Applying filters: ${event.filters}');
 
+    // ✅ Show loading state while filtering
+    emit(currentState.copyWith(
+      isLoadingMore: true,
+      activeFilters: event.filters,
+    ));
+
     final result = await filterInventoryItems(
       filter_items_usecase.FilterInventoryItemsParams(event.filters),
     );
@@ -438,11 +444,13 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
         emit(currentState.copyWith(
           filteredItems: items,
           activeFilters: event.filters,
+          isLoadingMore: false, // ✅ Turn off loading
         ));
         debugPrint('✅ INVENTORY BLOC: Filter found ${items.length} items');
       },
     );
   }
+
 
   /// Clear all filters
   Future<void> _onClearFilters(

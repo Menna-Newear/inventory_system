@@ -1,4 +1,4 @@
-// ✅ data/services/stock_management_service.dart (OPTIMIZED - NO FULL REFRESH)
+// ✅ data/services/stock_management_service.dart (WITH DATE-AWARE RENTAL SUPPORT)
 import 'package:dartz/dartz.dart' hide Order;
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/order.dart';
@@ -118,7 +118,6 @@ class StockManagementService {
       debugPrint('🔍 STOCK SERVICE: Looking up serial IDs for ${serialNumbers.length} serial numbers');
       debugPrint('🔍 STOCK SERVICE: Item ID: $itemId');
 
-      // ✅ FIX: Fetch ONLY this specific item (not all 299!)
       final itemResult = await inventoryRepository.getInventoryItem(itemId);
 
       if (itemResult.isLeft()) {
@@ -129,7 +128,6 @@ class StockManagementService {
       final item = itemResult.fold((l) => throw Exception(), (r) => r);
       debugPrint('🔍 STOCK SERVICE: Found item ${item.nameEn} with ${item.serialNumbers.length} total serials');
 
-      // Find serial IDs that match the serial number strings
       final matchingSerials = item.serialNumbers
           .where((serial) => serialNumbers.contains(serial.serialNumber))
           .map((serial) => serial.id)
@@ -163,7 +161,6 @@ class StockManagementService {
     debugPrint('🔍 STOCK SERVICE: Validating stock for ${order.orderNumber}');
 
     try {
-      // ✅ OPTIMIZED: Only fetch the specific items we need (without serials!)
       for (final orderItem in order.items) {
         final itemResult = await inventoryRepository.getInventoryItem(orderItem.itemId);
 
@@ -202,22 +199,31 @@ class StockManagementService {
             ));
           }
 
-          // ✅ Validate that serial numbers exist and are available
-          debugPrint('🔍 STOCK SERVICE: Validating ${orderItem.serialNumbers!.length} serial numbers');
-          final availableSerialNumbers = inventoryItem.serialNumbers
-              .where((s) => s.status == SerialStatus.available)
+          // ✅ FIXED: Date-aware validation for rental orders
+          debugPrint('🔍 STOCK SERVICE: Validating ${orderItem.serialNumbers!.length} serial numbers for ${order.orderType.displayName} order');
+
+          final validSerialNumbers = inventoryItem.serialNumbers
+              .where((s) {
+            // ✅ For rental orders: allow both available and rented serials
+            // (date conflicts were already validated when selecting serials)
+            if (order.orderType == OrderType.rental) {
+              return s.status == SerialStatus.available || s.status == SerialStatus.rented;
+            }
+            // For sell orders: only available
+            return s.status == SerialStatus.available;
+          })
               .map((s) => s.serialNumber)
               .toList();
 
           for (final serialNumber in orderItem.serialNumbers!) {
-            if (!availableSerialNumbers.contains(serialNumber)) {
-              debugPrint('❌ STOCK SERVICE: Serial number $serialNumber is not available');
+            if (!validSerialNumbers.contains(serialNumber)) {
+              debugPrint('❌ STOCK SERVICE: Serial number $serialNumber is not valid for ${order.orderType.displayName} order');
               return Left(ValidationFailure(
-                  'Serial number $serialNumber for ${inventoryItem.nameEn} is not available'
+                  'Serial number $serialNumber for ${inventoryItem.nameEn} is not valid for this ${order.orderType.displayName} order'
               ));
             }
           }
-          debugPrint('✅ STOCK SERVICE: All serial numbers are valid and available');
+          debugPrint('✅ STOCK SERVICE: All serial numbers are valid for ${order.orderType.displayName} order');
         }
       }
 
@@ -285,14 +291,12 @@ class StockManagementService {
   }
 
   /// Updates stock for specific item
-  /// Updates stock for specific item
   Future<Either<Failure, void>> _updateItemStock(
       String itemId,
       int quantityChange,
       String reason,
       ) async {
     try {
-      // ✅ FIX: Fetch ONLY this specific item (not all 299!)
       final itemResult = await inventoryRepository.getInventoryItem(itemId);
 
       if (itemResult.isLeft()) {
@@ -330,7 +334,7 @@ class StockManagementService {
     }
   }
 
-  /// ✅ NEW: Notifies ONLY specific items to refresh (not full inventory!)
+  /// Notifies ONLY specific items to refresh (not full inventory!)
   void _notifySpecificItemsRefresh(List<String> itemIds) {
     try {
       debugPrint('🔄 STOCK SERVICE: Triggering refresh for ${itemIds.length} specific items');
@@ -369,7 +373,7 @@ class ValidationFailure extends Failure {
   List<Object> get props => [message];
 }
 
-// ✅ UPDATED: Inventory Refresh Notifier with specific item support
+// Inventory Refresh Notifier with specific item support
 class InventoryRefreshNotifier {
   static final _instance = InventoryRefreshNotifier._internal();
   factory InventoryRefreshNotifier() => _instance;
@@ -391,7 +395,6 @@ class InventoryRefreshNotifier {
     }
   }
 
-  /// ✅ NEW: Add listener for specific item updates
   void addSpecificItemListener(Function(List<String>) callback) {
     if (!_specificItemListeners.contains(callback)) {
       _specificItemListeners.add(callback);
@@ -399,14 +402,12 @@ class InventoryRefreshNotifier {
     }
   }
 
-  /// ✅ NEW: Remove specific item listener
   void removeSpecificItemListener(Function(List<String>) callback) {
     if (_specificItemListeners.remove(callback)) {
       debugPrint('🔄 NOTIFIER: Removed specific item listener (total: ${_specificItemListeners.length})');
     }
   }
 
-  /// ✅ DEPRECATED: Use notifySpecificItemsChanged instead
   void notifyInventoryChanged() {
     debugPrint('⚠️ NOTIFIER: Full inventory refresh called (consider using specific items)');
 
@@ -419,7 +420,6 @@ class InventoryRefreshNotifier {
     }
   }
 
-  /// ✅ NEW: Notify only specific items changed
   void notifySpecificItemsChanged(List<String> itemIds) {
     debugPrint('🔄 NOTIFIER: Notifying ${_specificItemListeners.length} listeners about ${itemIds.length} items');
 
