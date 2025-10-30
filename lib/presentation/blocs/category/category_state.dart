@@ -42,3 +42,5 @@ class CategoryCreated extends CategoryState {
   @override
   List<Object> get props => [category];
 }
+
+class CategoryDeleted extends CategoryState {}

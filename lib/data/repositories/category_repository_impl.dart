@@ -1,5 +1,6 @@
 // data/repositories/category_repository_impl.dart
 import 'package:dartz/dartz.dart';
+import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/repositories/category_repository.dart';
@@ -15,7 +16,9 @@ class CategoryRepositoryImpl implements CategoryRepository {
   Future<Either<Failure, List<Category>>> getAllCategories() async {
     try {
       final categoryModels = await remoteDataSource.getAllCategories();
-      final categories = categoryModels.map((model) => model.toEntity()).toList();
+      final categories = categoryModels
+          .map((model) => model.toEntity())
+          .toList();
       return Right(categories);
     } catch (e) {
       return Left(ServerFailure('Failed to fetch categories: $e'));
@@ -34,12 +37,12 @@ class CategoryRepositoryImpl implements CategoryRepository {
   }
 
   @override
-  Future<Either<Failure, void>> deleteCategory(String id) async {
+  Future<Either<Failure, void>> deleteCategory(String categoryId) async {
     try {
-      await remoteDataSource.deleteCategory(id);
+      await remoteDataSource.deleteCategory(categoryId);
       return Right(null);
-    } catch (e) {
-      return Left(ServerFailure('Failed to delete category: $e'));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
     }
   }
 }

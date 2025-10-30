@@ -1,4 +1,5 @@
-// ✅ presentation/widgets/order/forms/item_selector_grid.dart (WITH DATE-AWARE SYSTEM)
+// ✅ presentation/widgets/order/forms/item_selector_grid.dart (FULLY LOCALIZED!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../domain/entities/inventory_item.dart';
@@ -57,7 +58,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
         controller: _searchController,
         onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
         decoration: InputDecoration(
-          hintText: 'Search items by name or SKU...',
+          hintText: 'item_selector.search_hint'.tr(),
           prefixIcon: Icon(Icons.search, color: theme.iconTheme.color),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
@@ -72,6 +73,19 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
               color: isDark ? Colors.grey[600]! : Colors.grey[300]!,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: isDark ? Colors.grey[600]! : Colors.grey[300]!,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: theme.primaryColor,
+              width: 2,
             ),
           ),
           filled: true,
@@ -109,7 +123,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
           CircularProgressIndicator(color: theme.primaryColor),
           SizedBox(height: 16),
           Text(
-            'Loading inventory items...',
+            'item_selector.loading'.tr(),
             style: theme.textTheme.bodyLarge,
           ),
         ],
@@ -130,12 +144,13 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
           SizedBox(height: 20),
           Text(
             _searchQuery.isEmpty
-                ? 'No items available in stock'
-                : 'No items found for "$_searchQuery"',
+                ? 'item_selector.no_items'.tr()
+                : 'item_selector.no_results'.tr(namedArgs: {'query': _searchQuery}),
             style: TextStyle(
               fontSize: 16,
               color: theme.textTheme.bodyMedium?.color,
             ),
+            textAlign: TextAlign.center,
           ),
           if (_searchQuery.isNotEmpty) ...[
             SizedBox(height: 12),
@@ -144,7 +159,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                 _searchController.clear();
                 setState(() => _searchQuery = '');
               },
-              child: Text('Clear search'),
+              child: Text('item_selector.clear_search'.tr()),
             ),
           ],
         ],
@@ -160,7 +175,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
           Icon(Icons.error_outline, size: 64, color: Colors.red),
           SizedBox(height: 16),
           Text(
-            'Error loading inventory',
+            'item_selector.error_title'.tr(),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
@@ -174,7 +189,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
             onPressed: () =>
                 context.read<InventoryBloc>().add(LoadInventoryItems()),
             icon: Icon(Icons.refresh),
-            label: Text('Retry'),
+            label: Text('item_selector.retry'.tr()),
             style: ElevatedButton.styleFrom(
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
@@ -225,7 +240,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                     ),
                   ),
                   child: Text(
-                    'Stock: ${item.stockQuantity}',
+                    '${'item_selector.stock'.tr()} ${item.stockQuantity}',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -257,7 +272,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                             ),
                             SizedBox(width: 3),
                             Text(
-                              'Serial',
+                              'item_selector.serial_badge'.tr(),
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
@@ -292,7 +307,9 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.nameEn.isNotEmpty ? item.nameEn : 'Unknown Item',
+                    item.nameEn.isNotEmpty
+                        ? item.nameEn
+                        : 'item_selector.unknown_item'.tr(),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -303,7 +320,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                   ),
                   SizedBox(height: 5),
                   Text(
-                    'SKU: ${item.sku.isNotEmpty ? item.sku : 'N/A'}',
+                    '${'item_selector.sku'.tr()} ${item.sku.isNotEmpty ? item.sku : 'N/A'}',
                     style: TextStyle(
                       color: theme.textTheme.bodySmall?.color,
                       fontSize: 11,
@@ -311,7 +328,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Price: \$${item.unitPrice?.toStringAsFixed(2) ?? '0.00'}',
+                    '${'item_selector.price'.tr()} \$${item.unitPrice?.toStringAsFixed(2) ?? '0.00'}',
                     style: TextStyle(
                       color: Colors.green[isDark ? 400 : 700],
                       fontSize: 13,
@@ -336,7 +353,7 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Quantity:',
+                    'item_selector.quantity'.tr(),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -386,7 +403,9 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                   size: 16,
                 ),
                 label: Text(
-                  isInOrder ? 'Update Order' : 'Add to Order',
+                  isInOrder
+                      ? 'item_selector.update_order'.tr()
+                      : 'item_selector.add_to_order'.tr(),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -463,7 +482,6 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
     List<String>? selectedSerialNumbers;
 
     if (item.isSerialTracked) {
-      // ✅ Get rental dates from formData if this is a rental order
       final isRentalOrder = widget.formData.orderType == OrderType.rental;
       final rentalStartDate = isRentalOrder ? widget.formData.rentalStartDate : null;
       final rentalEndDate = isRentalOrder ? widget.formData.rentalEndDate : null;
@@ -474,7 +492,6 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
         builder: (_) => BlocProvider(
           create: (_) {
             final bloc = di.getIt<SerialNumberBloc>();
-            // ✅ Load serials with date-awareness if rental order
             if (rentalStartDate != null && rentalEndDate != null) {
               bloc.add(LoadAvailableSerialsByDate(
                 item.id,
@@ -489,7 +506,6 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
           child: SerialSelectionDialog(
             item: item,
             requiredQuantity: quantity,
-            // ✅ Pass rental dates to dialog
             rentalStartDate: rentalStartDate,
             rentalEndDate: rentalEndDate,
           ),
@@ -506,7 +522,8 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Serial selection is required for this item. Please select ${quantity} serial number(s).',
+                    'item_selector.serial_required'
+                        .tr(namedArgs: {'count': quantity.toString()}),
                   ),
                 ),
               ],
@@ -526,7 +543,9 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
     setState(() {
       widget.formData.selectedItems[item.id] = SelectedOrderItem(
         id: item.id,
-        name: item.nameEn.isNotEmpty ? item.nameEn : 'Unknown Item',
+        name: item.nameEn.isNotEmpty
+            ? item.nameEn
+            : 'item_selector.unknown_item'.tr(),
         sku: item.sku.isNotEmpty ? item.sku : 'N/A',
         quantity: quantity,
         unitPrice: item.unitPrice ?? 0.0,
@@ -546,8 +565,12 @@ class _ItemSelectorGridState extends State<ItemSelectorGrid> {
             Expanded(
               child: Text(
                 selectedSerialNumbers != null
-                    ? '✅ Added ${item.nameEn} with serials: ${selectedSerialNumbers.join(", ")}'
-                    : '✅ Added ${item.nameEn} to order',
+                    ? 'item_selector.added_with_serials'.tr(namedArgs: {
+                  'name': item.nameEn,
+                  'serials': selectedSerialNumbers.join(", ")
+                })
+                    : 'item_selector.added_to_order'
+                    .tr(namedArgs: {'name': item.nameEn}),
               ),
             ),
           ],

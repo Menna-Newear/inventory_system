@@ -1,6 +1,8 @@
-// ✅ presentation/widgets/order/order_filter_panel.dart (ENHANCED UI)
+// ✅ presentation/widgets/order/panels/order_filter_panel.dart (FULLY LOCALIZED & ENHANCED!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart' as intl;
 import '../../blocs/order/order_bloc.dart';
 import '../../../domain/entities/order.dart';
 import '../../blocs/order/order_event.dart';
@@ -31,139 +33,137 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       children: [
-        // Header
-        Container(
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.filter_alt, color: Colors.white, size: 24),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Filter Orders',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Refine your search',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.close, color: Colors.white, size: 28),
-                onPressed: widget.onClose,
-                tooltip: 'Close',
-              ),
-            ],
-          ),
-        ),
-
-        // Scrollable content
+        _buildHeader(theme, isDark),
         Expanded(
           child: SingleChildScrollView(
             padding: EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildQuickFilters(),
+                _buildQuickFilters(theme, isDark),
                 SizedBox(height: 20),
-                Divider(),
+                Divider(color: isDark ? Colors.grey[700] : Colors.grey[300]),
                 SizedBox(height: 20),
-                _buildAdvancedFilters(),
-                if (_selectedOrderType == OrderType.rental || _selectedOrderType == null) ...[
+                _buildAdvancedFilters(theme, isDark),
+                if (_selectedOrderType == OrderType.rental ||
+                    _selectedOrderType == null) ...[
                   SizedBox(height: 20),
-                  Divider(),
+                  Divider(color: isDark ? Colors.grey[700] : Colors.grey[300]),
                   SizedBox(height: 20),
-                  _buildRentalFilters(),
+                  _buildRentalFilters(theme, isDark),
                 ],
               ],
             ),
           ),
         ),
-
-        // Action buttons at bottom
-        Container(
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            border: Border(top: BorderSide(color: Colors.grey[300]!)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _applyFilters,
-                  icon: Icon(Icons.check),
-                  label: Text('Apply Filters'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _clearFilters,
-                  icon: Icon(Icons.clear_all),
-                  label: Text('Clear All Filters'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey[700],
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        _buildActionButtons(theme, isDark),
       ],
     );
   }
 
-  Widget _buildQuickFilters() {
+  Widget _buildHeader(ThemeData theme, bool isDark) {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.primaryColor,
+            theme.primaryColor.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border(
+          bottom: BorderSide(
+            color: theme.primaryColor.withOpacity(0.3),
+            width: 2,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Icon(
+              Icons.filter_alt,
+              color: Colors.white,
+              size: 26,
+            ),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'order_filter.title'.tr(),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'order_filter.subtitle'.tr(),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close, color: Colors.white, size: 28),
+            onPressed: widget.onClose,
+            tooltip: 'Close',
+            splashRadius: 24,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickFilters(ThemeData theme, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.speed, color: Theme.of(context).primaryColor, size: 20),
-            SizedBox(width: 8),
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.speed,
+                color: theme.primaryColor,
+                size: 20,
+              ),
+            ),
+            SizedBox(width: 10),
             Text(
-              'Quick Filters',
+              'order_filter.quick_filters'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
+                color: isDark ? Colors.white : Colors.grey[800],
               ),
             ),
           ],
@@ -171,41 +171,52 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
         SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _buildStatusFilter()),
+            Expanded(child: _buildStatusFilter(theme, isDark)),
             SizedBox(width: 12),
-            Expanded(child: _buildOrderTypeFilter()),
+            Expanded(child: _buildOrderTypeFilter(theme, isDark)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildStatusFilter() {
+  Widget _buildStatusFilter(ThemeData theme, bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? theme.cardColor : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(
+          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+        ),
       ),
       child: DropdownButtonFormField<OrderStatus>(
         value: _selectedStatus,
         decoration: InputDecoration(
-          labelText: 'Order Status',
+          labelText: 'order_filter.order_status'.tr(),
+          labelStyle: TextStyle(
+            color: isDark ? Colors.grey[400] : Colors.grey[700],
+          ),
           prefixIcon: Icon(Icons.info_outline, size: 20),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
-        isExpanded: true, // ✅ ADD THIS
+        isExpanded: true,
+        dropdownColor: isDark ? theme.cardColor : Colors.white,
         items: [
           DropdownMenuItem<OrderStatus>(
             value: null,
-            child: Text('All Statuses', style: TextStyle(color: Colors.grey[600])),
+            child: Text(
+              'order_filter.all_statuses'.tr(),
+              style: TextStyle(
+                color: isDark ? Colors.grey[500] : Colors.grey[600],
+              ),
+            ),
           ),
           ...OrderStatus.values.map((status) {
             return DropdownMenuItem(
               value: status,
               child: Row(
-                mainAxisSize: MainAxisSize.min, // ✅ ADD THIS
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     width: 10,
@@ -216,11 +227,11 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
                     ),
                   ),
                   SizedBox(width: 10),
-                  Expanded( // ✅ WRAP Text IN Expanded
+                  Expanded(
                     child: Text(
                       status.displayName,
                       style: TextStyle(fontSize: 14),
-                      overflow: TextOverflow.ellipsis, // ✅ ADD THIS
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -233,40 +244,51 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
     );
   }
 
-  Widget _buildOrderTypeFilter() {
+  Widget _buildOrderTypeFilter(ThemeData theme, bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? theme.cardColor : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(
+          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+        ),
       ),
       child: DropdownButtonFormField<OrderType>(
         value: _selectedOrderType,
         decoration: InputDecoration(
-          labelText: 'Order Type',
+          labelText: 'order_filter.order_type'.tr(),
+          labelStyle: TextStyle(
+            color: isDark ? Colors.grey[400] : Colors.grey[700],
+          ),
           prefixIcon: Icon(Icons.category, size: 20),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
-        isExpanded: true, // ✅ ADD THIS
+        isExpanded: true,
+        dropdownColor: isDark ? theme.cardColor : Colors.white,
         items: [
           DropdownMenuItem<OrderType>(
             value: null,
-            child: Text('All Types', style: TextStyle(color: Colors.grey[600])),
+            child: Text(
+              'order_filter.all_types'.tr(),
+              style: TextStyle(
+                color: isDark ? Colors.grey[500] : Colors.grey[600],
+              ),
+            ),
           ),
           ...OrderType.values.map((type) {
             return DropdownMenuItem(
               value: type,
               child: Row(
-                mainAxisSize: MainAxisSize.min, // ✅ ADD THIS
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(type.icon, color: type.typeColor, size: 16),
                   SizedBox(width: 10),
-                  Expanded( // ✅ WRAP Text IN Expanded
+                  Expanded(
                     child: Text(
                       type.displayName,
                       style: TextStyle(fontSize: 14),
-                      overflow: TextOverflow.ellipsis, // ✅ ADD THIS
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -279,90 +301,62 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
     );
   }
 
-  Widget _buildAdvancedFilters() {
+  Widget _buildAdvancedFilters(ThemeData theme, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.tune, color: Theme.of(context).primaryColor, size: 20),
-            SizedBox(width: 8),
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.tune,
+                color: theme.primaryColor,
+                size: 20,
+              ),
+            ),
+            SizedBox(width: 10),
             Text(
-              'Advanced Filters',
+              'order_filter.advanced_filters'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
+                color: isDark ? Colors.white : Colors.grey[800],
               ),
             ),
           ],
         ),
         SizedBox(height: 16),
-
-        // Customer name
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: TextField(
-            controller: _customerNameController,
-            decoration: InputDecoration(
-              labelText: 'Customer Name',
-              prefixIcon: Icon(Icons.person_search, size: 20),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              hintText: 'Search by customer name...',
-              hintStyle: TextStyle(fontSize: 13),
-            ),
-          ),
+        _buildTextFilterField(
+          theme: theme,
+          isDark: isDark,
+          controller: _customerNameController,
+          label: 'order_filter.customer_name'.tr(),
+          hint: 'order_filter.customer_search'.tr(),
+          icon: Icons.person_search,
         ),
-
         SizedBox(height: 12),
-
-        // Amount range
         Row(
           children: [
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: TextField(
-                  controller: _minAmountController,
-                  decoration: InputDecoration(
-                    labelText: 'Min Amount',
-                    prefixText: '\$ ',
-                    prefixIcon: Icon(Icons.attach_money, size: 20),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                ),
+              child: _buildNumberFilterField(
+                theme: theme,
+                isDark: isDark,
+                controller: _minAmountController,
+                label: 'order_filter.min_amount'.tr(),
               ),
             ),
             SizedBox(width: 12),
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: TextField(
-                  controller: _maxAmountController,
-                  decoration: InputDecoration(
-                    labelText: 'Max Amount',
-                    prefixText: '\$ ',
-                    prefixIcon: Icon(Icons.money_off, size: 20),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                ),
+              child: _buildNumberFilterField(
+                theme: theme,
+                isDark: isDark,
+                controller: _maxAmountController,
+                label: 'order_filter.max_amount'.tr(),
               ),
             ),
           ],
@@ -371,17 +365,93 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
     );
   }
 
-  Widget _buildRentalFilters() {
+  Widget _buildTextFilterField({
+    required ThemeData theme,
+    required bool isDark,
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? theme.cardColor : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: isDark ? Colors.grey[400] : Colors.grey[700],
+          ),
+          prefixIcon: Icon(icon, size: 20),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          hintText: hint,
+          hintStyle: TextStyle(fontSize: 13),
+        ),
+        style: TextStyle(
+          color: isDark ? Colors.white : Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumberFilterField({
+    required ThemeData theme,
+    required bool isDark,
+    required TextEditingController controller,
+    required String label,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? theme.cardColor : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: isDark ? Colors.grey[400] : Colors.grey[700],
+          ),
+          prefixText: '\$ ',
+          prefixIcon: Icon(Icons.attach_money, size: 20),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        keyboardType: TextInputType.numberWithOptions(decimal: true),
+        style: TextStyle(
+          color: isDark ? Colors.white : Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRentalFilters(ThemeData theme, bool isDark) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.purple[100]!, Colors.purple[50]!],
+          colors: [
+            Colors.purple.withOpacity(0.1),
+            Colors.purple.withOpacity(0.05),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.purple[300]!, width: 2),
+        border: Border.all(
+          color: Colors.purple.withOpacity(0.3),
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,16 +459,20 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(6),
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.purple[700],
-                  shape: BoxShape.circle,
+                  color: Colors.purple.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.access_time, color: Colors.white, size: 16),
+                child: Icon(
+                  Icons.access_time,
+                  color: Colors.purple,
+                  size: 18,
+                ),
               ),
               SizedBox(width: 10),
               Text(
-                'Rental Period Filters',
+                'order_filter.rental_filters'.tr(),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.purple[900],
@@ -408,66 +482,67 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
             ],
           ),
           SizedBox(height: 16),
-
-          // Dates in compact grid
           Row(
             children: [
-              Expanded(child: _buildDateButton('Start After', _rentalStartAfter, 'rental_start_after')),
+              Expanded(
+                child: _buildDateButton(
+                  'order_filter.start_after'.tr(),
+                  _rentalStartAfter,
+                  'rental_start_after',
+                  theme,
+                ),
+              ),
               SizedBox(width: 8),
-              Expanded(child: _buildDateButton('Start Before', _rentalStartBefore, 'rental_start_before')),
+              Expanded(
+                child: _buildDateButton(
+                  'order_filter.start_before'.tr(),
+                  _rentalStartBefore,
+                  'rental_start_before',
+                  theme,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: _buildDateButton('End After', _rentalEndAfter, 'rental_end_after')),
-              SizedBox(width: 8),
-              Expanded(child: _buildDateButton('End Before', _rentalEndBefore, 'rental_end_before')),
-            ],
-          ),
-
-          SizedBox(height: 12),
-
-          // Daily rate range
-          Row(
-            children: [
               Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextField(
-                    controller: _minDailyRateController,
-                    decoration: InputDecoration(
-                      labelText: 'Min Rate',
-                      prefixText: '\$ ',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
-                      contentPadding: EdgeInsets.all(12),
-                    ),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  ),
+                child: _buildDateButton(
+                  'order_filter.end_after'.tr(),
+                  _rentalEndAfter,
+                  'rental_end_after',
+                  theme,
                 ),
               ),
               SizedBox(width: 8),
               Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextField(
-                    controller: _maxDailyRateController,
-                    decoration: InputDecoration(
-                      labelText: 'Max Rate',
-                      prefixText: '\$ ',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
-                      contentPadding: EdgeInsets.all(12),
-                    ),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  ),
+                child: _buildDateButton(
+                  'order_filter.end_before'.tr(),
+                  _rentalEndBefore,
+                  'rental_end_before',
+                  theme,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildNumberFilterField(
+                  theme: theme,
+                  isDark: isDark,
+                  controller: _minDailyRateController,
+                  label: 'order_filter.min_rate'.tr(),
+                ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: _buildNumberFilterField(
+                  theme: theme,
+                  isDark: isDark,
+                  controller: _maxDailyRateController,
+                  label: 'order_filter.max_rate'.tr(),
                 ),
               ),
             ],
@@ -477,22 +552,35 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
     );
   }
 
-  Widget _buildDateButton(String label, DateTime? date, String filterType) {
+  Widget _buildDateButton(
+      String label,
+      DateTime? date,
+      String filterType,
+      ThemeData theme,
+      ) {
     return InkWell(
       onTap: () => _selectDate(context, filterType),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: date != null ? Colors.purple[400]! : Colors.purple[200]!),
+          border: Border.all(
+            color: date != null ? Colors.purple[400]! : Colors.purple[200]!,
+            width: date != null ? 2 : 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               label,
-              style: TextStyle(fontSize: 10, color: Colors.purple[700], fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.purple[700],
+                fontWeight: FontWeight.w600,
+              ),
             ),
             SizedBox(height: 4),
             Row(
@@ -501,7 +589,9 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
                 SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    date != null ? _formatDate(date) : 'Select',
+                    date != null
+                        ? _formatDate(date, context)
+                        : 'order_filter.select_date'.tr(),
                     style: TextStyle(
                       fontSize: 12,
                       color: date != null ? Colors.black87 : Colors.grey[500],
@@ -518,37 +608,67 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(ThemeData theme, bool isDark) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+        color: isDark ? theme.scaffoldBackgroundColor : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: Offset(0, -4),
+          ),
+        ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          OutlinedButton.icon(
-            onPressed: _clearFilters,
-            icon: Icon(Icons.clear_all, size: 18),
-            label: Text('Clear All'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.grey[700],
-              side: BorderSide(color: Colors.grey[400]!),
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _applyFilters,
+              icon: Icon(Icons.check),
+              label: Text(
+                'order_filter.apply_filters'.tr(),
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
             ),
           ),
-          ElevatedButton.icon(
-            onPressed: _applyFilters,
-            icon: Icon(Icons.check, size: 18),
-            label: Text('Apply Filters'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _clearFilters,
+              icon: Icon(Icons.clear_all),
+              label: Text(
+                'order_filter.clear_all'.tr(),
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: isDark ? Colors.grey[400] : Colors.grey[700],
+                side: BorderSide(
+                  color: isDark ? Colors.grey[700]! : Colors.grey[400]!,
+                ),
+                padding: EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
         ],
@@ -577,41 +697,33 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
 
     // Rental filters
     if (_rentalStartAfter != null) {
-      filters['rental_start_after'] = _rentalStartAfter!.toIso8601String().split('T')[0];
+      filters['rental_start_after'] =
+      _rentalStartAfter!.toIso8601String().split('T')[0];
     }
     if (_rentalStartBefore != null) {
-      filters['rental_start_before'] = _rentalStartBefore!.toIso8601String().split('T')[0];
+      filters['rental_start_before'] =
+      _rentalStartBefore!.toIso8601String().split('T')[0];
     }
     if (_rentalEndAfter != null) {
-      filters['rental_end_after'] = _rentalEndAfter!.toIso8601String().split('T')[0];
+      filters['rental_end_after'] =
+      _rentalEndAfter!.toIso8601String().split('T')[0];
     }
     if (_rentalEndBefore != null) {
-      filters['rental_end_before'] = _rentalEndBefore!.toIso8601String().split('T')[0];
+      filters['rental_end_before'] =
+      _rentalEndBefore!.toIso8601String().split('T')[0];
     }
     if (_minDailyRateController.text.isNotEmpty) {
-      filters['min_daily_rate'] = double.tryParse(_minDailyRateController.text);
+      filters['min_daily_rate'] =
+          double.tryParse(_minDailyRateController.text);
     }
     if (_maxDailyRateController.text.isNotEmpty) {
-      filters['max_daily_rate'] = double.tryParse(_maxDailyRateController.text);
+      filters['max_daily_rate'] =
+          double.tryParse(_maxDailyRateController.text);
     }
 
     context.read<OrderBloc>().add(FilterOrdersEvent(filters));
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Filters applied successfully'),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    _showSuccessSnackBar('order_filter.applied_success'.tr());
   }
 
   void _clearFilters() {
@@ -631,21 +743,7 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
 
     context.read<OrderBloc>().add(ClearOrderFilters());
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.info, color: Colors.white),
-            SizedBox(width: 8),
-            Text('All filters cleared'),
-          ],
-        ),
-        backgroundColor: Colors.blue,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    _showInfoSnackBar('order_filter.cleared_success'.tr());
   }
 
   void _selectDate(BuildContext context, String filterType) async {
@@ -670,7 +768,7 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
       initialDate: currentDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(Duration(days: 365)),
-      helpText: 'Select Date for Filter',
+      helpText: 'order_filter.select_date_dialog'.tr(),
     );
 
     if (date != null) {
@@ -693,8 +791,46 @@ class _OrderFilterPanelState extends State<OrderFilterPanel> {
     }
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year.toString().substring(2)}';
+  String _formatDate(DateTime date, BuildContext context) {
+    final locale = context.locale.toString();
+    final formatter = intl.DateFormat.yMMMd(locale);
+    return formatter.format(date);
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showInfoSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.info, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.blue,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override

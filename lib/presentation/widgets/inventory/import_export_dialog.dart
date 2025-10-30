@@ -1,4 +1,5 @@
-// presentation/widgets/inventory/import_export_dialog.dart
+// presentation/widgets/inventory/import_export_dialog.dart (FULLY LOCALIZED!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +12,6 @@ class ImportExportDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      // ✅ FIXED - Create ViewModel with only InventoryBloc parameter
       create: (context) => InventoryImportExportViewModel(
         inventoryBloc: context.read<InventoryBloc>(),
       ),
@@ -22,7 +22,7 @@ class ImportExportDialog extends StatelessWidget {
               children: [
                 Icon(Icons.import_export, color: Theme.of(context).primaryColor),
                 SizedBox(width: 8),
-                Text('Import/Export Data'),
+                Text('import_export.title'.tr()),
               ],
             ),
             content: SizedBox(
@@ -66,7 +66,7 @@ class ImportExportDialog extends StatelessWidget {
                     SizedBox(height: 16),
                     LinearProgressIndicator(value: viewModel.progress),
                     SizedBox(height: 8),
-                    Text('${viewModel.progressPercentage} complete'),
+                    Text('${viewModel.progressPercentage} ${'import_export.progress_complete'.tr()}'),
                   ],
 
                   SizedBox(height: 20),
@@ -83,7 +83,7 @@ class ImportExportDialog extends StatelessWidget {
                               Icon(Icons.upload_file, color: Colors.blue),
                               SizedBox(width: 8),
                               Text(
-                                'Import Data',
+                                'import_export.import_title'.tr(),
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -92,7 +92,7 @@ class ImportExportDialog extends StatelessWidget {
                             ],
                           ),
                           SizedBox(height: 8),
-                          Text('Import inventory items from CSV file'),
+                          Text('import_export.import_description'.tr()),
                           SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
@@ -101,7 +101,7 @@ class ImportExportDialog extends StatelessWidget {
                                   ? null
                                   : () => _handleImport(context, viewModel),
                               icon: Icon(Icons.file_upload),
-                              label: Text('Select CSV File'),
+                              label: Text('import_export.select_csv'.tr()),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 foregroundColor: Colors.white,
@@ -127,7 +127,7 @@ class ImportExportDialog extends StatelessWidget {
                               Icon(Icons.download, color: Colors.green),
                               SizedBox(width: 8),
                               Text(
-                                'Export Data',
+                                'import_export.export_title'.tr(),
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -136,7 +136,7 @@ class ImportExportDialog extends StatelessWidget {
                             ],
                           ),
                           SizedBox(height: 8),
-                          Text('Export inventory data in various formats'),
+                          Text('import_export.export_description'.tr()),
                           SizedBox(height: 12),
 
                           // Export buttons
@@ -149,7 +149,7 @@ class ImportExportDialog extends StatelessWidget {
                                       ? null
                                       : () => _handleCsvExport(context, viewModel),
                                   icon: Icon(Icons.table_chart),
-                                  label: Text('CSV Export (with category names)'),
+                                  label: Text('import_export.csv_export'.tr()),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.green,
                                     foregroundColor: Colors.white,
@@ -166,7 +166,7 @@ class ImportExportDialog extends StatelessWidget {
                                       ? null
                                       : () => _handlePdfReportExport(context, viewModel),
                                   icon: Icon(Icons.picture_as_pdf),
-                                  label: Text('PDF Report'),
+                                  label: Text('import_export.pdf_report'.tr()),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,
                                     foregroundColor: Colors.white,
@@ -183,7 +183,7 @@ class ImportExportDialog extends StatelessWidget {
                                       ? null
                                       : () => _handlePdfBarcodeExport(context, viewModel),
                                   icon: Icon(Icons.qr_code),
-                                  label: Text('PDF with Barcodes'),
+                                  label: Text('import_export.pdf_barcodes'.tr()),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.purple,
                                     foregroundColor: Colors.white,
@@ -203,7 +203,7 @@ class ImportExportDialog extends StatelessWidget {
               if (viewModel.hasLastExport) ...[
                 TextButton(
                   onPressed: () => _showExportInfo(context, viewModel.lastExportPath!),
-                  child: Text('View Export Info'),
+                  child: Text('import_export.view_export_info'.tr()),
                 ),
               ],
               TextButton(
@@ -213,7 +213,7 @@ class ImportExportDialog extends StatelessWidget {
                   viewModel.clearAll();
                   Navigator.pop(context);
                 },
-                child: Text('Close'),
+                child: Text('import_export.close'.tr()),
               ),
             ],
           );
@@ -226,12 +226,11 @@ class ImportExportDialog extends StatelessWidget {
     final success = await viewModel.importFromCsv();
 
     if (success) {
-      // Refresh inventory data
       context.read<InventoryBloc>().add(RefreshInventoryItems());
 
       _showSnackBar(
         context,
-        'Import completed: ${viewModel.getImportSummary()}',
+        '${'import_export.import_completed'.tr()}: ${viewModel.getImportSummary()}',
         Colors.green,
       );
     } else if (viewModel.errorMessage != null) {
@@ -243,14 +242,14 @@ class ImportExportDialog extends StatelessWidget {
     final inventoryState = context.read<InventoryBloc>().state;
 
     if (inventoryState is! InventoryLoaded || inventoryState.displayItems.isEmpty) {
-      _showSnackBar(context, 'No data to export', Colors.orange);
+      _showSnackBar(context, 'import_export.no_data_export'.tr(), Colors.orange);
       return;
     }
 
     final filePath = await viewModel.exportToCsv(inventoryState.displayItems);
 
     if (filePath != null) {
-      _showSnackBar(context, 'CSV exported successfully with category names', Colors.green);
+      _showSnackBar(context, 'import_export.csv_success'.tr(), Colors.green);
     } else if (viewModel.errorMessage != null) {
       _showSnackBar(context, viewModel.errorMessage!, Colors.red);
     }
@@ -260,14 +259,14 @@ class ImportExportDialog extends StatelessWidget {
     final inventoryState = context.read<InventoryBloc>().state;
 
     if (inventoryState is! InventoryLoaded || inventoryState.displayItems.isEmpty) {
-      _showSnackBar(context, 'No data to export', Colors.orange);
+      _showSnackBar(context, 'import_export.no_data_export'.tr(), Colors.orange);
       return;
     }
 
     final filePath = await viewModel.exportToPdfReport(inventoryState.displayItems);
 
     if (filePath != null) {
-      _showSnackBar(context, 'PDF report exported successfully', Colors.green);
+      _showSnackBar(context, 'import_export.pdf_report_success'.tr(), Colors.green);
     } else if (viewModel.errorMessage != null) {
       _showSnackBar(context, viewModel.errorMessage!, Colors.red);
     }
@@ -277,14 +276,14 @@ class ImportExportDialog extends StatelessWidget {
     final inventoryState = context.read<InventoryBloc>().state;
 
     if (inventoryState is! InventoryLoaded || inventoryState.displayItems.isEmpty) {
-      _showSnackBar(context, 'No data to export', Colors.orange);
+      _showSnackBar(context, 'import_export.no_data_export'.tr(), Colors.orange);
       return;
     }
 
     final filePath = await viewModel.exportToPdfWithBarcodes(inventoryState.displayItems);
 
     if (filePath != null) {
-      _showSnackBar(context, 'PDF with barcodes exported successfully', Colors.green);
+      _showSnackBar(context, 'import_export.pdf_barcodes_success'.tr(), Colors.green);
     } else if (viewModel.errorMessage != null) {
       _showSnackBar(context, viewModel.errorMessage!, Colors.red);
     }
@@ -294,14 +293,14 @@ class ImportExportDialog extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Export Information'),
+        title: Text('import_export.export_info_title'.tr()),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Export completed successfully!'),
+            Text('import_export.export_completed'.tr()),
             SizedBox(height: 12),
-            Text('File location:'),
+            Text('import_export.file_location'.tr()),
             SizedBox(height: 4),
             Container(
               padding: EdgeInsets.all(8),
@@ -319,7 +318,7 @@ class ImportExportDialog extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text('import_export.ok'.tr()),
           ),
         ],
       ),

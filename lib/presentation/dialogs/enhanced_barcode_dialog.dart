@@ -1,6 +1,7 @@
-// presentation/dialogs/enhanced_barcode_dialog.dart
+// presentation/dialogs/enhanced_barcode_dialog.dart (FULLY LOCALIZED!)
 import 'dart:typed_data';
 import 'dart:io';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:syncfusion_flutter_barcodes/barcodes.dart';
@@ -28,10 +29,8 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
   final BarcodeService _barcodeService = BarcodeService();
   bool _isProcessing = false;
 
-  // ✅ FIXED - Use String as dropdown value instead of object instances
   String _selectedSymbologyType = 'Code128';
 
-  // ✅ FIXED - Static symbology options with string keys
   final List<BarcodeSymbologyOption> _symbologyOptions = [
     BarcodeSymbologyOption('Code 128', 'Code128'),
     BarcodeSymbologyOption('EAN-13', 'EAN13'),
@@ -98,7 +97,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Enhanced Barcode Generator',
+                'barcode.title'.tr(),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -106,7 +105,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                'for ${widget.item.nameEn}',
+                '${'barcode.for'.tr()} ${widget.item.nameEn}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey.shade600,
                 ),
@@ -124,7 +123,6 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
     );
   }
 
-  // ✅ FIXED - Dropdown with string values
   Widget _buildSymbologySelector() {
     return Container(
       padding: EdgeInsets.all(12),
@@ -137,7 +135,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Barcode Type:',
+            'barcode.barcode_type'.tr(),
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
@@ -196,7 +194,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
                     width: _getSmallBarcodeWidth(),
                     child: SfBarcodeGenerator(
                       value: _getBarcodeData(),
-                      symbology: _getSymbologyInstance(), // ✅ Create instance when needed
+                      symbology: _getSymbologyInstance(),
                       showValue: true,
                       textSpacing: 5,
                       barColor: Colors.black,
@@ -249,13 +247,13 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
                   runSpacing: 4,
                   alignment: WrapAlignment.center,
                   children: [
-                    _buildInfoChip('SKU: ${widget.item.sku}'),
+                    _buildInfoChip('${'barcode.sku'.tr()} ${widget.item.sku}'),
                     if (widget.item.unitPrice != null)
                       _buildInfoChip(
                         '\$${widget.item.unitPrice!.toStringAsFixed(2)}',
                       ),
-                    _buildInfoChip('Stock: ${widget.item.stockQuantity}'),
-                    _buildInfoChip('Type: ${_getSymbologyDisplayName()}'),
+                    _buildInfoChip('${'barcode.stock'.tr()} ${widget.item.stockQuantity}'),
+                    _buildInfoChip('${'barcode.type'.tr()} ${_getSymbologyDisplayName()}'),
                   ],
                 ),
               ],
@@ -266,7 +264,6 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
     );
   }
 
-  // ✅ FIXED - Create symbology instance based on string type
   dynamic _getSymbologyInstance() {
     switch (_selectedSymbologyType) {
       case 'Code128':
@@ -310,22 +307,25 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
         return 60.0;
       default:
         return 50.0;
-    }  }
+    }
+  }
+
   double _getSmallBarcodeWidth() {
     switch (_selectedSymbologyType) {
       case 'QRCode':
       case 'DataMatrix':
-        return 60.0; // Square codes - same as height
+        return 60.0;
       case 'EAN13':
       case 'UPCA':
-        return 120.0; // Standard retail width but smaller
+        return 120.0;
       case 'EAN8':
       case 'UPCE':
-        return 80.0; // Compact retail codes
+        return 80.0;
       default:
-        return 150.0; // Moderate width for linear codes
+        return 150.0;
     }
   }
+
   String _getSymbologyDisplayName() {
     return _symbologyOptions
         .firstWhere(
@@ -364,34 +364,20 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-       /* _buildActionButton(
-          context,
-          'Copy',
-          Icons.copy,
-          Colors.blue,
-              () => _copyBarcodeData(context),
-        ),*/
         _buildActionButton(
           context,
-          'Save',
+          'barcode.save'.tr(),
           Icons.download,
           Colors.green,
               () => _saveBarcode(context),
         ),
         _buildActionButton(
           context,
-          'Print',
+          'barcode.print'.tr(),
           Icons.print,
           Colors.purple,
               () => _printLabel(context),
         ),
-    /*    _buildActionButton(
-          context,
-          'Share',
-          Icons.share,
-          Colors.orange,
-              () => _shareBarcode(context),
-        ),*/
       ],
     );
   }
@@ -443,7 +429,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
     Clipboard.setData(ClipboardData(text: barcodeData));
     _showSnackBar(
       context,
-      'Barcode data copied to clipboard',
+      'barcode.barcode_copied'.tr(),
       Colors.green,
       Icons.check_circle,
     );
@@ -457,7 +443,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
       if (!status.isGranted) {
         _showSnackBar(
           context,
-          'Storage permission required',
+          'barcode.storage_permission_required'.tr(),
           Colors.red,
           Icons.error,
         );
@@ -470,7 +456,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
       );
 
       if (imageBytes == null) {
-        throw Exception('Failed to capture barcode');
+        throw Exception('barcode.failed_capture'.tr());
       }
 
       Directory? directory;
@@ -481,7 +467,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
       }
 
       if (directory == null) {
-        throw Exception('Could not access storage');
+        throw Exception('barcode.storage_access_failed'.tr());
       }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -493,7 +479,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
 
       _showSnackBar(
         context,
-        'Barcode saved: $filename',
+        'barcode.barcode_saved'.tr(namedArgs: {'filename': filename}),
         Colors.green,
         Icons.check_circle,
       );
@@ -502,7 +488,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
     } catch (e) {
       _showSnackBar(
         context,
-        'Save failed: ${e.toString()}',
+        'barcode.save_failed'.tr(namedArgs: {'error': e.toString()}),
         Colors.red,
         Icons.error,
       );
@@ -521,7 +507,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
       );
 
       if (barcodeImageBytes == null) {
-        throw Exception('Failed to capture barcode for printing');
+        throw Exception('barcode.failed_capture_print'.tr());
       }
 
       final pdf = pw.Document();
@@ -553,17 +539,17 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
                   ),
                   child: pw.Column(
                     children: [
-                      _buildPdfRow('Item:', widget.item.nameEn),
+                      _buildPdfRow('barcode.item'.tr(), widget.item.nameEn),
                       if (widget.item.nameAr.isNotEmpty)
-                        _buildPdfRow('Arabic:', widget.item.nameAr),
-                      _buildPdfRow('SKU:', widget.item.sku),
+                        _buildPdfRow('barcode.arabic'.tr(), widget.item.nameAr),
+                      _buildPdfRow('barcode.sku'.tr(), widget.item.sku),
                       if (widget.item.unitPrice != null)
                         _buildPdfRow(
-                          'Price:',
+                          'barcode.price'.tr(),
                           '\$${widget.item.unitPrice!.toStringAsFixed(2)}',
                         ),
-                      _buildPdfRow('Stock:', '${widget.item.stockQuantity}'),
-                      _buildPdfRow('Type:', _getSymbologyDisplayName()),
+                      _buildPdfRow('barcode.stock'.tr(), '${widget.item.stockQuantity}'),
+                      _buildPdfRow('barcode.type'.tr(), _getSymbologyDisplayName()),
                     ],
                   ),
                 ),
@@ -580,14 +566,14 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
 
       _showSnackBar(
         context,
-        'Print dialog opened',
+        'barcode.print_dialog_opened'.tr(),
         Colors.purple,
         Icons.print,
       );
     } catch (e) {
       _showSnackBar(
         context,
-        'Print failed: ${e.toString()}',
+        'barcode.print_failed'.tr(namedArgs: {'error': e.toString()}),
         Colors.red,
         Icons.error,
       );
@@ -624,7 +610,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
       );
 
       if (imageBytes == null) {
-        throw Exception('Failed to capture barcode for sharing');
+        throw Exception('barcode.failed_capture_share'.tr());
       }
 
       final directory = await getTemporaryDirectory();
@@ -643,7 +629,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
     } catch (e) {
       _showSnackBar(
         context,
-        'Share failed: ${e.toString()}',
+        'barcode.share_failed'.tr(namedArgs: {'error': e.toString()}),
         Colors.red,
         Icons.error,
       );
@@ -660,14 +646,14 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
           children: [
             Icon(Icons.check_circle, color: Colors.green),
             SizedBox(width: 8),
-            Text('Saved'),
+            Text('barcode.saved_title'.tr()),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Barcode saved to:'),
+            Text('barcode.saved_to'.tr()),
             SizedBox(height: 8),
             Container(
               padding: EdgeInsets.all(8),
@@ -677,7 +663,7 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
               ),
               child: Text(
                 filePath,
-                style: TextStyle(fontSize: 11, fontFamily: 'monospace',color: Colors.green),
+                style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.green),
               ),
             ),
           ],
@@ -685,9 +671,8 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text('barcode.ok'.tr()),
           ),
-
         ],
       ),
     );
@@ -721,10 +706,9 @@ class _EnhancedBarcodeDialogState extends State<EnhancedBarcodeDialog> {
   }
 }
 
-// ✅ FIXED - Helper class with string identifier
 class BarcodeSymbologyOption {
   final String displayName;
-  final String symbologyType; // ✅ Use string identifier instead of object
+  final String symbologyType;
 
   BarcodeSymbologyOption(this.displayName, this.symbologyType);
 

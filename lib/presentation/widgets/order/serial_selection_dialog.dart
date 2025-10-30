@@ -1,7 +1,8 @@
-// ✅ presentation/widgets/order/serial_selection_dialog.dart (FINAL WORKING VERSION)
+// ✅ presentation/widgets/order/serial_selection_dialog.dart (FULLY LOCALIZED & ENHANCED!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' as intl;
 import '../../../domain/entities/inventory_item.dart';
 import '../../blocs/serial/serial_number_bloc.dart';
 import '../../blocs/serial/serial_number_event.dart';
@@ -36,7 +37,6 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
     super.initState();
     _selectedSerials = {};
 
-    // ✅ Load serials with date-aware filtering if rental dates provided
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.rentalStartDate != null && widget.rentalEndDate != null) {
         context.read<SerialNumberBloc>().add(
@@ -59,7 +59,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 750,
-        height: 650,
+        height: 680,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: theme.scaffoldBackgroundColor,
@@ -111,7 +111,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
                 Row(
                   children: [
                     Text(
-                      'Select Serial Numbers',
+                      'serial_selection.title'.tr(),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -126,7 +126,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        'REQUIRED',
+                        'serial_selection.required'.tr(),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -138,7 +138,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  '${widget.item.nameEn} (SKU: ${widget.item.sku})',
+                  '${widget.item.nameEn} (${'serial_selection.sku'.tr()} ${widget.item.sku})',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14,
@@ -158,7 +158,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
   }
 
   Widget _buildDateRangeBanner(ThemeData theme, bool isDark) {
-    final dateFormat = DateFormat('MMM dd, yyyy');
+    final dateFormat = intl.DateFormat('MMM dd, yyyy', context.locale.toString());
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
@@ -190,7 +190,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
                 ),
                 children: [
                   TextSpan(
-                    text: 'Rental Period: ',
+                    text: '${'serial_selection.rental_period'.tr()} ',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   TextSpan(
@@ -232,12 +232,11 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
                   fontSize: 14,
                 ),
                 children: [
-                  TextSpan(text: 'Please select exactly '),
                   TextSpan(
-                    text: '${widget.requiredQuantity}',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    text: 'serial_selection.select_quantity'.tr(
+                      namedArgs: {'quantity': widget.requiredQuantity.toString()},
+                    ),
                   ),
-                  TextSpan(text: ' serial number(s) for this order'),
                 ],
               ),
             ),
@@ -253,7 +252,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
       child: TextField(
         onChanged: (v) => setState(() => _searchText = v),
         decoration: InputDecoration(
-          hintText: 'Search by serial number...',
+          hintText: 'serial_selection.search_hint'.tr(),
           prefixIcon: Icon(Icons.search, color: theme.iconTheme.color),
           suffixIcon: _searchText.isNotEmpty
               ? IconButton(
@@ -282,7 +281,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
                 CircularProgressIndicator(),
                 SizedBox(height: 16),
                 Text(
-                  'Checking serial availability...',
+                  'serial_selection.checking_availability'.tr(),
                   style: TextStyle(color: theme.textTheme.bodyMedium?.color),
                 ),
               ],
@@ -319,11 +318,12 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
                 .toList();
           }
 
-          // ✅ Smart sorting with date-awareness
           allSerials.sort((a, b) {
             if (availabilityMap != null) {
-              final aAvailable = availabilityMap[a.id]?.isAvailableForDates ?? false;
-              final bAvailable = availabilityMap[b.id]?.isAvailableForDates ?? false;
+              final aAvailable =
+                  availabilityMap[a.id]?.isAvailableForDates ?? false;
+              final bAvailable =
+                  availabilityMap[b.id]?.isAvailableForDates ?? false;
 
               if (aAvailable && !bAvailable) return -1;
               if (!aAvailable && bAvailable) return 1;
@@ -379,10 +379,8 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
     final isRented = serial.status == SerialStatus.rented;
     final isDamaged = serial.status == SerialStatus.damaged;
 
-    // ✅ Check date availability if provided
     final isAvailableForDates = availability?.isAvailableForDates ?? isAvailable;
 
-    // ✅ FIXED: Allow selection if available for dates, regardless of status!
     final canSelect = isAvailableForDates &&
         (isSelected || _selectedSerials.length < widget.requiredQuantity);
 
@@ -490,7 +488,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
       return Padding(
         padding: EdgeInsets.only(top: 6),
         child: Text(
-          '⚠️ This serial is damaged and cannot be selected',
+          'serial_selection.damaged_warning'.tr(),
           style: TextStyle(
             color: Colors.red,
             fontSize: 12,
@@ -501,11 +499,14 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
     }
 
     if (!isAvailableForDates && availability != null) {
-      final dateFormat = DateFormat('MMM dd');
-      String message = '📅 Rented during your dates';
+      final dateFormat =
+      intl.DateFormat('MMM dd', context.locale.toString());
+      String message = 'serial_selection.rented_during'.tr();
 
-      if (availability.conflictStartDate != null && availability.conflictEndDate != null) {
-        message += ' (${dateFormat.format(availability.conflictStartDate!)} - ${dateFormat.format(availability.conflictEndDate!)})';
+      if (availability.conflictStartDate != null &&
+          availability.conflictEndDate != null) {
+        message +=
+        ' (${dateFormat.format(availability.conflictStartDate!)} - ${dateFormat.format(availability.conflictEndDate!)})';
       }
 
       return Padding(
@@ -525,7 +526,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
       return Padding(
         padding: EdgeInsets.only(top: 6),
         child: Text(
-          '✅ Available for your dates',
+          'serial_selection.available_for_dates'.tr(),
           style: TextStyle(
             color: Colors.green,
             fontSize: 12,
@@ -538,11 +539,18 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
     return null;
   }
 
-  Widget _buildStatusChip(SerialStatus status, bool isAvailableForDates, ThemeData theme) {
-    final statusColor = isAvailableForDates ? _getStatusColor(status) : Colors.orange;
+  Widget _buildStatusChip(
+      SerialStatus status,
+      bool isAvailableForDates,
+      ThemeData theme,
+      ) {
+    final statusColor =
+    isAvailableForDates ? _getStatusColor(status) : Colors.orange;
     final statusText = isAvailableForDates
-        ? status.displayName
-        : (status == SerialStatus.damaged ? 'Damaged' : 'Unavailable');
+        ? _getStatusTranslation(status)
+        : (status == SerialStatus.damaged
+        ? 'serial_selection.damaged'.tr()
+        : 'serial_selection.unavailable'.tr());
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -562,6 +570,25 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
     );
   }
 
+  String _getStatusTranslation(SerialStatus status) {
+    switch (status) {
+      case SerialStatus.available:
+        return 'serial_selection.available'.tr();
+      case SerialStatus.reserved:
+        return 'serial_selection.reserved'.tr();
+      case SerialStatus.sold:
+        return 'serial_selection.sold'.tr();
+      case SerialStatus.rented:
+        return 'serial_selection.rented'.tr();
+      case SerialStatus.damaged:
+        return 'serial_selection.damaged'.tr();
+      case SerialStatus.returned:
+        return 'serial_selection.returned'.tr();
+      case SerialStatus.recalled:
+        return 'serial_selection.recalled'.tr();
+    }
+  }
+
   Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Column(
@@ -575,8 +602,10 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
           SizedBox(height: 20),
           Text(
             _searchText.isEmpty
-                ? 'No serial numbers found'
-                : 'No results for "$_searchText"',
+                ? 'serial_selection.no_serials_found'.tr()
+                : 'serial_selection.no_search_results'.tr(
+              namedArgs: {'query': _searchText},
+            ),
             style: TextStyle(
               fontSize: 16,
               color: theme.textTheme.bodyMedium?.color,
@@ -586,7 +615,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
             SizedBox(height: 12),
             TextButton(
               onPressed: () => setState(() => _searchText = ''),
-              child: Text('Clear search'),
+              child: Text('serial_selection.clear_search'.tr()),
             ),
           ],
         ],
@@ -631,7 +660,7 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
                       Icon(Icons.check_circle, color: Colors.green, size: 18),
                       SizedBox(width: 8),
                       Text(
-                        'Selected Serial Numbers:',
+                        'serial_selection.selected_serials'.tr(),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: isDark ? Colors.green[100] : Colors.green[900],
@@ -706,13 +735,24 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
                       Icon(
                         isValid ? Icons.check_circle : Icons.warning_amber,
                         size: 20,
-                        color: isValid ? Colors.green[700] : Colors.orange[700],
+                        color: isValid
+                            ? Colors.green[700]
+                            : Colors.orange[700],
                       ),
                       SizedBox(width: 10),
                       Text(
                         isValid
-                            ? 'Ready to confirm (${_selectedSerials.length} selected)'
-                            : 'Select $remaining more serial${remaining != 1 ? 's' : ''}',
+                            ? 'serial_selection.ready_confirm'.tr(
+                          namedArgs: {
+                            'count': _selectedSerials.length.toString()
+                          },
+                        )
+                            : 'serial_selection.select_more'.tr(
+                          namedArgs: {
+                            'remaining': remaining.toString(),
+                            'plural': remaining != 1 ? 's' : ''
+                          },
+                        ),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -736,18 +776,21 @@ class _SerialSelectionDialogState extends State<SerialSelectionDialog> {
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 ),
-                child: Text('Cancel', style: TextStyle(fontSize: 15)),
+                child:
+                Text('serial_selection.cancel'.tr(), style: TextStyle(fontSize: 15)),
               ),
               SizedBox(width: 12),
               ElevatedButton.icon(
                 onPressed: isValid
                     ? () {
-                  final serialNumbers = _selectedSerials.values.toList();
+                  final serialNumbers =
+                  _selectedSerials.values.toList();
                   Navigator.of(context).pop(serialNumbers);
                 }
                     : null,
                 icon: Icon(Icons.check, size: 20),
-                label: Text('Confirm Selection', style: TextStyle(fontSize: 15)),
+                label: Text('serial_selection.confirm'.tr(),
+                    style: TextStyle(fontSize: 15)),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   backgroundColor: Colors.green,

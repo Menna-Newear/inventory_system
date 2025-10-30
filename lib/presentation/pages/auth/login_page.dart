@@ -1,4 +1,5 @@
-// ✅ presentation/pages/auth/login_page.dart
+// ✅ presentation/pages/auth/login_page.dart (FULLY LOCALIZED!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/auth/auth_bloc.dart';
@@ -107,7 +108,7 @@ class _LoginPageState extends State<LoginPage> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(
-                                  'Welcome Back',
+                                  'login.welcome_back'.tr(),
                                   style: theme.textTheme.headlineSmall?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -115,7 +116,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 SizedBox(height: 8),
                                 Text(
-                                  'Sign in to continue',
+                                  'login.sign_in_subtitle'.tr(),
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: Colors.grey,
                                   ),
@@ -179,7 +180,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         SizedBox(height: 24),
         Text(
-          'Inventory System',
+          'login.title'.tr(),
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -189,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         SizedBox(height: 8),
         Text(
-          'Manage your inventory with ease',
+          'login.subtitle'.tr(),
           style: TextStyle(
             fontSize: 16,
             color: Colors.white.withOpacity(0.9),
@@ -205,8 +206,8 @@ class _LoginPageState extends State<LoginPage> {
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
       decoration: InputDecoration(
-        labelText: 'Email',
-        hintText: 'Enter your email',
+        labelText: 'login.email_label'.tr(),
+        hintText: 'login.email_hint'.tr(),
         prefixIcon: Icon(Icons.email_outlined),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -216,10 +217,10 @@ class _LoginPageState extends State<LoginPage> {
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter your email';
+          return 'login.validation.email_required'.tr();
         }
         if (!value.contains('@')) {
-          return 'Please enter a valid email';
+          return 'login.validation.email_invalid'.tr();
         }
         return null;
       },
@@ -233,8 +234,8 @@ class _LoginPageState extends State<LoginPage> {
       textInputAction: TextInputAction.done,
       onFieldSubmitted: (_) => _handleLogin(),
       decoration: InputDecoration(
-        labelText: 'Password',
-        hintText: 'Enter your password',
+        labelText: 'login.password_label'.tr(),
+        hintText: 'login.password_hint'.tr(),
         prefixIcon: Icon(Icons.lock_outlined),
         suffixIcon: IconButton(
           icon: Icon(
@@ -254,10 +255,10 @@ class _LoginPageState extends State<LoginPage> {
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter your password';
+          return 'login.validation.password_required'.tr();
         }
         if (value.length < 6) {
-          return 'Password must be at least 6 characters';
+          return 'login.validation.password_min_length'.tr();
         }
         return null;
       },
@@ -296,7 +297,7 @@ class _LoginPageState extends State<LoginPage> {
                 Icon(Icons.login),
                 SizedBox(width: 8),
                 Text(
-                  'Sign In',
+                  'login.sign_in_button'.tr(),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -315,7 +316,7 @@ class _LoginPageState extends State<LoginPage> {
     return Column(
       children: [
         Text(
-          'Need help? Contact your administrator',
+          'login.need_help'.tr(),
           style: TextStyle(
             color: Colors.white.withOpacity(0.8),
             fontSize: 14,
@@ -323,7 +324,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         SizedBox(height: 8),
         Text(
-          '© 2025 Inventory System. All rights reserved.',
+          'login.copyright'.tr(),
           style: TextStyle(
             color: Colors.white.withOpacity(0.6),
             fontSize: 12,

@@ -1,4 +1,5 @@
-// ✅ presentation/widgets/inventory/inventory_filter_panel.dart (FULLY THEME-AWARE)
+// ✅ presentation/widgets/inventory/inventory_filter_panel.dart (FULLY LOCALIZED!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/inventory/inventory_bloc.dart';
@@ -83,7 +84,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           CircularProgressIndicator(strokeWidth: 3),
           SizedBox(height: 20),
           Text(
-            'Loading filter options...',
+            'filters.loading_filter_options'.tr(),
             style: TextStyle(
               fontSize: 16,
               color: theme.textTheme.bodyLarge?.color,
@@ -92,7 +93,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           ),
           SizedBox(height: 8),
           Text(
-            'Please wait while we prepare your filters',
+            'filters.loading_filter_desc'.tr(),
             style: TextStyle(
               fontSize: 13,
               color: theme.textTheme.bodySmall?.color,
@@ -132,7 +133,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Filter Inventory',
+                  'filters.title'.tr(),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -140,7 +141,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
                   ),
                 ),
                 Text(
-                  'Refine your search',
+                  'filters.subtitle'.tr(),
                   style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
@@ -149,7 +150,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           IconButton(
             icon: Icon(Icons.close, color: Colors.white, size: 28),
             onPressed: widget.onClose,
-            tooltip: 'Close',
+            tooltip: 'filters.close'.tr(),
           ),
         ],
       ),
@@ -165,7 +166,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
             Icon(Icons.speed, color: theme.primaryColor, size: 20),
             SizedBox(width: 8),
             Text(
-              'Quick Filters',
+              'filters.quick_filters'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -191,11 +192,11 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
                   children: [
                     Icon(Icons.warning_amber, color: Colors.orange[700], size: 20),
                     SizedBox(width: 8),
-                    Text('Low Stock Items',
+                    Text('filters.low_stock_items'.tr(),
                         style: TextStyle(fontWeight: FontWeight.w500)),
                   ],
                 ),
-                subtitle: Text('Show items below minimum stock level',
+                subtitle: Text('filters.low_stock_desc'.tr(),
                     style: TextStyle(fontSize: 12)),
                 value: _showLowStockOnly,
                 onChanged: (value) => setState(() => _showLowStockOnly = value ?? false),
@@ -206,11 +207,11 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
                   children: [
                     Icon(Icons.qr_code_2, color: Colors.purple[700], size: 20),
                     SizedBox(width: 8),
-                    Text('Serial Tracked Only',
+                    Text('filters.serial_tracked_only'.tr(),
                         style: TextStyle(fontWeight: FontWeight.w500)),
                   ],
                 ),
-                subtitle: Text('Show only items with serial number tracking',
+                subtitle: Text('filters.serial_tracked_desc'.tr(),
                     style: TextStyle(fontSize: 12)),
                 value: _showSerialTrackedOnly,
                 onChanged: (value) =>
@@ -233,7 +234,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
             Icon(Icons.category, color: theme.primaryColor, size: 20),
             SizedBox(width: 8),
             Text(
-              'Category Filters',
+              'filters.category_filters'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -254,7 +255,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
     List<DropdownMenuItem<String>> items = [
       DropdownMenuItem<String>(
         value: null,
-        child: Text('All Categories',
+        child: Text('filters.all_categories'.tr(),
             style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6))),
       ),
     ];
@@ -285,7 +286,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
       child: DropdownButtonFormField<String>(
         value: _selectedCategory,
         decoration: InputDecoration(
-          labelText: 'Category',
+          labelText: 'filters.category'.tr(),
           prefixIcon: categoryState is CategoryLoading
               ? Padding(
             padding: EdgeInsets.all(12),
@@ -318,11 +319,11 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
       ),
       child: TextField(
         decoration: InputDecoration(
-          labelText: 'Subcategory',
+          labelText: 'filters.subcategory'.tr(),
           prefixIcon: Icon(Icons.subdirectory_arrow_right, size: 20),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          hintText: 'Enter subcategory...',
+          hintText: 'filters.enter_subcategory'.tr(),
           hintStyle: TextStyle(fontSize: 13),
         ),
         onChanged: (value) =>
@@ -340,7 +341,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
             Icon(Icons.attach_money, color: theme.primaryColor, size: 20),
             SizedBox(width: 8),
             Text(
-              'Price Range',
+              'filters.price_range'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -354,7 +355,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           children: [
             Expanded(child: _buildTextField(
               controller: _minPriceController,
-              label: 'Min Price',
+              label: 'filters.min_price'.tr(),
               prefixText: '\$ ',
               icon: Icons.arrow_upward,
               iconColor: Colors.green,
@@ -365,7 +366,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
             SizedBox(width: 12),
             Expanded(child: _buildTextField(
               controller: _maxPriceController,
-              label: 'Max Price',
+              label: 'filters.max_price'.tr(),
               prefixText: '\$ ',
               icon: Icons.arrow_downward,
               iconColor: Colors.red,
@@ -388,7 +389,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
             Icon(Icons.inventory_2, color: theme.primaryColor, size: 20),
             SizedBox(width: 8),
             Text(
-              'Stock Quantity Range',
+              'filters.stock_range'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -402,7 +403,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           children: [
             Expanded(child: _buildTextField(
               controller: _minStockController,
-              label: 'Min Stock',
+              label: 'filters.min_stock'.tr(),
               icon: Icons.minimize,
               iconColor: Colors.orange,
               theme: theme,
@@ -411,7 +412,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
             SizedBox(width: 12),
             Expanded(child: _buildTextField(
               controller: _maxStockController,
-              label: 'Max Stock',
+              label: 'filters.max_stock'.tr(),
               icon: Icons.add_box,
               iconColor: Colors.blue,
               theme: theme,
@@ -485,7 +486,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
                     ),
                   )
                       : Icon(Icons.check),
-                  label: Text(isLoading ? 'Loading...' : 'Apply Filters'),
+                  label: Text(isLoading ? 'filters.loading'.tr() : 'filters.apply_filters'.tr()),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.primaryColor,
                     foregroundColor: Colors.white,
@@ -502,7 +503,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
                 child: OutlinedButton.icon(
                   onPressed: isLoading ? null : _clearFilters,
                   icon: Icon(Icons.clear_all),
-                  label: Text('Clear All Filters'),
+                  label: Text('filters.clear_all_filters'.tr()),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: theme.textTheme.bodyLarge?.color,
                     padding: EdgeInsets.symmetric(vertical: 16),
@@ -547,7 +548,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           children: [
             Icon(Icons.check_circle, color: Colors.white),
             SizedBox(width: 8),
-            Text('Filters applied successfully'),
+            Text('filters.filters_applied'.tr()),
           ],
         ),
         backgroundColor: Colors.green,
@@ -578,7 +579,7 @@ class _InventoryFilterPanelState extends State<InventoryFilterPanel> {
           children: [
             Icon(Icons.info, color: Colors.white),
             SizedBox(width: 8),
-            Text('All filters cleared'),
+            Text('filters.filters_cleared'.tr()),
           ],
         ),
         backgroundColor: Colors.blue,

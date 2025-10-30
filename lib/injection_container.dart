@@ -2,6 +2,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:inventory_system/presentation/blocs/category/category_bloc.dart';
 import 'package:inventory_system/presentation/blocs/order/order_bloc.dart';
+import 'package:inventory_system/presentation/blocs/theme/theme_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -55,6 +56,7 @@ import 'domain/usecases/auth/get_current_user.dart';
 // ===================================
 // USE CASES - USER MANAGEMENT
 // ===================================
+import 'domain/usecases/delete_category.dart';
 import 'domain/usecases/user/create_user.dart';
 import 'domain/usecases/user/get_all_users.dart';
 import 'domain/usecases/user/delete_user.dart';
@@ -105,6 +107,7 @@ Future<void> init() async {
   // CORE
   // ===================================
   getIt.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(getIt()));
+  getIt.registerSingleton<ThemeBloc>(ThemeBloc());
 
   // ===================================
   // DATA SOURCES
@@ -188,6 +191,7 @@ Future<void> init() async {
   getIt.registerLazySingleton(() => UpdateUserPassword(getIt()));
   getIt.registerLazySingleton(() => get_categories_usecase.GetCategories(getIt()));
   getIt.registerLazySingleton(() => create_category_usecase.CreateCategory(getIt()));
+  getIt.registerLazySingleton(() => DeleteCategory(getIt()));
   getIt.registerLazySingleton(() => get_items_usecase.GetInventoryItems(getIt()));
   getIt.registerLazySingleton(() => create_item_usecase.CreateInventoryItem(getIt()));
   getIt.registerLazySingleton(() => update_item_usecase.UpdateInventoryItem(getIt()));
@@ -234,7 +238,9 @@ Future<void> init() async {
         () => CategoryBloc(
       getCategories: getIt(),
       createCategory: getIt(),
-    ),
+          deleteCategory: getIt(), // ✅ ADD THIS
+
+        ),
   );
 
   getIt.registerFactory(

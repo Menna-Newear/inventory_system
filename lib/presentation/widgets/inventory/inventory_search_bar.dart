@@ -1,5 +1,6 @@
-// ✅ presentation/widgets/inventory/inventory_search_bar.dart (WITH DEBOUNCING)
+// ✅ presentation/widgets/inventory/inventory_search_bar.dart (FULLY LOCALIZED!)
 import 'dart:async';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/inventory/inventory_bloc.dart';
@@ -49,7 +50,7 @@ class _InventorySearchBarState extends State<InventorySearchBar> {
         },
         style: theme.textTheme.bodyMedium,
         decoration: InputDecoration(
-          hintText: 'Search by name, SKU, or description...',
+          hintText: 'inventory_search.hint'.tr(),
           hintStyle: TextStyle(
             color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
           ),
@@ -100,9 +101,10 @@ class _InventorySearchBarState extends State<InventorySearchBar> {
             strokeWidth: 2,
             valueColor: AlwaysStoppedAnimation<Color>(
               theme.brightness == Brightness.dark
-                  ? Colors.blue[400]!  // ✅ Blue for dark mode
-                  : Colors.blue[600]!, // ✅ Blue for light mode
-            ),          ),
+                  ? Colors.blue[400]!
+                  : Colors.blue[600]!,
+            ),
+          ),
         ),
       );
     } else {

@@ -1,6 +1,8 @@
 {
-  "app_title": "Inventory Management System",
-
+  "app": {
+    "title": "Inventory Management System",
+    "description": "Manage your inventory efficiently"
+  },
   "navigation": {
     "dashboard": "Dashboard",
     "inventory": "Inventory",
@@ -21,8 +23,11 @@
     "view": "View",
     "search": "Search",
     "filter": "Filter",
+    "filters": "Filters",
+    "hide_filters": "Hide Filters",
     "export": "Export",
     "import": "Import",
+    "import_export": "Import/Export",
     "refresh": "Refresh",
     "loading": "Loading...",
     "no_data": "No data available",
@@ -31,9 +36,17 @@
     "confirm": "Confirm",
     "yes": "Yes",
     "no": "No",
-    "actions": "Actions"
+    "actions": "Actions",
+    "please_wait": "Please wait",
+    "initializing": "Initializing system",
+    "authentication": "Authenticating"
   },
-
+  "splash": {
+    "loading_app": "Loading App",
+    "initializing_services": "Initializing Services",
+    "loading_your_data": "Loading Your Data",
+    "please_wait": "Please wait..."
+  },
   "inventory": {
     "title": "Inventory Management",
     "add_item": "Add Item",
@@ -140,6 +153,759 @@
     "order_created": "Order created successfully",
     "order_updated": "Order updated successfully",
     "confirm_delete": "Are you sure you want to delete?",
-    "operation_failed": "Operation failed"
+    "operation_failed": "Operation failed",
+    "permission_denied": "You don't have permission to {action}"
+  },
+
+  "table": {
+    "sku": "SKU",
+    "name": "Name",
+    "name_ar": "Name (AR)",
+    "category": "Category",
+    "subcategory": "Subcategory",
+    "stock": "Stock",
+    "price": "Price",
+    "total_value": "Total Value",
+    "status": "Status",
+    "updated": "Updated",
+    "actions": "Actions",
+    "showing": "Showing",
+    "of": "of",
+    "items": "items",
+    "filtered_items": "filtered items",
+    "page": "Page",
+    "previous_page": "Previous page",
+    "next_page": "Next page",
+    "no_items_found": "No items found",
+    "loading_inventory": "Loading inventory...",
+    "error_loading": "Error loading inventory"
+  },
+
+  "status_labels": {
+    "out_of_stock": "Out of Stock",
+    "low_stock": "Low Stock",
+    "in_stock": "In Stock",
+    "serial_tracked": "Serial Tracked"
+  },
+
+  "actions": {
+    "edit_item": "Edit Item",
+    "manage_serials": "Manage Serials",
+    "view_serials": "View Serials",
+    "delete_item": "Delete Item",
+    "show_qr": "Show QR Code",
+    "view_image": "View Image",
+    "retry": "Retry"
+  },
+
+  "dialogs": {
+    "delete_title": "Delete Item",
+    "delete_confirm": "Are you sure you want to delete this item?",
+    "delete_warning": "This action cannot be undone.",
+    "item": "Item",
+    "stock": "Stock",
+    "price": "Price",
+    "serial_numbers_delete": "Serial Numbers: {count} will be deleted",
+    "product_image": "Product Image",
+    "failed_load_image": "Failed to load image"
+  },
+
+  "filtering": {
+    "filtering": "Filtering...",
+    "filters": "filter",
+    "filters_plural": "filters",
+    "results": "results"
+  },
+
+  "filters": {
+    "title": "Filter Inventory",
+    "subtitle": "Refine your search",
+    "quick_filters": "Quick Filters",
+    "category_filters": "Category Filters",
+    "price_range": "Price Range",
+    "stock_range": "Stock Quantity Range",
+    "low_stock_items": "Low Stock Items",
+    "low_stock_desc": "Show items below minimum stock level",
+    "serial_tracked_only": "Serial Tracked Only",
+    "serial_tracked_desc": "Show only items with serial number tracking",
+    "all_categories": "All Categories",
+    "category": "Category",
+    "subcategory": "Subcategory",
+    "enter_subcategory": "Enter subcategory...",
+    "min_price": "Min Price",
+    "max_price": "Max Price",
+    "min_stock": "Min Stock",
+    "max_stock": "Max Stock",
+    "apply_filters": "Apply Filters",
+    "clear_all_filters": "Clear All Filters",
+    "loading": "Loading...",
+    "loading_filter_options": "Loading filter options...",
+    "loading_filter_desc": "Please wait while we prepare your filters",
+    "filters_applied": "Filters applied successfully",
+    "filters_cleared": "All filters cleared",
+    "close": "Close"
+  }
+,
+  "item_dialog": {
+    "edit_title": "Edit Item",
+    "add_title": "Add New Item",
+    "basic_info": "Basic Information",
+    "inventory_details": "Inventory Details",
+    "serial_tracking": "Serial Number Tracking",
+    "product_dimensions": "Product Dimensions",
+    "image_properties": "Image Properties",
+    "product_image": "Product Image",
+    "sku": "SKU",
+    "name_en": "Name (English)",
+    "name_ar": "Name (Arabic)",
+    "description_en": "Description (English)",
+    "description_ar": "Description (Arabic)",
+    "stock_quantity": "Stock Quantity",
+    "min_stock_level": "Minimum Stock Level",
+    "unit_price": "Unit Price (Optional)",
+    "width": "Width (Optional)",
+    "height": "Height (Optional)",
+    "depth": "Depth (Optional)",
+    "unit": "Unit",
+    "comment": "Comment",
+    "pixel_width": "Pixel Width (Optional)",
+    "pixel_height": "Pixel Height (Optional)",
+    "other_sp": "Other Sp. (Optional)",
+    "color_space": "Color Space",
+    "choose_image": "Choose Image",
+    "take_photo": "Take Photo",
+    "remove_image": "Remove Image",
+    "enable_serial_tracking": "Enable Serial Number Tracking",
+    "serial_tracking_desc": "Track individual items with unique serial numbers",
+    "serial_format": "Serial Format: SKU-000001",
+    "serial_format_desc": "Serial numbers will be auto-generated based on SKU",
+    "auto_generate_serials": "Auto-generate serial numbers on creation",
+    "auto_generate_desc": "Generate {count} serial numbers automatically",
+    "create_item": "Create Item",
+    "update_item": "Update Item",
+    "cancel": "Cancel",
+    "error": "Error: {message}",
+    "category_added": "Category \"{name}\" added!",
+    "select_category": "Please select a category",
+    "item_created_serials": "Item created and {count} serial numbers generated!"
+  },
+
+  "login": {
+    "title": "Inventory System",
+    "subtitle": "Manage your inventory with ease",
+    "welcome_back": "Welcome Back",
+    "sign_in_subtitle": "Sign in to continue",
+    "email_label": "Email",
+    "email_hint": "Enter your email",
+    "password_label": "Password",
+    "password_hint": "Enter your password",
+    "sign_in_button": "Sign In",
+    "need_help": "Need help? Contact your administrator",
+    "copyright": "© 2025 Inventory System. All rights reserved.",
+    "validation": {
+      "email_required": "Please enter your email",
+      "email_invalid": "Please enter a valid email",
+      "password_required": "Please enter your password",
+      "password_min_length": "Password must be at least 6 characters"
+    }
+  }
+,
+
+  "barcode": {
+    "title": "Enhanced Barcode Generator",
+    "for": "for",
+    "barcode_type": "Barcode Type:",
+    "sku": "SKU:",
+    "stock": "Stock:",
+    "type": "Type:",
+    "copy": "Copy",
+    "save": "Save",
+    "print": "Print",
+    "share": "Share",
+    "barcode_copied": "Barcode data copied to clipboard",
+    "storage_permission_required": "Storage permission required",
+    "barcode_saved": "Barcode saved: {filename}",
+    "save_failed": "Save failed: {error}",
+    "print_dialog_opened": "Print dialog opened",
+    "print_failed": "Print failed: {error}",
+    "share_failed": "Share failed: {error}",
+    "saved_title": "Saved",
+    "saved_to": "Barcode saved to:",
+    "ok": "OK",
+    "item": "Item:",
+    "arabic": "Arabic:",
+    "price": "Price:",
+    "failed_capture": "Failed to capture barcode",
+    "failed_capture_print": "Failed to capture barcode for printing",
+    "failed_capture_share": "Failed to capture barcode for sharing",
+    "storage_access_failed": "Could not access storage"
+  },
+
+  "user_dialog": {
+    "edit_title": "Edit User",
+    "create_title": "Create New User",
+    "full_name": "Full Name",
+    "email": "Email",
+    "password": "Password",
+    "role": "Role",
+    "permissions": "Permissions",
+    "active": "Active",
+    "active_subtitle": "User can log in and access the system",
+    "cancel": "Cancel",
+    "update": "Update",
+    "create": "Create",
+    "user_updated": "User updated successfully",
+    "user_created": "User created successfully",
+    "validation": {
+      "name_required": "Please enter a name",
+      "email_required": "Please enter an email",
+      "email_invalid": "Please enter a valid email",
+      "password_required": "Please enter a password",
+      "password_min_length": "Password must be at least 6 characters"
+    }
+  },
+
+  "orders_tab": {
+    "hide_filters": "Hide Filters",
+    "filters": "Filters",
+    "reports": "Reports",
+    "new_order": "New Order",
+    "loading_orders": "Loading orders...",
+    "no_orders_found": "No orders found",
+    "create_first_order": "Create First Order",
+    "error_loading_orders": "Error loading orders",
+    "retry": "Retry",
+    "welcome_title": "Welcome to Orders Management",
+    "load_orders": "Load Orders",
+    "reports_coming_soon": "Order reports feature coming soon!",
+    "permission_denied": "You don't have permission to {action}",
+    "ok": "OK"
+  }
+,
+
+  "users_page": {
+    "title": "User Management",
+    "refresh": "Refresh",
+    "search_hint": "Search users by name or email...",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "status": "Status",
+    "last_login": "Last Login",
+    "actions": "Actions",
+    "you": "(You)",
+    "active": "Active",
+    "inactive": "Inactive",
+    "never": "Never",
+    "edit_user": "Edit User",
+    "delete_user": "Delete User",
+    "add_user": "Add User",
+    "loading_users": "Loading users...",
+    "no_users_loaded": "No users loaded",
+    "load_users": "Load Users",
+    "no_users_found": "No users found",
+    "adjust_search": "Try adjusting your search query",
+    "delete_title": "Delete User",
+    "delete_confirm": "Are you sure you want to delete user \"{name}\"? This action cannot be undone.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "user_deleted": "User deleted successfully",
+    "time": {
+      "minutes_ago": "{count}m ago",
+      "hours_ago": "{count}h ago",
+      "days_ago": "{count}d ago"
+    }
+  ,
+  "category_manager": {
+    "title": "Manage Categories",
+    "delete_title": "Delete Category",
+    "delete_confirm": "Delete \"{name}\"? This cannot be undone.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleted_success": "Category deleted successfully",
+    "delete_failed": "Failed to delete category"
+  },
+
+
+  "category_dropdown": {
+    "label": "Category",
+    "select_category": "Select Category",
+    "add_new_category": "Add New Category",
+    "add_category_title": "Add New Category",
+    "category_name": "Category Name",
+    "cancel": "Cancel",
+    "add": "Add",
+    "loading_categories": "Loading categories...",
+    "failed_to_load": "Failed to load categories",
+    "no_categories": "No categories available",
+    "validation_required": "Please select a category"
+  }
+,
+
+  "import_export": {
+    "title": "Import/Export Data",
+    "progress_complete": "complete",
+    "import_title": "Import Data",
+    "import_description": "Import inventory items from CSV file",
+    "select_csv": "Select CSV File",
+    "export_title": "Export Data",
+    "export_description": "Export inventory data in various formats",
+    "csv_export": "CSV Export (with category names)",
+    "pdf_report": "PDF Report",
+    "pdf_barcodes": "PDF with Barcodes",
+    "view_export_info": "View Export Info",
+    "close": "Close",
+    "import_completed": "Import completed",
+    "no_data_export": "No data to export",
+    "csv_success": "CSV exported successfully with category names",
+    "pdf_report_success": "PDF report exported successfully",
+    "pdf_barcodes_success": "PDF with barcodes exported successfully",
+    "export_info_title": "Export Information",
+    "export_completed": "Export completed successfully!",
+    "file_location": "File location:",
+    "ok": "OK"
+  }
+,
+
+  "inventory_search": {
+    "hint": "Search by name, SKU, or description..."
+  },
+
+
+  "inventory_stats": {
+    "total_items": "Total Items",
+    "low_stock_items": "Low Stock Items",
+    "total_value": "Total Value",
+    "categories": "Categories"
+  },
+
+  "qr_code": {
+    "style_title": "QR Code Style",
+    "shape_rounded": "Rounded",
+    "shape_circles": "Circles",
+    "shape_squares": "Squares",
+    "shape_mixed": "Mixed",
+    "color_theme": "Color Theme:",
+    "add_logo": "Add Logo",
+    "sku_label": "SKU:"
+  }
+,
+
+  "serial_dialog": {
+    "title": "Serial Number Management",
+    "title_read_only": "Serial Numbers (View Only)",
+    "read_only_badge": "READ ONLY",
+    "sku_label": "SKU:",
+    "tab_view": "View Serials",
+    "tab_generate": "Generate",
+    "tab_manage": "Manage",
+    "search_placeholder": "Search serial numbers...",
+    "filter_by_status": "Filter by Status",
+    "all_statuses": "All Statuses",
+    "no_serials_found": "No serial numbers found",
+    "generate_tab_hint": "Generate serial numbers in the \"Generate\" tab",
+    "auto_generate_title": "Auto-Generate Serial Numbers",
+    "serial_format_title": "Serial Number Format",
+    "serial_format_example": "SKU-000001, SKU-000002, etc.",
+    "current_stock": "Current Stock: {count} units",
+    "existing_serials": "Existing Serials: {count}",
+    "need_more": "Need {count} more serial numbers",
+    "quantity_label": "Quantity to Generate",
+    "quantity_hint": "Enter number of serials",
+    "generate_button": "Generate",
+    "manual_title": "Add Manual Serial Number",
+    "serial_label": "Serial Number",
+    "serial_hint": "{sku}-XXXXXX",
+    "add_button": "Add",
+    "selected_count": "Selected: {count}",
+    "mark_sold": "Mark Sold",
+    "mark_damaged": "Mark Damaged",
+    "reset_status": "Reset",
+    "status_label": "Status:",
+    "mark_as": "Mark as {status}",
+    "next_serial_preview": "Next Serial Preview",
+    "total_label": "Total",
+    "available_label": "Available",
+    "sold_label": "Sold",
+    "rented_label": "Rented",
+    "damaged_label": "Damaged",
+    "close_button": "Close",
+    "error_invalid_quantity": "Please enter a valid quantity",
+    "error_empty_serial": "Please enter a serial number",
+    "success_generated": "Serial numbers generated successfully!",
+    "status": {
+      "available": "Available",
+      "reserved": "Reserved",
+      "sold": "Sold",
+      "damaged": "Damaged",
+      "rented": "Rented",
+      "returned": "Returned",
+      "recalled": "Recalled"
+    }
+  },
+
+  "customer_info_form": {
+    "title": "Customer Information",
+    "subtitle": "Enter customer details for this order",
+    "customer_name": "Customer Name",
+    "customer_name_required": "Customer Name *",
+    "customer_email": "Customer Email",
+    "customer_phone": "Customer Phone",
+    "shipping_address": "Shipping Address",
+    "order_notes": "Order Notes",
+    "validation": {
+      "name_required": "Please enter customer name",
+      "name_min_length": "Name must be at least 2 characters",
+      "email_invalid": "Please enter a valid email address",
+      "phone_invalid": "Please enter a valid phone number",
+      "phone_min_length": "Phone number must be at least 10 digits"
+    }
+  }
+,
+
+  "item_selector": {
+    "search_hint": "Search items by name or SKU...",
+    "loading": "Loading inventory items...",
+    "no_items": "No items available in stock",
+    "no_results": "No items found for \"{query}\"",
+    "clear_search": "Clear search",
+    "error_title": "Error loading inventory",
+    "retry": "Retry",
+    "stock": "Stock:",
+    "serial_badge": "Serial",
+    "unknown_item": "Unknown Item",
+    "sku": "SKU:",
+    "price": "Price:",
+    "quantity": "Quantity:",
+    "add_to_order": "Add to Order",
+    "update_order": "Update Order",
+    "serial_required": "Serial selection is required for this item. Please select {count} serial number(s).",
+    "added_with_serials": "✅ Added {name} with serials: {serials}",
+    "added_to_order": "✅ Added {name} to order"
+  }
+,
+  "order_type_selector": {
+    "title": "Order Type *",
+    "sell": {
+      "name": "Sell",
+      "description": "Direct sale transaction"
+    },
+    "rental": {
+      "name": "Rental",
+      "description": "Temporary rental with return"
+    }
+  }
+,
+
+  "rental_settings": {
+    "title": "Rental Settings",
+    "subtitle": "Configure rental period and pricing",
+    "start_date": "Start Date *",
+    "end_date": "End Date *",
+    "select_date": "Select date",
+    "duration": "Rental Duration: {days} days",
+    "days_label": "days",
+    "daily_rate": "Daily Rate *",
+    "security_deposit": "Security Deposit",
+    "cost_breakdown": "Rental Cost Breakdown",
+    "cost_daily_rate": "Daily Rate",
+    "cost_duration": "Duration",
+    "cost_subtotal": "Rental Subtotal",
+    "cost_deposit": "Security Deposit",
+    "cost_total": "Total Amount",
+    "dialog_start_title": "Select Rental Start Date",
+    "dialog_end_title": "Select Rental End Date",
+    "validation": {
+      "required": "This field is required",
+      "invalid_amount": "Enter a valid amount"
+    }
+  }
+,
+
+  "order_form_validation": {
+    "customer_name_required": "Customer name is required",
+    "items_required": "Please add at least one item",
+    "rental_start_required": "Rental start date is required",
+    "rental_end_required": "Rental end date is required",
+    "daily_rate_required": "Daily rate is required",
+    "daily_rate_invalid": "Please enter a valid daily rate"
+  }
+,
+
+  "order_summary": {
+    "summary": "Summary",
+    "rental_period": "Rental Period",
+    "from": "From:",
+    "to": "To:",
+    "duration": "Duration:",
+    "days": "days",
+    "no_items": "No items added",
+    "select_items_hint": "Select items to add them to this {type}",
+    "items": "Items:",
+    "quantity": "Quantity:",
+    "daily_rate": "Daily Rate:",
+    "security_deposit": "Security Deposit:",
+    "total": "Total:",
+    "create_button": "Create {type}",
+    "creating_button": "Creating...",
+    "remove_item": "Remove item"
+  }
+,
+
+  "create_order_dialog": {
+    "title": "Create New {type}",
+    "description_sell": "Direct sale transaction with items",
+    "description_rental": "Temporary rental with rental period and pricing",
+    "tab_customer": "Customer",
+    "tab_details": "Details",
+    "tab_items": "Items",
+    "create_button": "Create {type}",
+    "creating_button": "Creating...",
+    "success_message": "{type} created successfully!",
+    "error_message": "Failed to create order: {error}",
+    "validation_error": "Please check the highlighted fields and try again"
+  }
+,
+
+  "order_approval_dialog": {
+    "approve_title": "Approve Order",
+    "reject_title": "Reject Order",
+    "order_label": "Order:",
+    "customer_label": "Customer:",
+    "total_label": "Total:",
+    "approval_notes": "Approval Notes (Optional)",
+    "rejection_reason": "Rejection Reason *",
+    "notes_hint": "Add any additional notes for approval",
+    "reason_hint": "Explain why this order is being rejected",
+    "cancel_button": "Cancel",
+    "approve_button": "Approve",
+    "reject_button": "Reject",
+    "error_reason_required": "Please provide a rejection reason",
+    "unknown_customer": "Unknown",
+    "order_details": "Order Details",
+    "additional_info": "Additional Information",
+    "order_type_label": "Order Type:",
+    "items_count": "Items: {count}",
+    "rental_duration": "Duration: {days} days"
+  }
+,
+
+  "order_filter": {
+    "title": "Filter Orders",
+    "subtitle": "Refine your search",
+    "quick_filters": "Quick Filters",
+    "advanced_filters": "Advanced Filters",
+    "rental_filters": "Rental Period Filters",
+    "order_status": "Order Status",
+    "order_type": "Order Type",
+    "all_statuses": "All Statuses",
+    "all_types": "All Types",
+    "customer_name": "Customer Name",
+    "customer_search": "Search by customer name...",
+    "min_amount": "Min Amount",
+    "max_amount": "Max Amount",
+    "start_after": "Start After",
+    "start_before": "Start Before",
+    "end_after": "End After",
+    "end_before": "End Before",
+    "min_rate": "Min Rate",
+    "max_rate": "Max Rate",
+    "select_date": "Select",
+    "apply_filters": "Apply Filters",
+    "clear_all": "Clear All Filters",
+    "applied_success": "Filters applied successfully",
+    "cleared_success": "All filters cleared",
+    "select_date_dialog": "Select Date for Filter"
+  }
+,
+
+  "order_management": {
+    "search_hint": "Search orders by number, customer, or email...",
+    "filters_button": "Filters",
+    "reports_button": "Reports",
+    "new_order_button": "New Order",
+    "loading": "Loading orders...",
+    "no_orders": "No orders found",
+    "no_search_results": "No orders match your search",
+    "clear_search": "Clear search",
+    "error_title": "Error loading orders",
+    "retry_button": "Retry",
+    "initialize": "Initialize orders loading..."
+  },
+  "reports_dialog": {
+    "title": "Order Reports",
+    "subtitle": "View comprehensive order analytics and statistics",
+    "close": "Close",
+    "total_orders": "Total Orders",
+    "total_revenue": "Total Revenue",
+    "average_order_value": "Average Order Value",
+    "completed": "Completed",
+    "pending": "Pending",
+    "rejected": "Rejected",
+    "rental_orders": "Rental Orders",
+    "sell_orders": "Sell Orders",
+    "export_button": "Export Report",
+    "date_range": "Date Range"
+  }
+,
+  "order_search": {
+    "hint": "Search orders by number, customer, or email...",
+    "searching": "Searching...",
+    "no_results": "No results found",
+    "clear_search": "Clear search"
+  }
+,
+
+  "order_stats": {
+    "total_orders": "Total Orders",
+    "approved": "Approved",
+    "pending": "Pending",
+    "revenue": "Revenue",
+    "rejected": "Rejected",
+    "active_rentals": "Active Rentals",
+    "overdue_rentals": "Overdue Rentals",
+    "no_data": "No data available"
+  }
+,
+
+  "orders_table": {
+    "order_number": "Order #",
+    "type": "Type",
+    "customer": "Customer",
+    "status": "Status",
+    "items": "Items",
+    "amount": "Amount",
+    "created": "Created",
+    "rental_info": "Rental Info",
+    "actions": "Actions",
+    "unknown_customer": "Unknown",
+    "qty": "qty",
+    "day": "day",
+    "days": "days",
+    "by": "by",
+    "active": "ACTIVE",
+    "overdue": "OVERDUE",
+    "scheduled": "SCHEDULED",
+    "returned": "RETURNED",
+    "confirm_status_change": "Confirm Status Change",
+    "are_you_sure_status_change": "Are you sure you want to change the order status to {status}?",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "updating": "Updating order status and stock levels...",
+    "return_rental": "Return Rental",
+    "return_rental_confirm": "Mark this rental as returned? This will restore the inventory stock.",
+    "return_restore_stock": "Return & Restore Stock",
+    "returning_rental": "Returning rental and restoring stock...",
+    "generate_pdf": "Generate PDF",
+    "view_details": "View Details",
+    "return_btn": "Return Rental",
+    "pdf_success": "PDF generated successfully for order {order}",
+    "pdf_error": "Failed to generate PDF: {error}",
+    "customer_information": "Customer Information",
+    "rental_information": "Rental Information",
+    "order_items": "Order Items",
+    "total_items": "Total Items",
+    "total_quantity": "Total Quantity",
+    "rental_amount": "Rental Amount",
+    "security_deposit": "Security Deposit",
+    "total_amount": "TOTAL AMOUNT:",
+    "start_date": "Start Date",
+    "end_date": "End Date",
+    "duration": "Duration",
+    "daily_rate": "Daily Rate",
+    "qty_label": "Qty:",
+    "unit": "Unit:",
+    "assigned_serial": "Assigned Serial Numbers",
+    "close": "Close",
+    "rental_status": "Rental Status",
+    "created_by": "Created by:",
+    "created_date": "Date:",
+    "sku": "SKU:",
+    "email": "Email:",
+    "phone": "Phone:",
+    "address": "Address:",
+    "n_a": "N/A"
+  },
+
+  "serial_selection": {
+    "title": "Select Serial Numbers",
+    "required": "REQUIRED",
+    "sku": "SKU:",
+    "rental_period": "Rental Period:",
+    "checking_availability": "Checking serial availability...",
+    "select_quantity": "Please select exactly {quantity} serial number(s) for this order",
+    "damaged_warning": "⚠️ This serial is damaged and cannot be selected",
+    "rented_during": "📅 Rented during your dates",
+    "available_for_dates": "✅ Available for your dates",
+    "search_hint": "Search by serial number...",
+    "no_serials_found": "No serial numbers found",
+    "no_search_results": "No results for \"{query}\"",
+    "clear_search": "Clear search",
+    "error_loading": "Error loading serial numbers",
+    "selected_serials": "Selected Serial Numbers:",
+    "ready_confirm": "Ready to confirm ({count} selected)",
+    "select_more": "Select {remaining} more serial{plural}",
+    "cancel": "Cancel",
+    "confirm": "Confirm Selection",
+    "available": "Available",
+    "reserved": "Reserved",
+    "sold": "Sold",
+    "rented": "Rented",
+    "damaged": "Damaged",
+    "returned": "Returned",
+    "recalled": "Recalled",
+    "unavailable": "Unavailable"
   }
 }
+,
+  "dashboard": {
+    "choose_language": "Choose Language",
+    "choose_theme": "Choose Theme",
+    "light_mode": "Light Mode",
+    "bright_and_clean": "Bright and clean",
+    "dark_mode": "Dark Mode",
+    "easy_on_eyes": "Easy on the eyes",
+    "system_default": "System Default",
+    "follow_system": "Follow system settings",
+    "my_profile": "My Profile",
+    "language": "Language",
+    "theme": "Theme",
+    "logout_confirm": "Logout",
+    "logout_message": "Are you sure you want to logout?",
+    "permissions": "Permissions",
+    "account_created": "Account Created",
+    "last_login": "Last Login",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "user": "User",
+    "account": "Account",
+    "user_profile": "User Profile"
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

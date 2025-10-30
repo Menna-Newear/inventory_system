@@ -1,4 +1,5 @@
-// presentation/widgets/common/dynamic_category_dropdown.dart
+// presentation/widgets/common/dynamic_category_dropdown.dart (FULLY LOCALIZED!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,24 +15,22 @@ class DynamicCategoryDropdown extends StatelessWidget {
     Key? key,
     this.selectedCategoryId,
     required this.onChanged,
-    this.label = 'Category',
+    this.label,
   }) : super(key: key);
 
   // ✅ Safe value validator to prevent "_add_new" as selected value
   String? _getSafeSelectedValue(String? currentValue, List<Category> categories) {
-    // Never allow "_add_new" as the selected value
     if (currentValue == null || currentValue == '_add_new') {
       return null;
     }
 
-    // Only return the value if it exists in the categories list
     final exists = categories.any((category) => category.id == currentValue);
     return exists ? currentValue : null;
   }
 
   InputDecoration _getConsistentDecoration(BuildContext context) {
     return InputDecoration(
-      labelText: label,
+      labelText: label ?? 'category_dropdown.label'.tr(),
       labelStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
       filled: true,
       fillColor: Colors.transparent,
@@ -67,11 +66,11 @@ class DynamicCategoryDropdown extends StatelessWidget {
       showDialog(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: Text('Add New Category'),
+          title: Text('category_dropdown.add_category_title'.tr()),
           content: TextField(
             controller: nameController,
             decoration: InputDecoration(
-              labelText: 'Category Name',
+              labelText: 'category_dropdown.category_name'.tr(),
               border: OutlineInputBorder(),
             ),
             autofocus: true,
@@ -79,7 +78,7 @@ class DynamicCategoryDropdown extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel'),
+              child: Text('category_dropdown.cancel'.tr()),
             ),
             ElevatedButton(
               onPressed: () {
@@ -95,7 +94,7 @@ class DynamicCategoryDropdown extends StatelessWidget {
                   Navigator.pop(dialogContext);
                 }
               },
-              child: Text('Add'),
+              child: Text('category_dropdown.add'.tr()),
             ),
           ],
         ),
@@ -106,7 +105,6 @@ class DynamicCategoryDropdown extends StatelessWidget {
       listener: (context, state) {
         if (state is CategoryCreated) {
           print('🟢 UI received category created: ${state.category.name}');
-          // ✅ Use post-frame callback to ensure proper timing
           SchedulerBinding.instance.addPostFrameCallback((_) {
             onChanged(state.category.id);
           });
@@ -136,7 +134,6 @@ class DynamicCategoryDropdown extends StatelessWidget {
       List<Category> categories,
       VoidCallback showAddDialog,
       ) {
-    // ✅ CRITICAL FIX: Get safe selected value that excludes "_add_new"
     final safeSelectedValue = _getSafeSelectedValue(selectedCategoryId, categories);
 
     print('🔍 Debug Info:');
@@ -145,13 +142,12 @@ class DynamicCategoryDropdown extends StatelessWidget {
     print('   - categories count: ${categories.length}');
     print('   - category IDs: ${categories.map((c) => c.id).toList()}');
 
-    // ✅ Build items list ensuring no duplicates
     final items = <DropdownMenuItem<String>>[
       // Null option for "Select Category"
       DropdownMenuItem<String>(
         value: null,
         child: Text(
-          'Select Category',
+          'category_dropdown.select_category'.tr(),
           style: TextStyle(color: Colors.grey[500]),
         ),
       ),
@@ -167,7 +163,7 @@ class DynamicCategoryDropdown extends StatelessWidget {
           style: TextStyle(color: Colors.white70),
         ),
       )),
-      // Add new option (exactly one instance)
+      // Add new option
       DropdownMenuItem<String>(
         value: '_add_new',
         child: Row(
@@ -177,7 +173,7 @@ class DynamicCategoryDropdown extends StatelessWidget {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Add New Category',
+                'category_dropdown.add_new_category'.tr(),
                 style: TextStyle(fontStyle: FontStyle.italic, color: Colors.blue),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -188,9 +184,8 @@ class DynamicCategoryDropdown extends StatelessWidget {
     ];
 
     return DropdownButtonFormField<String>(
-      // ✅ Force widget rebuild when categories list changes
       key: ValueKey('category_dropdown_${categories.length}_${safeSelectedValue ?? 'null'}'),
-      value: safeSelectedValue, // ✅ Use safe validated value
+      value: safeSelectedValue,
       decoration: _getConsistentDecoration(context),
       style: TextStyle(color: Colors.white70, fontSize: 16),
       dropdownColor: Colors.grey[850],
@@ -198,7 +193,7 @@ class DynamicCategoryDropdown extends StatelessWidget {
       isExpanded: true,
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please select a category';
+          return 'category_dropdown.validation_required'.tr();
         }
         return null;
       },
@@ -206,11 +201,8 @@ class DynamicCategoryDropdown extends StatelessWidget {
       onChanged: (value) {
         print('🔄 Dropdown value changed: $value');
         if (value == '_add_new') {
-          // ✅ CRITICAL: Don't call onChanged with "_add_new"
-          // Just show the dialog, don't change the selected value
           showAddDialog();
         } else {
-          // ✅ Only call onChanged for actual category IDs or null
           onChanged(value);
         }
       },
@@ -231,15 +223,18 @@ class DynamicCategoryDropdown extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
-                  )
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
+                ),
               ),
               SizedBox(width: 10),
-              Text('Loading categories...', style: TextStyle(color: Colors.grey[500])),
+              Text(
+                'category_dropdown.loading_categories'.tr(),
+                style: TextStyle(color: Colors.grey[500]),
+              ),
             ],
           ),
         )
@@ -251,7 +246,7 @@ class DynamicCategoryDropdown extends StatelessWidget {
   Widget _buildErrorDropdown(BuildContext context, String message) {
     return DropdownButtonFormField<String>(
       decoration: _getConsistentDecoration(context).copyWith(
-        errorText: 'Failed to load categories',
+        errorText: 'category_dropdown.failed_to_load'.tr(),
       ),
       style: TextStyle(color: Colors.white70, fontSize: 16),
       dropdownColor: Colors.grey[850],
@@ -266,7 +261,7 @@ class DynamicCategoryDropdown extends StatelessWidget {
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Error: $message',
+                  message,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: Colors.red[300]),
                 ),
@@ -293,7 +288,10 @@ class DynamicCategoryDropdown extends StatelessWidget {
             children: [
               Icon(Icons.info, color: Colors.orange, size: 20),
               SizedBox(width: 8),
-              Text('No categories available', style: TextStyle(color: Colors.grey[500])),
+              Text(
+                'category_dropdown.no_categories'.tr(),
+                style: TextStyle(color: Colors.grey[500]),
+              ),
             ],
           ),
         )

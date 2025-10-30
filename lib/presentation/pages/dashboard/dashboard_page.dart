@@ -1,4 +1,4 @@
-// ✅ presentation/pages/dashboard/dashboard_page.dart (WITH LANGUAGE & THEME TOGGLE!)
+// ✅ presentation/pages/dashboard/dashboard_page.dart (FULLY LOCALIZED!)
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,13 +9,17 @@ import '../../blocs/order/order_event.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
+import '../../blocs/theme/theme_bloc.dart';
+import '../../blocs/theme/theme_event.dart';
+import '../../blocs/theme/theme_state.dart';
 import '../../../domain/entities/user.dart';
 import '../users/users_management_page.dart';
 import 'tabs/inventory_tab.dart';
 import 'tabs/orders_tab.dart';
-import 'tabs/analytics_tab.dart';
 
 class DashboardPage extends StatefulWidget {
+  const DashboardPage({Key? key}) : super(key: key);
+
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
@@ -23,12 +27,11 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  ThemeMode _themeMode = ThemeMode.system; // ✅ Theme state
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     InventoryRefreshNotifier().addListener(_refreshInventory);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -62,8 +65,8 @@ class _DashboardPageState extends State<DashboardPage>
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              'app_title'.tr(), // ✅ Translated
-              style: TextStyle(fontWeight: FontWeight.bold),
+              'app.title'.tr(),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             elevation: 0,
             backgroundColor: Theme.of(context).primaryColor,
@@ -72,13 +75,13 @@ class _DashboardPageState extends State<DashboardPage>
               // User Management Button (only for admins/managers)
               if (currentUser?.hasPermission(Permission.userView) ?? false)
                 IconButton(
-                  icon: Icon(Icons.people),
-                  tooltip: 'users.title'.tr(), // ✅ Translated
+                  icon: const Icon(Icons.people),
+                  tooltip: 'users.title'.tr(),
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => UsersManagementPage(),
+                        builder: (context) =>  UsersManagementPage(),
                       ),
                     );
                   },
@@ -96,7 +99,7 @@ class _DashboardPageState extends State<DashboardPage>
                     ),
                   ),
                 ),
-                tooltip: 'Account',
+                tooltip: 'dashboard.account'.tr(),
                 onSelected: (value) {
                   if (value == 'logout') {
                     _handleLogout(context);
@@ -116,44 +119,44 @@ class _DashboardPageState extends State<DashboardPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          currentUser?.name ?? 'User',
-                          style: TextStyle(
+                          currentUser?.name ?? 'dashboard.user'.tr(),
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           currentUser?.email ?? '',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Chip(
                           label: Text(
-                            currentUser?.role.displayName ?? 'User',
-                            style: TextStyle(fontSize: 10),
+                            currentUser?.role.displayName ?? 'dashboard.user'.tr(),
+                            style: const TextStyle(fontSize: 10),
                           ),
                           backgroundColor: _getRoleColor(currentUser?.role),
-                          labelStyle: TextStyle(color: Colors.white),
-                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          labelStyle: const TextStyle(color: Colors.white),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                       ],
                     ),
                   ),
-                  PopupMenuDivider(),
+                  const PopupMenuDivider(),
 
                   // Profile
                   PopupMenuItem(
                     value: 'profile',
                     child: Row(
                       children: [
-                        Icon(Icons.person, size: 20),
-                        SizedBox(width: 12),
-                        Text('My Profile'),
+                        const Icon(Icons.person, size: 20),
+                        const SizedBox(width: 12),
+                        Text('dashboard.my_profile'.tr()),
                       ],
                     ),
                   ),
@@ -163,13 +166,13 @@ class _DashboardPageState extends State<DashboardPage>
                     value: 'language',
                     child: Row(
                       children: [
-                        Icon(Icons.language, size: 20),
-                        SizedBox(width: 12),
-                        Text('Language'),
-                        Spacer(),
+                        const Icon(Icons.language, size: 20),
+                        const SizedBox(width: 12),
+                        Text('dashboard.language'.tr()),
+                        const Spacer(),
                         Text(
-                          context.locale == Locale('en') ? '🇬🇧 EN' : '🇸🇦 AR',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          context.locale == const Locale('en') ? '🇬🇧 EN' : '🇸🇦 AR',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -178,41 +181,54 @@ class _DashboardPageState extends State<DashboardPage>
                   // ✅ Theme Toggle
                   PopupMenuItem(
                     value: 'theme',
-                    child: Row(
-                      children: [
-                        Icon(
-                          _themeMode == ThemeMode.dark
-                              ? Icons.dark_mode
-                              : Icons.light_mode,
-                          size: 20,
-                        ),
-                        SizedBox(width: 12),
-                        Text('Theme'),
-                        Spacer(),
-                        Text(
-                          _themeMode == ThemeMode.dark ? 'Dark' : 'Light',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
+                    child: BlocBuilder<ThemeBloc, ThemeState>(
+                      builder: (context, themeState) {
+                        return Row(
+                          children: [
+                            Icon(
+                              themeState.themeMode == ThemeMode.dark
+                                  ? Icons.dark_mode
+                                  : themeState.themeMode == ThemeMode.light
+                                  ? Icons.light_mode
+                                  : Icons.brightness_auto,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Text('dashboard.theme'.tr()),
+                            const Spacer(),
+                            Text(
+                              themeState.themeMode == ThemeMode.dark
+                                  ? 'dashboard.dark_mode'.tr()
+                                  : themeState.themeMode == ThemeMode.light
+                                  ? 'dashboard.light_mode'.tr()
+                                  : 'dashboard.system_default'.tr(),
+                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
 
-                  PopupMenuDivider(),
+                  const PopupMenuDivider(),
 
                   // Logout
                   PopupMenuItem(
                     value: 'logout',
                     child: Row(
                       children: [
-                        Icon(Icons.logout, size: 20, color: Colors.red),
-                        SizedBox(width: 12),
-                        Text('Logout', style: TextStyle(color: Colors.red)),
+                        const Icon(Icons.logout, size: 20, color: Colors.red),
+                        const SizedBox(width: 12),
+                        Text(
+                          'dashboard.logout_confirm'.tr(),
+                          style: const TextStyle(color: Colors.red),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
             ],
             bottom: TabBar(
               controller: _tabController,
@@ -220,18 +236,22 @@ class _DashboardPageState extends State<DashboardPage>
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white70,
               tabs: [
-                Tab(icon: Icon(Icons.inventory_2), text: 'navigation.inventory'.tr()),
-                Tab(icon: Icon(Icons.shopping_cart_outlined), text: 'navigation.orders'.tr()),
-                Tab(icon: Icon(Icons.analytics_outlined), text: 'Analytics'),
+                Tab(
+                  icon: const Icon(Icons.inventory_2),
+                  text: 'navigation.inventory'.tr(),
+                ),
+                Tab(
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  text: 'navigation.orders'.tr(),
+                ),
               ],
             ),
           ),
           body: TabBarView(
             controller: _tabController,
-            children: [
+            children:  [
               InventoryTab(),
               OrdersTab(),
-              AnalyticsTab(),
             ],
           ),
         );
@@ -239,43 +259,41 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  // ✅ Language Switcher Dialog
+  // ✅ Language Switcher Dialog (FULLY LOCALIZED)
   void _showLanguageDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.language, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('Choose Language'),
+            const Icon(Icons.language, color: Colors.blue),
+            const SizedBox(width: 8),
+            Text('dashboard.choose_language'.tr()),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Text('🇬🇧', style: TextStyle(fontSize: 24)),
-              title: Text('English'),
-              trailing: context.locale == Locale('en')
-                  ? Icon(Icons.check_circle, color: Colors.green)
+              leading: const Text('🇬🇧', style: TextStyle(fontSize: 24)),
+              title: const Text('English'),
+              trailing: context.locale == const Locale('en')
+                  ? const Icon(Icons.check_circle, color: Colors.green)
                   : null,
               onTap: () async {
-                await context.setLocale(Locale('en'));
-                Navigator.pop(dialogContext);
-                setState(() {}); // Refresh UI
+                await context.setLocale(const Locale('en'));
+                if (mounted) Navigator.pop(dialogContext);
               },
             ),
             ListTile(
-              leading: Text('🇸🇦', style: TextStyle(fontSize: 24)),
-              title: Text('العربية (Arabic)'),
-              trailing: context.locale == Locale('ar')
-                  ? Icon(Icons.check_circle, color: Colors.green)
+              leading: const Text('🇸🇦', style: TextStyle(fontSize: 24)),
+              title: const Text('العربية'),
+              trailing: context.locale == const Locale('ar')
+                  ? const Icon(Icons.check_circle, color: Colors.green)
                   : null,
               onTap: () async {
-                await context.setLocale(Locale('ar'));
-                Navigator.pop(dialogContext);
-                setState(() {}); // Refresh UI
+                await context.setLocale(const Locale('ar'));
+                if (mounted) Navigator.pop(dialogContext);
               },
             ),
           ],
@@ -283,95 +301,101 @@ class _DashboardPageState extends State<DashboardPage>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text('Close'),
+            child: Text('common.close'.tr()),
           ),
         ],
       ),
     );
   }
 
-  // ✅ Theme Switcher Dialog
+  // ✅ Theme Switcher Dialog (FULLY LOCALIZED & USING THEME BLOC!)
   void _showThemeDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.palette, color: Colors.purple),
-              SizedBox(width: 8),
-              Text('Choose Theme'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              RadioListTile<ThemeMode>(
-                title: Text('Light Mode'),
-                subtitle: Text('Bright and clean'),
-                secondary: Icon(Icons.light_mode, color: Colors.orange),
-                value: ThemeMode.light,
-                groupValue: _themeMode,
-                onChanged: (value) {
-                  setDialogState(() {
-                    _themeMode = value!;
-                  });
-                  setState(() {});
-                  // TODO: Update theme in main app (need ThemeBloc)
-                },
-              ),
-              RadioListTile<ThemeMode>(
-                title: Text('Dark Mode'),
-                subtitle: Text('Easy on the eyes'),
-                secondary: Icon(Icons.dark_mode, color: Colors.indigo),
-                value: ThemeMode.dark,
-                groupValue: _themeMode,
-                onChanged: (value) {
-                  setDialogState(() {
-                    _themeMode = value!;
-                  });
-                  setState(() {});
-                  // TODO: Update theme in main app (need ThemeBloc)
-                },
-              ),
-              RadioListTile<ThemeMode>(
-                title: Text('System Default'),
-                subtitle: Text('Follow system settings'),
-                secondary: Icon(Icons.brightness_auto, color: Colors.grey),
-                value: ThemeMode.system,
-                groupValue: _themeMode,
-                onChanged: (value) {
-                  setDialogState(() {
-                    _themeMode = value!;
-                  });
-                  setState(() {});
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Close'),
+      builder: (dialogContext) => BlocBuilder<ThemeBloc, ThemeState>(
+        builder: (context, themeState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.palette, color: Colors.purple),
+                const SizedBox(width: 8),
+                Text('dashboard.choose_theme'.tr()),
+              ],
             ),
-          ],
-        ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ✅ Light Mode (LOCALIZED)
+                RadioListTile<ThemeMode>(
+                  title: Text('dashboard.light_mode'.tr()),
+                  subtitle: Text('dashboard.bright_and_clean'.tr()),
+                  secondary: const Icon(Icons.light_mode, color: Colors.orange),
+                  value: ThemeMode.light,
+                  groupValue: themeState.themeMode,
+                  onChanged: (value) {
+                    if (value != null) {
+                      context.read<ThemeBloc>().add(ChangeTheme(value));
+                      Navigator.pop(dialogContext);
+                    }
+                  },
+                ),
+
+                // ✅ Dark Mode (LOCALIZED)
+                RadioListTile<ThemeMode>(
+                  title: Text('dashboard.dark_mode'.tr()),
+                  subtitle: Text('dashboard.easy_on_eyes'.tr()),
+                  secondary: const Icon(Icons.dark_mode, color: Colors.indigo),
+                  value: ThemeMode.dark,
+                  groupValue: themeState.themeMode,
+                  onChanged: (value) {
+                    if (value != null) {
+                      context.read<ThemeBloc>().add(ChangeTheme(value));
+                      Navigator.pop(dialogContext);
+                    }
+                  },
+                ),
+
+                // ✅ System Default (LOCALIZED)
+                RadioListTile<ThemeMode>(
+                  title: Text('dashboard.system_default'.tr()),
+                  subtitle: Text('dashboard.follow_system'.tr()),
+                  secondary: const Icon(Icons.brightness_auto, color: Colors.grey),
+                  value: ThemeMode.system,
+                  groupValue: themeState.themeMode,
+                  onChanged: (value) {
+                    if (value != null) {
+                      context.read<ThemeBloc>().add(const SetSystemTheme());
+                      Navigator.pop(dialogContext);
+                    }
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text('common.close'.tr()),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
+  // ✅ Logout Dialog (FULLY LOCALIZED)
   void _handleLogout(BuildContext context) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.logout, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Logout'),
+            const Icon(Icons.logout, color: Colors.orange),
+            const SizedBox(width: 8),
+            Text('dashboard.logout_confirm'.tr()),
           ],
         ),
-        content: Text('Are you sure you want to logout?'),
+        content: Text('dashboard.logout_message'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -383,13 +407,17 @@ class _DashboardPageState extends State<DashboardPage>
               context.read<AuthBloc>().add(LogoutRequested());
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('Logout', style: TextStyle(color: Colors.white)),
+            child: Text(
+              'dashboard.logout_confirm'.tr(),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
   }
 
+  // ✅ Profile Dialog (FULLY LOCALIZED)
   void _showProfileDialog(BuildContext context, User user) {
     showDialog(
       context: context,
@@ -400,49 +428,52 @@ class _DashboardPageState extends State<DashboardPage>
               backgroundColor: _getRoleColor(user.role),
               child: Text(
                 user.name[0].toUpperCase(),
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            SizedBox(width: 12),
-            Text('My Profile'),
+            const SizedBox(width: 12),
+            Text('dashboard.user_profile'.tr()),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildProfileRow('Name', user.name),
-            SizedBox(height: 12),
-            _buildProfileRow('Email', user.email),
-            SizedBox(height: 12),
-            _buildProfileRow('Role', user.role.displayName),
-            SizedBox(height: 12),
+            _buildProfileRow('dashboard.name'.tr(), user.name),
+            const SizedBox(height: 12),
+            _buildProfileRow('dashboard.email'.tr(), user.email),
+            const SizedBox(height: 12),
+            _buildProfileRow('dashboard.role'.tr(), user.role.displayName),
+            const SizedBox(height: 12),
             _buildProfileRow(
-              'Account Created',
+              'dashboard.account_created'.tr(),
               '${user.createdAt.day}/${user.createdAt.month}/${user.createdAt.year}',
             ),
             if (user.lastLogin != null) ...[
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               _buildProfileRow(
-                'Last Login',
+                'dashboard.last_login'.tr(),
                 '${user.lastLogin!.day}/${user.lastLogin!.month}/${user.lastLogin!.year} ${user.lastLogin!.hour}:${user.lastLogin!.minute.toString().padLeft(2, '0')}',
               ),
             ],
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'Permissions',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              'dashboard.permissions'.tr(),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: user.permissions.map((perm) {
                 return Chip(
-                  label: Text(perm.displayName, style: TextStyle(fontSize: 10)),
+                  label: Text(perm.displayName, style: const TextStyle(fontSize: 10)),
                   backgroundColor: Colors.blue.withOpacity(0.1),
-                  labelStyle: TextStyle(color: Colors.blue),
-                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  labelStyle: const TextStyle(color: Colors.blue),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 );
               }).toList(),
@@ -476,7 +507,7 @@ class _DashboardPageState extends State<DashboardPage>
         Expanded(
           child: Text(
             value,
-            style: TextStyle(fontWeight: FontWeight.w500),
+            style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
       ],

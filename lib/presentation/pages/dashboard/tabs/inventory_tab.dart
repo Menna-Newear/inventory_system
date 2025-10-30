@@ -1,4 +1,5 @@
 // ✅ presentation/pages/dashboard/tabs/inventory_tab.dart (WITH PERMISSIONS!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../blocs/inventory/inventory_bloc.dart';
@@ -100,7 +101,7 @@ class _InventoryTabState extends State<InventoryTab> {
     return ElevatedButton.icon(
       onPressed: () => setState(() => _showFilterPanel = !_showFilterPanel),
       icon: Icon(_showFilterPanel ? Icons.filter_alt_off : Icons.filter_alt),
-      label: Text(_showFilterPanel ? 'Hide Filters' : 'Filters'),
+      label: Text(_showFilterPanel ? 'common.hide_filters'.tr() : 'common.filters'.tr()),
       style: ElevatedButton.styleFrom(
         backgroundColor: _showFilterPanel
             ? (isDark ? Colors.orange[700] : Colors.orange)
@@ -129,7 +130,7 @@ class _InventoryTabState extends State<InventoryTab> {
         );
       },
       icon: Icon(Icons.import_export),
-      label: Text('Import/Export'),
+      label: Text('common.import_export'.tr()),
       style: ElevatedButton.styleFrom(
         backgroundColor: isDark ? Colors.blue[700] : Colors.blue,
         foregroundColor: Colors.white,
@@ -159,7 +160,7 @@ class _InventoryTabState extends State<InventoryTab> {
         );
       },
       icon: Icon(Icons.add),
-      label: Text('Add Item'),
+      label: Text('inventory.add_item'.tr()),
       style: ElevatedButton.styleFrom(
         backgroundColor: theme.primaryColor,
         foregroundColor: Colors.white,
@@ -215,7 +216,7 @@ class _InventoryTabState extends State<InventoryTab> {
             SizedBox(width: 12),
             Expanded(
               child: Text(
-                'You don\'t have permission to $action',
+                'messages.permission_denied'.tr(namedArgs: {'action': action}),
                 style: TextStyle(fontSize: 14),
               ),
             ),

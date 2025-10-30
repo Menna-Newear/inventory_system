@@ -1,4 +1,5 @@
-// ✅ presentation/pages/users/users_management_page.dart (FIXED AUTO-REFRESH!)
+// ✅ presentation/pages/users/users_management_page.dart (FULLY LOCALIZED!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:data_table_2/data_table_2.dart';
@@ -33,14 +34,14 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
           children: [
             Icon(Icons.people),
             SizedBox(width: 12),
-            Text('User Management'),
+            Text('users_page.title'.tr()),
           ],
         ),
         actions: [
           IconButton(
             icon: Icon(Icons.refresh),
             onPressed: () => context.read<AuthBloc>().add(LoadAllUsers()),
-            tooltip: 'Refresh',
+            tooltip: 'users_page.refresh'.tr(),
           ),
         ],
       ),
@@ -49,9 +50,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
           _buildSearchBar(theme, isDark),
           Expanded(
             child: BlocBuilder<AuthBloc, AuthState>(
-
               builder: (context, state) {
-                // ✅ Show loading spinner
                 if (state is UserManagementLoading) {
                   return Center(
                     child: Column(
@@ -60,7 +59,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                         CircularProgressIndicator(),
                         SizedBox(height: 16),
                         Text(
-                          'Loading users...',
+                          'users_page.loading_users'.tr(),
                           style: TextStyle(color: theme.textTheme.bodyMedium?.color),
                         ),
                       ],
@@ -68,7 +67,6 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                   );
                 }
 
-                // ✅ Show user list
                 if (state is Authenticated && state.allUsers != null) {
                   final users = _filterUsers(state.allUsers!);
 
@@ -79,7 +77,6 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                   return _buildUsersTable(users, state.user, theme, isDark);
                 }
 
-                // ✅ Fallback
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -87,14 +84,14 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                       Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
                       SizedBox(height: 16),
                       Text(
-                        'No users loaded',
+                        'users_page.no_users_loaded'.tr(),
                         style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                       ),
                       SizedBox(height: 8),
                       ElevatedButton.icon(
                         onPressed: () => context.read<AuthBloc>().add(LoadAllUsers()),
                         icon: Icon(Icons.refresh),
-                        label: Text('Load Users'),
+                        label: Text('users_page.load_users'.tr()),
                       ),
                     ],
                   ),
@@ -107,7 +104,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showUserDialog(context, null),
         icon: Icon(Icons.person_add),
-        label: Text('Add User'),
+        label: Text('users_page.add_user'.tr()),
       ),
     );
   }
@@ -127,7 +124,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
       ),
       child: TextField(
         decoration: InputDecoration(
-          hintText: 'Search users by name or email...',
+          hintText: 'users_page.search_hint'.tr(),
           prefixIcon: Icon(Icons.search),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -150,12 +147,12 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
       horizontalMargin: 12,
       minWidth: 900,
       columns: [
-        DataColumn2(label: Text('Name'), size: ColumnSize.L),
-        DataColumn2(label: Text('Email'), size: ColumnSize.L),
-        DataColumn2(label: Text('Role'), size: ColumnSize.M),
-        DataColumn2(label: Text('Status'), size: ColumnSize.S),
-        DataColumn2(label: Text('Last Login'), size: ColumnSize.M),
-        DataColumn2(label: Text('Actions'), size: ColumnSize.M),
+        DataColumn2(label: Text('users_page.name'.tr()), size: ColumnSize.L),
+        DataColumn2(label: Text('users_page.email'.tr()), size: ColumnSize.L),
+        DataColumn2(label: Text('users_page.role'.tr()), size: ColumnSize.M),
+        DataColumn2(label: Text('users_page.status'.tr()), size: ColumnSize.S),
+        DataColumn2(label: Text('users_page.last_login'.tr()), size: ColumnSize.M),
+        DataColumn2(label: Text('users_page.actions'.tr()), size: ColumnSize.M),
       ],
       rows: users.map((user) => _buildUserRow(user, currentUser, theme)).toList(),
     );
@@ -192,7 +189,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                     ),
                     if (isCurrentUser)
                       Text(
-                        '(You)',
+                        'users_page.you'.tr(),
                         style: TextStyle(fontSize: 12, color: theme.primaryColor),
                       ),
                   ],
@@ -208,7 +205,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
           Text(
             user.lastLogin != null
                 ? _formatDateTime(user.lastLogin!)
-                : 'Never',
+                : 'users_page.never'.tr(),
             style: TextStyle(fontSize: 13),
           ),
         ),
@@ -236,7 +233,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
 
   Widget _buildStatusChip(bool isActive) {
     return Chip(
-      label: Text(isActive ? 'Active' : 'Inactive'),
+      label: Text(isActive ? 'users_page.active'.tr() : 'users_page.inactive'.tr()),
       backgroundColor: isActive ? Colors.green[100] : Colors.red[100],
       labelStyle: TextStyle(
         color: isActive ? Colors.green[800] : Colors.red[800],
@@ -258,7 +255,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
         IconButton(
           icon: Icon(Icons.edit, size: 18),
           onPressed: () => _showUserDialog(context, user),
-          tooltip: 'Edit User',
+          tooltip: 'users_page.edit_user'.tr(),
           style: IconButton.styleFrom(
             backgroundColor: Colors.blue.withOpacity(0.1),
             foregroundColor: Colors.blue,
@@ -269,7 +266,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
           IconButton(
             icon: Icon(Icons.delete, size: 18),
             onPressed: () => _confirmDeleteUser(context, user),
-            tooltip: 'Delete User',
+            tooltip: 'users_page.delete_user'.tr(),
             style: IconButton.styleFrom(
               backgroundColor: Colors.red.withOpacity(0.1),
               foregroundColor: Colors.red,
@@ -288,12 +285,12 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
           Icon(Icons.person_off, size: 64, color: Colors.grey[400]),
           SizedBox(height: 16),
           Text(
-            'No users found',
+            'users_page.no_users_found'.tr(),
             style: TextStyle(fontSize: 18, color: Colors.grey[600]),
           ),
           SizedBox(height: 8),
           Text(
-            'Try adjusting your search query',
+            'users_page.adjust_search'.tr(),
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
@@ -329,16 +326,16 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
           children: [
             Icon(Icons.warning, color: Colors.red),
             SizedBox(width: 8),
-            Text('Delete User'),
+            Text('users_page.delete_title'.tr()),
           ],
         ),
         content: Text(
-          'Are you sure you want to delete user "${user.name}"? This action cannot be undone.',
+          'users_page.delete_confirm'.tr(namedArgs: {'name': user.name}),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: Text('users_page.cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () {
@@ -346,14 +343,14 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('User deleted successfully'),
+                  content: Text('users_page.user_deleted'.tr()),
                   backgroundColor: Colors.green,
                   duration: Duration(seconds: 2),
                 ),
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text('users_page.delete'.tr(), style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -392,11 +389,11 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
 
     if (difference.inDays == 0) {
       if (difference.inHours == 0) {
-        return '${difference.inMinutes}m ago';
+        return 'users_page.time.minutes_ago'.tr(namedArgs: {'count': '${difference.inMinutes}'});
       }
-      return '${difference.inHours}h ago';
+      return 'users_page.time.hours_ago'.tr(namedArgs: {'count': '${difference.inHours}'});
     } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
+      return 'users_page.time.days_ago'.tr(namedArgs: {'count': '${difference.inDays}'});
     }
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }

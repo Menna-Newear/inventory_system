@@ -1,4 +1,5 @@
-// ✅ presentation/dialogs/user_dialog.dart (FINAL FIXED VERSION!)
+// ✅ presentation/dialogs/user_dialog.dart (FULLY LOCALIZED!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/auth/auth_bloc.dart';
@@ -23,7 +24,7 @@ class _UserDialogState extends State<UserDialog> {
   late UserRole _selectedRole;
   late Set<Permission> _selectedPermissions;
   bool _isActive = true;
-  bool _isSubmitting = false; // ✅ Track submission state
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -51,21 +52,20 @@ class _UserDialogState extends State<UserDialog> {
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        // ✅ FIXED: Only respond if we're in submit mode and got Authenticated with users
         if (_isSubmitting && state is Authenticated && state.allUsers != null) {
           Navigator.pop(context);
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                isEditing ? 'User updated successfully' : 'User created successfully',
+                isEditing ? 'user_dialog.user_updated'.tr() : 'user_dialog.user_created'.tr(),
               ),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
           );
         } else if (state is AuthError) {
-          _isSubmitting = false; // Reset flag on error
+          _isSubmitting = false;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -76,7 +76,7 @@ class _UserDialogState extends State<UserDialog> {
         }
       },
       child: AlertDialog(
-        title: Text(isEditing ? 'Edit User' : 'Create New User'),
+        title: Text(isEditing ? 'user_dialog.edit_title'.tr() : 'user_dialog.create_title'.tr()),
         content: Container(
           width: 500,
           child: Form(
@@ -90,13 +90,13 @@ class _UserDialogState extends State<UserDialog> {
                   TextFormField(
                     controller: _nameController,
                     decoration: InputDecoration(
-                      labelText: 'Full Name',
+                      labelText: 'user_dialog.full_name'.tr(),
                       prefixIcon: Icon(Icons.person),
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter a name';
+                        return 'user_dialog.validation.name_required'.tr();
                       }
                       return null;
                     },
@@ -108,16 +108,16 @@ class _UserDialogState extends State<UserDialog> {
                     controller: _emailController,
                     enabled: !isEditing,
                     decoration: InputDecoration(
-                      labelText: 'Email',
+                      labelText: 'user_dialog.email'.tr(),
                       prefixIcon: Icon(Icons.email),
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter an email';
+                        return 'user_dialog.validation.email_required'.tr();
                       }
                       if (!value.contains('@')) {
-                        return 'Please enter a valid email';
+                        return 'user_dialog.validation.email_invalid'.tr();
                       }
                       return null;
                     },
@@ -130,16 +130,16 @@ class _UserDialogState extends State<UserDialog> {
                       controller: _passwordController,
                       obscureText: true,
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: 'user_dialog.password'.tr(),
                         prefixIcon: Icon(Icons.lock),
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a password';
+                          return 'user_dialog.validation.password_required'.tr();
                         }
                         if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
+                          return 'user_dialog.validation.password_min_length'.tr();
                         }
                         return null;
                       },
@@ -151,7 +151,7 @@ class _UserDialogState extends State<UserDialog> {
                   DropdownButtonFormField<UserRole>(
                     value: _selectedRole,
                     decoration: InputDecoration(
-                      labelText: 'Role',
+                      labelText: 'user_dialog.role'.tr(),
                       prefixIcon: Icon(Icons.admin_panel_settings),
                       border: OutlineInputBorder(),
                     ),
@@ -181,8 +181,8 @@ class _UserDialogState extends State<UserDialog> {
                   // Active Status Switch
                   if (isEditing)
                     SwitchListTile(
-                      title: Text('Active'),
-                      subtitle: Text('User can log in and access the system'),
+                      title: Text('user_dialog.active'.tr()),
+                      subtitle: Text('user_dialog.active_subtitle'.tr()),
                       value: _isActive,
                       onChanged: (value) {
                         setState(() {
@@ -194,7 +194,7 @@ class _UserDialogState extends State<UserDialog> {
 
                   // Permissions Section
                   Text(
-                    'Permissions',
+                    'user_dialog.permissions'.tr(),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -209,11 +209,11 @@ class _UserDialogState extends State<UserDialog> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: Text('user_dialog.cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: _handleSubmit,
-            child: Text(isEditing ? 'Update' : 'Create'),
+            child: Text(isEditing ? 'user_dialog.update'.tr() : 'user_dialog.create'.tr()),
           ),
         ],
       ),
@@ -273,7 +273,6 @@ class _UserDialogState extends State<UserDialog> {
   void _handleSubmit() {
     if (!_formKey.currentState!.validate()) return;
 
-    // ✅ Set flag to track that we're submitting
     setState(() {
       _isSubmitting = true;
     });

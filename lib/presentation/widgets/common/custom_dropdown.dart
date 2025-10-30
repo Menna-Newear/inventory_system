@@ -8,7 +8,6 @@ class CustomDropdown<T> extends StatelessWidget {
   final ValueChanged<T?>? onChanged;
   final String? Function(T?)? validator;
   final bool enabled;
-  // ✅ NEW - Added missing parameters
   final String? hint;
   final Widget Function(T)? itemBuilder;
   final String Function(T)? itemToString;

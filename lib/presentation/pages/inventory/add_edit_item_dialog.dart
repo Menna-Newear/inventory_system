@@ -1,5 +1,6 @@
-// ✅ presentation/pages/inventory/add_edit_item_dialog.dart
+// ✅ presentation/pages/inventory/add_edit_item_dialog.dart (FULLY LOCALIZED!)
 import 'dart:io';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -47,9 +48,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
   late TextEditingController _descriptionArController;
   late TextEditingController _commentController;
 
-  // ✅ Serial tracking options
+  // Serial tracking options
   bool _isSerialTracked = false;
-  bool _autoGenerateSerials = false; // ✅ NEW
+  bool _autoGenerateSerials = false;
 
   // Dropdown values
   String? _selectedCategoryId;
@@ -118,7 +119,6 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
         BlocListener<InventoryBloc, InventoryState>(
           listener: (context, state) {
             if (state is InventoryItemCreated) {
-              // ✅ Auto-generate serials after item creation
               if (_isSerialTracked && _autoGenerateSerials) {
                 _generateSerialNumbers(state.item.id);
               } else {
@@ -129,7 +129,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
             } else if (state is InventoryError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Error: ${state.message}'),
+                  content: Text('item_dialog.error'.tr(namedArgs: {'message': state.message})),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -141,7 +141,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
             if (state is CategoryCreated) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Category "${state.category.name}" added!'),
+                  content: Text('item_dialog.category_added'.tr(namedArgs: {'name': state.category.name})),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -155,7 +155,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
           height: 700,
           child: Scaffold(
             appBar: AppBar(
-              title: Text(isEditing ? 'Edit Item' : 'Add New Item'),
+              title: Text(isEditing ? 'item_dialog.edit_title'.tr() : 'item_dialog.add_title'.tr()),
               automaticallyImplyLeading: false,
               actions: [
                 IconButton(
@@ -201,14 +201,15 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Basic Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('item_dialog.basic_info'.tr(),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: CustomTextField(
                     controller: _skuController,
-                    label: 'SKU',
+                    label: 'item_dialog.sku'.tr(),
                     validator: Validators.required,
                     enabled: !isEditing,
                   ),
@@ -224,15 +225,29 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               ],
             ),
             SizedBox(height: 16),
-            CustomTextField(controller: _subcategoryController, label: 'Subcategory', validator: Validators.required),
+            CustomTextField(
+                controller: _subcategoryController,
+                label: 'inventory.subcategory'.tr(),
+                validator: Validators.required),
             SizedBox(height: 16),
-            CustomTextField(controller: _nameEnController, label: 'Name (English)', validator: Validators.required),
+            CustomTextField(
+                controller: _nameEnController,
+                label: 'item_dialog.name_en'.tr(),
+                validator: Validators.required),
             SizedBox(height: 16),
-            CustomTextField(controller: _nameArController, label: 'Name (Arabic)'),
+            CustomTextField(
+                controller: _nameArController,
+                label: 'item_dialog.name_ar'.tr()),
             SizedBox(height: 16),
-            CustomTextField(controller: _descriptionEnController, label: 'Description (English)', maxLines: 2),
+            CustomTextField(
+                controller: _descriptionEnController,
+                label: 'item_dialog.description_en'.tr(),
+                maxLines: 2),
             SizedBox(height: 16),
-            CustomTextField(controller: _descriptionArController, label: 'Description (Arabic)', maxLines: 2),
+            CustomTextField(
+                controller: _descriptionArController,
+                label: 'item_dialog.description_ar'.tr(),
+                maxLines: 2),
           ],
         ),
       ),
@@ -247,14 +262,15 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Inventory Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('item_dialog.inventory_details'.tr(),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: CustomTextField(
                     controller: _stockController,
-                    label: 'Stock Quantity',
+                    label: 'item_dialog.stock_quantity'.tr(),
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: Validators.positiveInteger,
@@ -264,7 +280,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                 Expanded(
                   child: CustomTextField(
                     controller: _minStockController,
-                    label: 'Minimum Stock Level',
+                    label: 'item_dialog.min_stock_level'.tr(),
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: Validators.nonNegativeInteger,
@@ -275,7 +291,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
             SizedBox(height: 16),
             CustomTextField(
               controller: _priceController,
-              label: 'Unit Price (Optional)',
+              label: 'item_dialog.unit_price'.tr(),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
               validator: Validators.positiveDouble,
@@ -298,7 +314,8 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               children: [
                 Icon(Icons.qr_code_2, color: Theme.of(context).primaryColor),
                 SizedBox(width: 8),
-                Text('Serial Number Tracking', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('item_dialog.serial_tracking'.tr(),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
             SizedBox(height: 12),
@@ -312,13 +329,14 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               child: Column(
                 children: [
                   SwitchListTile(
-                    title: Text('Enable Serial Number Tracking', style: TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text('Track individual items with unique serial numbers'),
+                    title: Text('item_dialog.enable_serial_tracking'.tr(),
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text('item_dialog.serial_tracking_desc'.tr()),
                     value: _isSerialTracked,
                     onChanged: (value) {
                       setState(() {
                         _isSerialTracked = value;
-                        if (!value) _autoGenerateSerials = false; // Reset if disabled
+                        if (!value) _autoGenerateSerials = false;
                       });
                     },
                     contentPadding: EdgeInsets.zero,
@@ -344,7 +362,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Serial Format: SKU-000001',
+                                      'item_dialog.serial_format'.tr(),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontFamily: 'monospace',
@@ -353,7 +371,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                                     ),
                                     SizedBox(height: 4),
                                     Text(
-                                      'Serial numbers will be auto-generated based on SKU',
+                                      'item_dialog.serial_format_desc'.tr(),
                                       style: TextStyle(fontSize: 12, color: Colors.purple[800]),
                                     ),
                                   ],
@@ -361,18 +379,18 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                               ),
                             ],
                           ),
-                          // ✅ NEW: Auto-generate option
                           if (!isEditing) ...[
                             SizedBox(height: 12),
                             CheckboxListTile(
                               value: _autoGenerateSerials,
                               onChanged: (value) => setState(() => _autoGenerateSerials = value ?? false),
                               title: Text(
-                                'Auto-generate serial numbers on creation',
+                                'item_dialog.auto_generate_serials'.tr(),
                                 style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
                               ),
                               subtitle: Text(
-                                'Generate ${_stockController.text.isEmpty ? "X" : _stockController.text} serial numbers automatically',
+                                'item_dialog.auto_generate_desc'.tr(
+                                    namedArgs: {'count': _stockController.text.isEmpty ? "X" : _stockController.text}),
                                 style: TextStyle(fontSize: 12),
                               ),
                               contentPadding: EdgeInsets.zero,
@@ -401,14 +419,15 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Product Dimensions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('item_dialog.product_dimensions'.tr(),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: CustomTextField(
                     controller: _widthController,
-                    label: 'Width (Optional)',
+                    label: 'item_dialog.width'.tr(),
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
                     validator: Validators.optionalPositiveDouble,
                   ),
@@ -417,17 +436,19 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                 Expanded(
                   child: CustomTextField(
                     controller: _heightController,
-                    label: 'Height (Optional)',
+                    label: 'item_dialog.height'.tr(),
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
                     validator: Validators.optionalPositiveDouble,
                   ),
                 ),
                 SizedBox(width: 16),
-                Expanded(child: CustomTextField(controller: _depthController, label: 'Depth (Optional)')),
+                Expanded(child: CustomTextField(
+                    controller: _depthController,
+                    label: 'item_dialog.depth'.tr())),
                 SizedBox(width: 16),
                 Expanded(
                   child: CustomDropdown<String>(
-                    label: 'Unit',
+                    label: 'item_dialog.unit'.tr(),
                     value: _getValidUnitValue(),
                     items: ['cm', 'inch', 'm', 'mm', 'l', 'na'],
                     onChanged: (value) => setState(() => _unitController.text = value ?? 'na'),
@@ -436,7 +457,9 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
               ],
             ),
             SizedBox(height: 16),
-            CustomTextField(controller: _commentController, label: 'Comment'),
+            CustomTextField(
+                controller: _commentController,
+                label: 'item_dialog.comment'.tr()),
           ],
         ),
       ),
@@ -451,14 +474,15 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Image Properties', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('item_dialog.image_properties'.tr(),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: CustomTextField(
                     controller: _pixelWidthController,
-                    label: 'Pixel Width (Optional)',
+                    label: 'item_dialog.pixel_width'.tr(),
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: Validators.optionalPositiveInteger,
@@ -468,7 +492,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                 Expanded(
                   child: CustomTextField(
                     controller: _pixelHeightController,
-                    label: 'Pixel Height (Optional)',
+                    label: 'item_dialog.pixel_height'.tr(),
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: Validators.optionalPositiveInteger,
@@ -479,11 +503,13 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
             SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: CustomTextField(controller: _otherSpController, label: 'Other Sp. (Optional)')),
+                Expanded(child: CustomTextField(
+                    controller: _otherSpController,
+                    label: 'item_dialog.other_sp'.tr())),
                 SizedBox(width: 16),
                 Expanded(
                   child: CustomDropdown<String>(
-                    label: 'Color Space',
+                    label: 'item_dialog.color_space'.tr(),
                     value: _getValidColorSpaceValue(),
                     items: ['RGB', 'CMYK', 'Grayscale', 'LAB', 'NA'],
                     onChanged: (value) => setState(() => _selectedColorSpace = value!),
@@ -505,7 +531,8 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Product Image', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('item_dialog.product_image'.tr(),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 16),
             Row(
               children: [
@@ -523,15 +550,22 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ElevatedButton.icon(onPressed: _pickImage, icon: Icon(Icons.photo_library), label: Text('Choose Image')),
+                      ElevatedButton.icon(
+                          onPressed: _pickImage,
+                          icon: Icon(Icons.photo_library),
+                          label: Text('item_dialog.choose_image'.tr())),
                       SizedBox(height: 8),
-                      ElevatedButton.icon(onPressed: _takePhoto, icon: Icon(Icons.camera_alt), label: Text('Take Photo')),
+                      ElevatedButton.icon(
+                          onPressed: _takePhoto,
+                          icon: Icon(Icons.camera_alt),
+                          label: Text('item_dialog.take_photo'.tr())),
                       if (_selectedImage != null || widget.item?.imageUrl != null) ...[
                         SizedBox(height: 8),
                         TextButton.icon(
                           onPressed: _clearImage,
                           icon: Icon(Icons.clear, color: Colors.red),
-                          label: Text('Remove Image', style: TextStyle(color: Colors.red)),
+                          label: Text('item_dialog.remove_image'.tr(),
+                              style: TextStyle(color: Colors.red)),
                         ),
                       ],
                     ],
@@ -566,14 +600,14 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
           children: [
             TextButton(
               onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: Text('item_dialog.cancel'.tr()),
             ),
             SizedBox(width: 16),
             ElevatedButton(
               onPressed: isLoading ? null : _saveItem,
               child: isLoading
                   ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(isEditing ? 'Update Item' : 'Create Item'),
+                  : Text(isEditing ? 'item_dialog.update_item'.tr() : 'item_dialog.create_item'.tr()),
             ),
           ],
         );
@@ -585,7 +619,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select a category'), backgroundColor: Colors.red),
+        SnackBar(content: Text('item_dialog.select_category'.tr()), backgroundColor: Colors.red),
       );
       return;
     }
@@ -633,7 +667,6 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
     }
   }
 
-  // ✅ NEW: Generate serial numbers after item creation
   void _generateSerialNumbers(String itemId) {
     final quantity = int.tryParse(_stockController.text) ?? 0;
     if (quantity <= 0) {
@@ -655,7 +688,6 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
       );
     });
 
-    // Use SerialNumberBloc to add serials
     final serialBloc = getIt<SerialNumberBloc>();
     serialBloc.add(AddSerialNumbers(itemId, serials));
 
@@ -665,7 +697,7 @@ class _AddEditItemDialogState extends State<AddEditItemDialog> {
           children: [
             Icon(Icons.check_circle, color: Colors.white),
             SizedBox(width: 8),
-            Text('Item created and $quantity serial numbers generated!'),
+            Text('item_dialog.item_created_serials'.tr(namedArgs: {'count': '$quantity'})),
           ],
         ),
         backgroundColor: Colors.green,

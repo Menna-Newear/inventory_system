@@ -1,4 +1,5 @@
-// ✅ presentation/widgets/inventory/inventory_data_table.dart (WITH FULL PERMISSIONS!)
+// ✅ presentation/widgets/inventory/inventory_data_table.dart (FULLY LOCALIZED!)
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:data_table_2/data_table_2.dart';
@@ -53,7 +54,7 @@ class InventoryDataTable extends StatelessWidget {
                   children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 16),
-                    Text('Loading inventory...',
+                    Text('table.loading_inventory'.tr(),
                         style: TextStyle(fontSize: 16, color: Colors.grey[600])),
                   ],
                 ),
@@ -92,7 +93,7 @@ class InventoryDataTable extends StatelessWidget {
                           context,
                           inventoryState.displayItems,
                           categoryNamesMap,
-                          currentUser, // ✅ Pass current user
+                          currentUser,
                         );
                       },
                     ),
@@ -109,7 +110,7 @@ class InventoryDataTable extends StatelessWidget {
                   children: [
                     Icon(Icons.error_outline, size: 64, color: Colors.red),
                     SizedBox(height: 16),
-                    Text('Error loading inventory',
+                    Text('table.error_loading'.tr(),
                         style: Theme.of(context).textTheme.headlineSmall),
                     SizedBox(height: 8),
                     Text(inventoryState.message),
@@ -118,7 +119,7 @@ class InventoryDataTable extends StatelessWidget {
                       onPressed: () {
                         context.read<InventoryBloc>().add(LoadInventoryItems());
                       },
-                      child: Text('Retry'),
+                      child: Text('actions.retry'.tr()),
                     ),
                   ],
                 ),
@@ -173,8 +174,8 @@ class InventoryDataTable extends StatelessWidget {
                 SizedBox(width: 8),
                 Text(
                   hasFilters || hasSearch
-                      ? 'Showing ${state.filteredItems.length} filtered items'
-                      : 'Showing $startItem-$endItem of $totalItems items',
+                      ? '${'table.showing'.tr()} ${state.filteredItems.length} ${'table.filtered_items'.tr()}'
+                      : '${'table.showing'.tr()} $startItem-$endItem ${'table.of'.tr()} $totalItems ${'table.items'.tr()}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -216,8 +217,8 @@ class InventoryDataTable extends StatelessWidget {
                         SizedBox(width: 4),
                         Text(
                           isFiltering
-                              ? 'Filtering...'
-                              : '${state.activeFilters.length} filter${state.activeFilters.length > 1 ? 's' : ''}',
+                              ? 'filtering.filtering'.tr()
+                              : '${state.activeFilters.length} ${state.activeFilters.length > 1 ? 'filtering.filters_plural'.tr() : 'filtering.filters'.tr()}',
                           style: TextStyle(
                             fontSize: 12,
                             color: isFiltering
@@ -248,7 +249,7 @@ class InventoryDataTable extends StatelessWidget {
                             color: isDark ? Colors.green[400] : Colors.green[700]),
                         SizedBox(width: 4),
                         Text(
-                          '${state.filteredItems.length} results',
+                          '${state.filteredItems.length} ${'filtering.results'.tr()}',
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark ? Colors.green[400] : Colors.green[700],
@@ -282,7 +283,7 @@ class InventoryDataTable extends StatelessWidget {
                         color: currentPage > 1 && !state.isLoadingMore
                             ? (isDark ? Colors.blue[300] : Colors.blue[700])
                             : (isDark ? Colors.grey[700] : Colors.grey[400])),
-                    tooltip: 'Previous page',
+                    tooltip: 'table.previous_page'.tr(),
                   ),
                 ),
                 SizedBox(width: 8),
@@ -295,7 +296,7 @@ class InventoryDataTable extends StatelessWidget {
                       color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
                     ),
                   ),
-                  child: Text('Page $currentPage of $totalPages',
+                  child: Text('${'table.page'.tr()} $currentPage ${'table.of'.tr()} $totalPages',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -317,7 +318,7 @@ class InventoryDataTable extends StatelessWidget {
                         color: !state.hasReachedMax && !state.isLoadingMore
                             ? (isDark ? Colors.blue[300] : Colors.blue[700])
                             : (isDark ? Colors.grey[700] : Colors.grey[400])),
-                    tooltip: 'Next page',
+                    tooltip: 'table.next_page'.tr(),
                   ),
                 ),
               ],
@@ -332,7 +333,7 @@ class InventoryDataTable extends StatelessWidget {
       BuildContext context,
       List<InventoryItem> items,
       Map<String, String> categoryNamesMap,
-      User? currentUser, // ✅ Added parameter
+      User? currentUser,
       ) {
     return DataTable2(
       key: ValueKey(items.length),
@@ -340,17 +341,17 @@ class InventoryDataTable extends StatelessWidget {
       horizontalMargin: 12,
       minWidth: 1100,
       columns: [
-        DataColumn2(label: Text('SKU'), size: ColumnSize.S),
-        DataColumn2(label: Text('Name'), size: ColumnSize.L),
-        DataColumn2(label: Text('Name (AR)'), size: ColumnSize.L),
-        DataColumn2(label: Text('Category'), size: ColumnSize.M),
-        DataColumn2(label: Text('Subcategory'), size: ColumnSize.M),
-        DataColumn2(label: Text('Stock'), size: ColumnSize.S, numeric: true),
-        DataColumn2(label: Text('Price'), size: ColumnSize.S, numeric: true),
-        DataColumn2(label: Text('Total Value'), size: ColumnSize.S, numeric: true),
-        DataColumn2(label: Text('Status'), size: ColumnSize.S),
-        DataColumn2(label: Text('Updated'), size: ColumnSize.M),
-        DataColumn2(label: Text('Actions'), size: ColumnSize.M),
+        DataColumn2(label: Text('table.sku'.tr()), size: ColumnSize.S),
+        DataColumn2(label: Text('table.name'.tr()), size: ColumnSize.L),
+        DataColumn2(label: Text('table.name_ar'.tr()), size: ColumnSize.L),
+        DataColumn2(label: Text('table.category'.tr()), size: ColumnSize.M),
+        DataColumn2(label: Text('table.subcategory'.tr()), size: ColumnSize.M),
+        DataColumn2(label: Text('table.stock'.tr()), size: ColumnSize.S, numeric: true),
+        DataColumn2(label: Text('table.price'.tr()), size: ColumnSize.S, numeric: true),
+        DataColumn2(label: Text('table.total_value'.tr()), size: ColumnSize.S, numeric: true),
+        DataColumn2(label: Text('table.status'.tr()), size: ColumnSize.S),
+        DataColumn2(label: Text('table.updated'.tr()), size: ColumnSize.M),
+        DataColumn2(label: Text('table.actions'.tr()), size: ColumnSize.M),
       ],
       rows: items.map((item) => _buildDataRow(context, item, categoryNamesMap, currentUser)).toList(),
       empty: Center(
@@ -362,7 +363,7 @@ class InventoryDataTable extends StatelessWidget {
             children: [
               Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
               SizedBox(height: 16),
-              Text('No items found', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+              Text('table.no_items_found'.tr(), style: TextStyle(fontSize: 16, color: Colors.grey[600])),
             ],
           ),
         ),
@@ -374,7 +375,7 @@ class InventoryDataTable extends StatelessWidget {
       BuildContext context,
       InventoryItem item,
       Map<String, String> categoryNamesMap,
-      User? currentUser, // ✅ Added parameter
+      User? currentUser,
       ) {
     return DataRow2(
       cells: [
@@ -440,7 +441,7 @@ class InventoryDataTable extends StatelessWidget {
         ),
         DataCell(_buildStatusChip(item)),
         DataCell(Text(dateFormat.format(item.updatedAt))),
-        DataCell(_buildActionButtons(context, item, currentUser)), // ✅ Pass user
+        DataCell(_buildActionButtons(context, item, currentUser)),
       ],
     );
   }
@@ -448,21 +449,21 @@ class InventoryDataTable extends StatelessWidget {
   Widget _buildStatusChip(InventoryItem item) {
     if (item.stockQuantity == 0) {
       return Chip(
-        label: Text('Out of Stock'),
+        label: Text('status_labels.out_of_stock'.tr()),
         backgroundColor: Colors.red[100],
         labelStyle: TextStyle(color: Colors.red[800]),
         avatar: Icon(Icons.cancel, size: 16, color: Colors.red[800]),
       );
     } else if (item.needsRestock) {
       return Chip(
-        label: Text('Low Stock'),
+        label: Text('status_labels.low_stock'.tr()),
         backgroundColor: Colors.orange[100],
         labelStyle: TextStyle(color: Colors.orange[800]),
         avatar: Icon(Icons.warning, size: 16, color: Colors.orange[800]),
       );
     } else {
       return Chip(
-        label: Text(item.isSerialTracked ? 'Serial Tracked' : 'In Stock'),
+        label: Text(item.isSerialTracked ? 'status_labels.serial_tracked'.tr() : 'status_labels.in_stock'.tr()),
         backgroundColor: item.isSerialTracked ? Colors.blue[100] : Colors.green[100],
         labelStyle: TextStyle(
           color: item.isSerialTracked ? Colors.blue[800] : Colors.green[800],
@@ -488,7 +489,6 @@ class InventoryDataTable extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Edit button - only if has permission
           if (canEdit)
             Container(
               width: 32,
@@ -496,7 +496,7 @@ class InventoryDataTable extends StatelessWidget {
               child: IconButton(
                 icon: Icon(Icons.edit, size: 16),
                 onPressed: () => _editItem(context, item),
-                tooltip: 'Edit Item',
+                tooltip: 'actions.edit_item'.tr(),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.blue.withOpacity(0.1),
                   foregroundColor: Colors.blue,
@@ -505,7 +505,6 @@ class InventoryDataTable extends StatelessWidget {
             ),
           if (canEdit) SizedBox(width: 4),
 
-          // ✅ FIXED: Serial button - show if can VIEW or MANAGE serials
           if (item.isSerialTracked && canViewSerial) ...[
             Container(
               width: 32,
@@ -513,7 +512,7 @@ class InventoryDataTable extends StatelessWidget {
               child: IconButton(
                 icon: Icon(Icons.qr_code_scanner, size: 16),
                 onPressed: () => _showSerialDialog(context, item),
-                tooltip: canManageSerial ? 'Manage Serials' : 'View Serials',
+                tooltip: canManageSerial ? 'actions.manage_serials'.tr() : 'actions.view_serials'.tr(),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.purple.withOpacity(0.1),
                   foregroundColor: Colors.purple,
@@ -523,7 +522,6 @@ class InventoryDataTable extends StatelessWidget {
             SizedBox(width: 4),
           ],
 
-          // Delete button - only if has permission
           if (canDelete)
             Container(
               width: 32,
@@ -531,7 +529,7 @@ class InventoryDataTable extends StatelessWidget {
               child: IconButton(
                 icon: Icon(Icons.delete, size: 16),
                 onPressed: () => _deleteItem(context, item),
-                tooltip: 'Delete Item',
+                tooltip: 'actions.delete_item'.tr(),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.red.withOpacity(0.1),
                   foregroundColor: Colors.red,
@@ -540,14 +538,13 @@ class InventoryDataTable extends StatelessWidget {
             ),
           if (canDelete) SizedBox(width: 4),
 
-          // QR Code - always visible (read-only action)
           Container(
             width: 32,
             height: 32,
             child: IconButton(
               icon: Icon(Icons.qr_code, size: 16),
               onPressed: () => _showQrCode(context, item),
-              tooltip: 'Show QR Code',
+              tooltip: 'actions.show_qr'.tr(),
               style: IconButton.styleFrom(
                 backgroundColor: Colors.green.withOpacity(0.1),
                 foregroundColor: Colors.green,
@@ -555,7 +552,6 @@ class InventoryDataTable extends StatelessWidget {
             ),
           ),
 
-          // Image viewer - always visible (read-only action)
           if (item.imageUrl != null && item.imageUrl!.isNotEmpty) ...[
             SizedBox(width: 4),
             Container(
@@ -564,7 +560,7 @@ class InventoryDataTable extends StatelessWidget {
               child: IconButton(
                 icon: Icon(Icons.image, size: 16),
                 onPressed: () => _viewImage(context, item),
-                tooltip: 'View Image',
+                tooltip: 'actions.view_image'.tr(),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.orange.withOpacity(0.1),
                   foregroundColor: Colors.orange,
@@ -593,7 +589,6 @@ class InventoryDataTable extends StatelessWidget {
   }
 
   void _showSerialDialog(BuildContext context, InventoryItem item) {
-    // ✅ Get current user from BLoC
     final authState = context.read<AuthBloc>().state;
     final canManage = authState is Authenticated
         ? authState.user.hasPermission(Permission.serialManage)
@@ -606,7 +601,7 @@ class InventoryDataTable extends StatelessWidget {
         create: (_) => getIt<SerialNumberBloc>()..add(LoadSerialNumbers(item.id)),
         child: SerialNumberDialog(
           item: item,
-          canManage: canManage, // ✅ Pass permission
+          canManage: canManage,
           onUpdated: () {
             context.read<InventoryBloc>().add(RefreshSingleItem(item.id));
             debugPrint('🔄 TABLE: Requesting refresh for item: ${item.id}');
@@ -638,14 +633,14 @@ class InventoryDataTable extends StatelessWidget {
           children: [
             Icon(Icons.warning, color: Colors.red),
             SizedBox(width: 8),
-            Text('Delete Item'),
+            Text('dialogs.delete_title'.tr()),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Are you sure you want to delete this item?'),
+            Text('dialogs.delete_confirm'.tr()),
             SizedBox(height: 8),
             Container(
               padding: EdgeInsets.all(8),
@@ -656,14 +651,14 @@ class InventoryDataTable extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Item: ${item.nameEn}', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('SKU: ${item.sku}'),
-                  Text('Stock: ${item.stockQuantity}'),
+                  Text('${'dialogs.item'.tr()}: ${item.nameEn}', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('${'table.sku'.tr()}: ${item.sku}'),
+                  Text('${'dialogs.stock'.tr()}: ${item.stockQuantity}'),
                   if (item.unitPrice != null)
-                    Text('Price: ${_formatCurrency(item.unitPrice)}'),
+                    Text('${'dialogs.price'.tr()}: ${_formatCurrency(item.unitPrice)}'),
                   if (item.isSerialTracked)
                     Text(
-                      'Serial Numbers: ${item.serialNumbers.length} will be deleted',
+                      'dialogs.serial_numbers_delete'.tr(namedArgs: {'count': '${item.serialNumbers.length}'}),
                       style: TextStyle(color: Colors.red[600], fontWeight: FontWeight.w500),
                     ),
                 ],
@@ -671,7 +666,7 @@ class InventoryDataTable extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'This action cannot be undone.',
+              'dialogs.delete_warning'.tr(),
               style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
             ),
           ],
@@ -679,7 +674,7 @@ class InventoryDataTable extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: Text('common.cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () {
@@ -691,7 +686,7 @@ class InventoryDataTable extends StatelessWidget {
                     children: [
                       Icon(Icons.check_circle, color: Colors.white),
                       SizedBox(width: 8),
-                      Text('Item "${item.nameEn}" deleted successfully'),
+                      Text('${'messages.item_deleted'.tr()} "${item.nameEn}"'),
                     ],
                   ),
                   backgroundColor: Colors.green,
@@ -700,7 +695,7 @@ class InventoryDataTable extends StatelessWidget {
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text('common.delete'.tr(), style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -739,7 +734,7 @@ class InventoryDataTable extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Product Image - ${item.nameEn}',
+                          '${'dialogs.product_image'.tr()} - ${item.nameEn}',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -785,7 +780,7 @@ class InventoryDataTable extends StatelessWidget {
                                 children: [
                                   Icon(Icons.error, size: 48, color: Colors.red),
                                   SizedBox(height: 8),
-                                  Text('Failed to load image',
+                                  Text('dialogs.failed_load_image'.tr(),
                                       style: TextStyle(color: Colors.red)),
                                 ],
                               ),
